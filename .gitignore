@@ -14,8 +14,10 @@ dist/
 downloads/
 eggs/
 .eggs/
+*.tsbuildinfo
 lib/
-!frontend/src/lib/
+!frontend/src/*.tsbuildinfo
+lib/
 lib64/
 parts/
 sdist/
