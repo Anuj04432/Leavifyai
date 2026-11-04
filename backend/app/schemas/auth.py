@@ -23,19 +23,6 @@ class UserLoginRequest(BaseModel):
     password: str = Field(..., min_length=1, description="Account password")
 
 
-class TokenResponse(BaseModel):
-    """JWT response returned after successful authentication."""
-    access_token: str
-    refresh_token: str
-    token_type: str = "bearer"
-    expires_in: int
-
-
-class TokenRefreshRequest(BaseModel):
-    """Payload for refreshing an expired access token."""
-    refresh_token: str = Field(..., description="Valid refresh token")
-
-
 class UserResponse(BaseModel):
     """Public user identity and profile view."""
     id: uuid.UUID
@@ -48,3 +35,17 @@ class UserResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class TokenResponse(BaseModel):
+    """JWT response returned after successful authentication."""
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    expires_in: int
+    user: Optional[UserResponse] = None
+
+
+class TokenRefreshRequest(BaseModel):
+    """Payload for refreshing an expired access token."""
+    refresh_token: str = Field(..., description="Valid refresh token")
