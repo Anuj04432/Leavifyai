@@ -66,13 +66,11 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def check_db_health() -> bool:
-    """Verifies active connectivity to PostgreSQL database with a fast fail timeout."""
+    """Verifies active connectivity to PostgreSQL database."""
     try:
-        async def _ping():
-            async with AsyncSessionLocal() as session:
-                result = await session.execute(text("SELECT 1"))
-                return result.scalar() == 1
-        return await asyncio.wait_for(_ping(), timeout=4.0)
+        async with engine.connect() as conn:
+            result = await conn.execute(text("SELECT 1"))
+            return result.scalar() == 1
     except Exception:
         return False
 
