@@ -72,7 +72,7 @@ async def check_db_health() -> bool:
             async with AsyncSessionLocal() as session:
                 result = await session.execute(text("SELECT 1"))
                 return result.scalar() == 1
-        return await asyncio.wait_for(_ping(), timeout=1.5)
+        return await asyncio.wait_for(_ping(), timeout=4.0)
     except Exception:
         return False
 
@@ -85,6 +85,6 @@ async def check_redis_health() -> bool:
             is_alive = await client.ping()
             await client.aclose()
             return is_alive is True
-        return await asyncio.wait_for(_ping(), timeout=1.5)
+        return await asyncio.wait_for(_ping(), timeout=2.0)
     except Exception:
         return False
