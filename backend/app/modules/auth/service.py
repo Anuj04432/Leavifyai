@@ -147,11 +147,22 @@ class AuthService:
         )
         refresh_token = create_refresh_token(subject=user.id)
 
+        user_info = UserResponse(
+            id=user.id,
+            email=user.email,
+            role=user.role,
+            company_id=user.company_id,
+            employee_id=employee_id,
+            is_active=user.is_active,
+            created_at=user.created_at,
+        )
+
         return TokenResponse(
             access_token=access_token,
             refresh_token=refresh_token,
             token_type="bearer",
             expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+            user=user_info,
         )
 
     async def refresh_token(self, refresh_token_str: str) -> TokenResponse:
