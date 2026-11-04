@@ -19,7 +19,7 @@ import { useNavigate } from "react-router-dom";
 interface Department {
   id: string;
   name: string;
-  code: string;
+  code?: string;
 }
 
 interface Employee {
@@ -27,14 +27,14 @@ interface Employee {
   employee_code: string;
   first_name: string;
   last_name: string;
-  work_email: string;
-  designation: string;
-  employment_type: string;
-  status: string;
-  base_salary: number;
-  salary_currency: string;
+  email: string;
+  designation?: string | null;
+  employment_type?: string | null;
+  is_active: boolean;
+  salary_basic: number | string;
   paypal_email: string | null;
-  department?: Department | null;
+  department_name?: string | null;
+  department_id?: string | null;
 }
 
 export default function EmployeeDirectory() {
@@ -96,7 +96,7 @@ export default function EmployeeDirectory() {
   const fetchDepartments = async () => {
     try {
       const res = await api.get("/departments/");
-      setDepartments(res.data.items || []);
+      setDepartments(Array.isArray(res.data) ? res.data : res.data.items || []);
     } catch (err) {
       console.error("Failed to fetch departments", err);
     }
@@ -120,8 +120,13 @@ export default function EmployeeDirectory() {
 
     try {
       const payload: any = {
-        ...formData,
-        base_salary: Number(formData.base_salary),
+        employee_code: formData.employee_code || undefined,
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        email: formData.work_email,
+        designation: formData.designation || undefined,
+        employment_type: formData.employment_type,
+        salary_basic: Number(formData.base_salary || 0),
         department_id: formData.department_id || undefined,
         paypal_email: formData.paypal_email || undefined,
       };
@@ -343,7 +348,7 @@ export default function EmployeeDirectory() {
                         </div>
                         <div className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
                           <Mail className="w-3 h-3 text-slate-500" />
-                          {emp.work_email}
+                          {emp.email}
                         </div>
                       </td>
                       <td className="py-3.5 px-4 font-mono text-indigo-400 font-semibold">
@@ -352,17 +357,17 @@ export default function EmployeeDirectory() {
                       <td className="py-3.5 px-4">
                         <span className="inline-flex items-center gap-1 text-slate-300">
                           <Building2 className="w-3 h-3 text-slate-500" />
-                          {emp.department?.name || "Unassigned"}
+                          {emp.department_name || "Unassigned"}
                         </span>
                       </td>
                       <td className="py-3.5 px-4 text-slate-300">
-                        {emp.designation}
+                        {emp.designation || "Not specified"}
                         <span className="block text-[10px] text-slate-500 uppercase">
-                          {emp.employment_type.replace("_", " ")}
+                          {(emp.employment_type || "full_time").replace("_", " ")}
                         </span>
                       </td>
                       <td className="py-3.5 px-4 font-semibold text-slate-200">
-                        ${emp.base_salary.toLocaleString()} {emp.salary_currency}
+                        ${Number(emp.salary_basic || 0).toLocaleString()} USD
                       </td>
                       <td className="py-3.5 px-4 text-slate-400">
                         {emp.paypal_email ? (
@@ -376,14 +381,12 @@ export default function EmployeeDirectory() {
                       <td className="py-3.5 px-4">
                         <span
                           className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase ${
-                            emp.status === "active"
+                            emp.is_active
                               ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                              : emp.status === "on_leave"
-                              ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
                               : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
                           }`}
                         >
-                          {emp.status.replace("_", " ")}
+                          {emp.is_active ? "Active" : "Inactive"}
                         </span>
                       </td>
                     </tr>
