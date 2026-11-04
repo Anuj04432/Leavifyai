@@ -21,7 +21,14 @@ export default function LoginPage() {
     try {
       const res = await api.post("/auth/login", { email, password });
       const { access_token, refresh_token, user } = res.data;
-      setAuth(access_token, refresh_token, user);
+      if (user) {
+        setAuth(access_token, refresh_token, user);
+      } else {
+        const meRes = await api.get("/auth/me", {
+          headers: { Authorization: `Bearer ${access_token}` },
+        });
+        setAuth(access_token, refresh_token, meRes.data);
+      }
       navigate("/employees");
     } catch (err: any) {
       const detail = err.response?.data?.detail;
