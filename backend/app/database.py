@@ -1,3 +1,4 @@
+import asyncio
 from typing import AsyncGenerator
 import redis.asyncio as aioredis
 from sqlalchemy.ext.asyncio import (
@@ -49,21 +50,25 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def check_db_health() -> bool:
-    """Verifies active connectivity to PostgreSQL database."""
+    """Verifies active connectivity to PostgreSQL database with a fast fail timeout."""
     try:
-        async with AsyncSessionLocal() as session:
-            result = await session.execute(text("SELECT 1"))
-            return result.scalar() == 1
+        async def _ping():
+            async with AsyncSessionLocal() as session:
+                result = await session.execute(text("SELECT 1"))
+                return result.scalar() == 1
+        return await asyncio.wait_for(_ping(), timeout=1.5)
     except Exception:
         return False
 
 
 async def check_redis_health() -> bool:
-    """Verifies active connectivity to Redis cache."""
+    """Verifies active connectivity to Redis cache with a fast fail timeout."""
     try:
-        client = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
-        is_alive = await client.ping()
-        await client.aclose()
-        return is_alive is True
+        async def _ping():
+            client = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
+            is_alive = await client.ping()
+            await client.aclose()
+            return is_alive is True
+        return await asyncio.wait_for(_ping(), timeout=1.5)
     except Exception:
         return False
