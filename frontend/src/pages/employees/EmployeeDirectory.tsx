@@ -7,7 +7,6 @@ import {
   LogOut,
   Building2,
   Mail,
-  DollarSign,
   Loader2,
   CheckCircle2,
   AlertCircle,
@@ -204,7 +203,7 @@ export default function EmployeeDirectory() {
         <div className="flex items-center gap-4">
           <div className="text-right hidden sm:block">
             <div className="text-sm font-semibold text-slate-200">
-              {user?.full_name || user?.email}
+              {user?.email}
             </div>
             <div className="text-xs">
               <span className="px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 uppercase font-semibold text-[10px]">
