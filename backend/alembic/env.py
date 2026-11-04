@@ -21,7 +21,11 @@ if config.config_file_name is not None:
 # Set database URL from settings (prefer unpooled direct connection for migrations)
 sync_url = settings.DATABASE_URL_UNPOOLED or settings.DATABASE_URL_SYNC or settings.DATABASE_URL
 if sync_url.startswith("postgresql+asyncpg://"):
-    sync_url = sync_url.replace("postgresql+asyncpg://", "postgresql://", 1)
+    sync_url = sync_url.replace("postgresql+asyncpg://", "postgresql+psycopg2://", 1)
+elif sync_url.startswith("postgresql://"):
+    sync_url = sync_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+elif sync_url.startswith("postgres://"):
+    sync_url = sync_url.replace("postgres://", "postgresql+psycopg2://", 1)
 config.set_main_option("sqlalchemy.url", sync_url)
 
 target_metadata = Base.metadata
