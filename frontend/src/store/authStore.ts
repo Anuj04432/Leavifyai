@@ -20,23 +20,35 @@ interface AuthState {
   logout: () => void;
 }
 
+const getInitialUser = (): UserProfile | null => {
+  try {
+    const stored = localStorage.getItem("user_profile");
+    if (!stored || stored === "undefined" || stored === "null") return null;
+    return JSON.parse(stored);
+  } catch {
+    localStorage.removeItem("user_profile");
+    return null;
+  }
+};
+
 export const useAuthStore = create<AuthState>((set) => {
-  // Load initial tokens from localStorage if present
-  const storedToken = localStorage.getItem("access_token");
-  const storedRefreshToken = localStorage.getItem("refresh_token");
-  const storedUser = localStorage.getItem("user_profile");
+  const initialUser = getInitialUser();
+  const storedToken = initialUser ? localStorage.getItem("access_token") : null;
+  const storedRefreshToken = initialUser ? localStorage.getItem("refresh_token") : null;
 
   return {
     token: storedToken,
     refreshToken: storedRefreshToken,
-    user: storedUser ? JSON.parse(storedUser) : null,
-    isAuthenticated: !!storedToken,
+    user: initialUser,
+    isAuthenticated: !!storedToken && !!initialUser,
 
     setAuth: (token, refreshToken, user) => {
       localStorage.setItem("access_token", token);
       localStorage.setItem("refresh_token", refreshToken);
-      localStorage.setItem("user_profile", JSON.stringify(user));
-      set({ token, refreshToken, user, isAuthenticated: true });
+      if (user) {
+        localStorage.setItem("user_profile", JSON.stringify(user));
+      }
+      set({ token, refreshToken, user, isAuthenticated: !!token && !!user });
     },
 
     updateUser: (user) => {
