@@ -13,13 +13,29 @@ from app.config import get_settings
 
 settings = get_settings()
 
+def _get_async_database_url() -> str:
+    raw = settings.DATABASE_URL
+    if raw.startswith("postgres://"):
+        raw = raw.replace("postgres://", "postgresql+asyncpg://", 1)
+    elif raw.startswith("postgresql://") and not raw.startswith("postgresql+asyncpg://"):
+        raw = raw.replace("postgresql://", "postgresql+asyncpg://", 1)
+    if "?" in raw:
+        raw = raw.split("?")[0]
+    return raw
+
+
+connect_args = {}
+if "neon.tech" in settings.DATABASE_URL or "sslmode" in settings.DATABASE_URL:
+    connect_args["ssl"] = "require"
+
 # Asynchronous PostgreSQL Engine
 engine = create_async_engine(
-    settings.DATABASE_URL,
+    _get_async_database_url(),
     echo=settings.DEBUG,
     pool_size=10,
     max_overflow=20,
     pool_pre_ping=True,
+    connect_args=connect_args,
 )
 
 # Async Session Factory
