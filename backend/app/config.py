@@ -1,5 +1,5 @@
 from functools import lru_cache
-from typing import List, Union
+from typing import List, Optional, Union
 from pydantic import AnyHttpUrl, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/workforceai"
     DATABASE_URL_SYNC: str = "postgresql://postgres:postgres@localhost:5432/workforceai"
+    DATABASE_URL_UNPOOLED: Optional[str] = None
 
     # Redis Cache
     REDIS_URL: str = "redis://localhost:6379/0"
