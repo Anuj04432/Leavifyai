@@ -79,7 +79,7 @@ export default function LoginPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@workforceai.local"
+                  placeholder="admin@workforce.io"
                   className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl pl-9 pr-3.5 py-2.5 text-sm text-slate-100 placeholder-slate-600 outline-none transition"
                 />
               </div>
@@ -126,27 +126,20 @@ export default function LoginPage() {
             <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2">
               Demo Credentials (Click to prefill)
             </p>
-            <div className="grid grid-cols-3 gap-2 text-xs">
+            <div className="grid grid-cols-2 gap-2 text-xs">
               <button
                 type="button"
-                onClick={() => fillQuickLogin("admin@workforceai.local")}
+                onClick={() => fillQuickLogin("admin@workforce.io")}
                 className="px-2.5 py-1.5 bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 rounded-lg text-slate-300 text-center transition"
               >
-                Admin
+                Admin (admin@workforce.io)
               </button>
               <button
                 type="button"
-                onClick={() => fillQuickLogin("hr@workforceai.local")}
+                onClick={() => fillQuickLogin("aarav.sharma@workforce.io")}
                 className="px-2.5 py-1.5 bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 rounded-lg text-slate-300 text-center transition"
               >
-                HR Lead
-              </button>
-              <button
-                type="button"
-                onClick={() => fillQuickLogin("rahul.sharma@workforceai.local")}
-                className="px-2.5 py-1.5 bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 rounded-lg text-slate-300 text-center transition"
-              >
-                Employee
+                Employee (aarav@workforce.io)
               </button>
             </div>
           </div>
