@@ -5,7 +5,6 @@ import {
   CheckCircle2,
   AlertCircle,
   Plus,
-  LogOut,
   ShieldCheck,
   Loader2,
   X,
@@ -15,7 +14,6 @@ import {
 } from "lucide-react";
 import { api } from "../../lib/api";
 import { useAuthStore } from "../../store/authStore";
-import { useNavigate } from "react-router-dom";
 import Navbar from "../../components/layout/Navbar";
 
 interface LeavePolicy {
@@ -65,8 +63,7 @@ interface LeaveRequest {
 }
 
 export default function LeaveManagement() {
-  const navigate = useNavigate();
-  const { user, logout } = useAuthStore();
+  const { user } = useAuthStore();
 
   const [policies, setPolicies] = useState<LeavePolicy[]>([]);
   const [balances, setBalances] = useState<LeaveBalance[]>([]);
@@ -121,11 +118,6 @@ export default function LeaveManagement() {
   useEffect(() => {
     fetchData();
   }, []);
-
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
 
   // Helper: Calculate working days client-side for dynamic feedback
   const previewWorkingDays = useMemo(() => {
