@@ -5,7 +5,6 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
-  Filter,
   Check,
   X,
   Loader2,
@@ -17,7 +16,6 @@ import {
   Search,
 } from "lucide-react";
 import { api } from "../../lib/api";
-import { useAuthStore } from "../../store/authStore";
 import Navbar from "../../components/layout/Navbar";
 
 interface LeaveRequest {
@@ -44,8 +42,6 @@ interface LeaveRequest {
 }
 
 export default function ApprovalCockpit() {
-  const { user } = useAuthStore();
-
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("pending");
