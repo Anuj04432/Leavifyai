@@ -7,6 +7,7 @@ import {
   Users,
   LayoutDashboard,
   CheckSquare,
+  CreditCard,
   Loader2,
 } from "lucide-react";
 import { api } from "../../lib/api";
@@ -146,17 +147,31 @@ export default function Navbar() {
           </Link>
 
           {isManagerOrHr && (
-            <Link
-              to="/approvals"
-              className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
-                location.pathname === "/approvals"
-                  ? "text-white bg-slate-800 font-medium"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
-              }`}
-            >
-              <CheckSquare className="w-3.5 h-3.5" />
-              Approval Cockpit
-            </Link>
+            <>
+              <Link
+                to="/approvals"
+                className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
+                  location.pathname === "/approvals"
+                    ? "text-white bg-slate-800 font-medium"
+                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+                }`}
+              >
+                <CheckSquare className="w-3.5 h-3.5" />
+                Approval Cockpit
+              </Link>
+
+              <Link
+                to="/payroll"
+                className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
+                  location.pathname === "/payroll"
+                    ? "text-white bg-slate-800 font-medium"
+                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+                }`}
+              >
+                <CreditCard className="w-3.5 h-3.5" />
+                Payroll
+              </Link>
+            </>
           )}
         </nav>
       </div>
