@@ -1,5 +1,6 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
+import HRAssistantWidget from "../chat/HRAssistantWidget";
 
 interface ProtectedRouteProps {
   allowedRoles?: Array<"admin" | "hr" | "manager" | "employee">;
@@ -34,5 +35,10 @@ export default function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
     );
   }
 
-  return <Outlet />;
+  return (
+    <>
+      <Outlet />
+      <HRAssistantWidget />
+    </>
+  );
 }
