@@ -9,10 +9,13 @@ import {
   FileText,
   X,
   Printer,
+  Send,
+  CheckCircle2,
 } from "lucide-react";
 import { api } from "../../lib/api";
 import { useAuthStore } from "../../store/authStore";
 import Navbar from "../../components/layout/Navbar";
+import ExecutePayoutModal from "../../components/hr/ExecutePayoutModal";
 
 interface PayrollItem {
   id: string;
@@ -95,6 +98,7 @@ export default function PayrollExecution() {
 
   // Payslip modal state
   const [selectedPayslip, setSelectedPayslip] = useState<PayslipData | null>(null);
+  const [showPayoutModal, setShowPayoutModal] = useState(false);
 
   const isHrOrAdmin = user?.role === "admin" || user?.role === "hr";
 
@@ -257,12 +261,15 @@ export default function PayrollExecution() {
                         Batch {activeBatch.period_year}-{String(activeBatch.period_month).padStart(2, "0")}
                       </span>
                       <span
-                        className={`text-[10px] font-mono px-2 py-0.5 rounded-full uppercase font-bold ${
-                          activeBatch.status === "approved"
+                        className={`text-[10px] font-mono px-2 py-0.5 rounded-full uppercase font-bold flex items-center gap-1 ${
+                          activeBatch.status === "paid"
                             ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                            : "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
+                            : activeBatch.status === "approved"
+                            ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
+                            : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
                         }`}
                       >
+                        {activeBatch.status === "paid" && <CheckCircle2 className="w-3 h-3" />}
                         {activeBatch.status}
                       </span>
                     </div>
@@ -271,20 +278,32 @@ export default function PayrollExecution() {
                     </span>
                   </div>
 
-                  {isHrOrAdmin && activeBatch.status !== "approved" && (
-                    <button
-                      onClick={handleApproveBatch}
-                      disabled={approving}
-                      className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-sm disabled:opacity-50"
-                    >
-                      {approving ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <Check className="w-3.5 h-3.5" />
-                      )}
-                      Approve & Lock Batch
-                    </button>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {isHrOrAdmin && activeBatch.status === "approved" && (
+                      <button
+                        onClick={() => setShowPayoutModal(true)}
+                        className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-sm"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        Disburse via PayPal
+                      </button>
+                    )}
+
+                    {isHrOrAdmin && activeBatch.status !== "approved" && activeBatch.status !== "paid" && (
+                      <button
+                        onClick={handleApproveBatch}
+                        disabled={approving}
+                        className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-sm disabled:opacity-50"
+                      >
+                        {approving ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Check className="w-3.5 h-3.5" />
+                        )}
+                        Approve & Lock Batch
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Items Table */}
@@ -542,6 +561,20 @@ export default function PayrollExecution() {
             </div>
           </div>
         </div>
+      )}
+      {/* PayPal Sandbox Batch Payout Modal */}
+      {showPayoutModal && activeBatch && (
+        <ExecutePayoutModal
+          batch={activeBatch}
+          isOpen={showPayoutModal}
+          onClose={() => setShowPayoutModal(false)}
+          onSuccess={async () => {
+            await fetchBatches();
+            if (activeBatch) {
+              await loadBatchDetail(activeBatch.id);
+            }
+          }}
+        />
       )}
     </div>
   );
