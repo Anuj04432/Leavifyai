@@ -1,6 +1,6 @@
 import { useState, FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { ShieldCheck, Lock, Mail, Loader2, Sparkles } from "lucide-react";
+import { ShieldCheck, Lock, Mail, Loader2, Cpu, CheckCircle2, ArrowRight } from "lucide-react";
 import { api } from "../../lib/api";
 import { useAuthStore } from "../../store/authStore";
 
@@ -48,71 +48,141 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Logo and Brand */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 mb-4 shadow-lg shadow-indigo-500/10">
-            <Sparkles className="w-7 h-7" />
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex">
+      {/* PASS 1: Asymmetric Left Architecture Panel (Hidden on small screens) */}
+      <div className="hidden lg:flex lg:w-5/12 bg-slate-900 border-r border-slate-800 flex-col justify-between p-12 relative overflow-hidden">
+        {/* Subtle grid pattern background */}
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]" />
+
+        <div>
+          {/* Logo & Product Identity */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-lg text-white">
+              W
+            </div>
+            <div>
+              <span className="font-extrabold text-white text-lg tracking-tight block">
+                WorkforceAI
+              </span>
+              <span className="text-[11px] font-medium uppercase tracking-wider text-slate-400 block -mt-0.5">
+                Enterprise Payroll OS
+              </span>
+            </div>
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-white">WorkforceAI</h1>
-          <p className="text-slate-400 text-sm mt-1">
-            Agentic AI Workforce & Payroll Operating System
-          </p>
+
+          {/* Value Prop Headline */}
+          <div className="mt-16 space-y-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              Neon Postgres 18.6 Live
+            </div>
+            <h1 className="text-3xl font-extrabold tracking-tight text-white leading-tight">
+              Agentic AI workforce & automated payroll operations.
+            </h1>
+            <p className="text-sm text-slate-400 leading-relaxed">
+              Autonomous workforce management engine with vector memory, dual compliance rails, and automated PayPal Payouts.
+            </p>
+          </div>
         </div>
 
-        {/* Card */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-8 shadow-2xl backdrop-blur-sm">
-          <h2 className="text-xl font-semibold text-white mb-2">Sign In</h2>
-          <p className="text-xs text-slate-400 mb-6">
-            Enter your organization credentials to access your portal.
-          </p>
+        {/* System Capabilities Rail */}
+        <div className="space-y-4 pt-12 border-t border-slate-800/80">
+          <div className="flex items-start gap-3">
+            <Cpu className="w-5 h-5 text-indigo-400 mt-0.5 shrink-0" />
+            <div>
+              <div className="text-xs font-semibold text-white">Continuous Policy Verification</div>
+              <div className="text-[11px] text-slate-400 leading-normal">
+                Autonomous leave ledger balancing and tax bracket deduction engine.
+              </div>
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <CheckCircle2 className="w-5 h-5 text-indigo-400 mt-0.5 shrink-0" />
+            <div>
+              <div className="text-xs font-semibold text-white">Pluggable Settlement Rails</div>
+              <div className="text-[11px] text-slate-400 leading-normal">
+                PayPal Sandbox Payouts API paired with clean domestic banking abstractions.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer Meta */}
+        <div className="text-[11px] text-slate-500 font-mono tracking-tight">
+          BUILD 2026.11 // PAYPAL AI HACKATHON
+        </div>
+      </div>
+
+      {/* PASS 2 & 3: Right Form Panel (Asymmetric 7/12 width) */}
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-12">
+        <div className="w-full max-w-md space-y-8">
+          <div>
+            {/* Mobile Header */}
+            <div className="flex items-center gap-3 lg:hidden mb-6">
+              <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-white text-base">
+                W
+              </div>
+              <span className="font-extrabold text-white text-base tracking-tight">
+                WorkforceAI
+              </span>
+            </div>
+
+            <h2 className="text-2xl font-bold tracking-tight text-white">
+              Sign in to your organization
+            </h2>
+            <p className="text-xs text-slate-400 mt-1.5 tracking-normal">
+              Enter your corporate credentials to access the management portal.
+            </p>
+          </div>
 
           {error && (
-            <div className="mb-5 p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-medium">
+            <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs font-medium leading-relaxed">
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1.5">
+              <label className="block text-xs font-semibold tracking-wide text-slate-300 uppercase mb-2">
                 Work Email
               </label>
               <div className="relative">
-                <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="admin@workforce.io"
-                  className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl pl-9 pr-3.5 py-2.5 text-sm text-slate-100 placeholder-slate-600 outline-none transition"
+                  className="w-full bg-slate-900 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder-slate-600 outline-none transition"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                Password
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-semibold tracking-wide text-slate-300 uppercase">
+                  Password
+                </label>
+              </div>
               <div className="relative">
-                <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
                 <input
                   type="password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl pl-9 pr-3.5 py-2.5 text-sm text-slate-100 placeholder-slate-600 outline-none transition"
+                  className="w-full bg-slate-900 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder-slate-600 outline-none transition"
                 />
               </div>
             </div>
 
+            {/* PASS 4: Action Button with Crisp Micro-interactions */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-medium text-sm py-2.5 rounded-xl transition shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2"
+              className="w-full bg-indigo-600 hover:bg-indigo-500 active:scale-[0.99] disabled:opacity-50 text-white font-semibold text-sm py-2.5 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-none"
             >
               {loading ? (
                 <>
@@ -121,32 +191,52 @@ export default function LoginPage() {
                 </>
               ) : (
                 <>
-                  <ShieldCheck className="w-4 h-4" />
                   <span>Sign In</span>
+                  <ArrowRight className="w-4 h-4 text-indigo-200" />
                 </>
               )}
             </button>
           </form>
 
-          {/* Quick Demo Logins for Hackathon */}
-          <div className="mt-6 pt-6 border-t border-slate-800/80">
-            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2">
-              Demo Credentials (Click to prefill)
-            </p>
-            <div className="grid grid-cols-2 gap-2 text-xs">
+          {/* Quick Demo Credentials Panel */}
+          <div className="pt-6 border-t border-slate-800">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                Demo Credentials
+              </span>
+              <span className="text-[10px] text-slate-500 font-mono">Click to autofill</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
               <button
                 type="button"
                 onClick={() => fillQuickLogin("admin@workforce.io")}
-                className="px-2.5 py-1.5 bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 rounded-lg text-slate-300 text-center transition"
+                className="p-3 bg-slate-900 hover:bg-slate-800/80 border border-slate-800 hover:border-slate-700 rounded-xl text-left transition flex items-center justify-between group"
               >
-                Admin (admin@workforce.io)
+                <div>
+                  <div className="font-semibold text-white group-hover:text-indigo-400 transition">
+                    Administrator
+                  </div>
+                  <div className="text-[11px] text-slate-400 font-mono mt-0.5">
+                    admin@workforce.io
+                  </div>
+                </div>
+                <ShieldCheck className="w-4 h-4 text-slate-500 group-hover:text-indigo-400 transition" />
               </button>
+
               <button
                 type="button"
                 onClick={() => fillQuickLogin("aarav.sharma@workforce.io")}
-                className="px-2.5 py-1.5 bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 rounded-lg text-slate-300 text-center transition"
+                className="p-3 bg-slate-900 hover:bg-slate-800/80 border border-slate-800 hover:border-slate-700 rounded-xl text-left transition flex items-center justify-between group"
               >
-                Employee (aarav@workforce.io)
+                <div>
+                  <div className="font-semibold text-white group-hover:text-indigo-400 transition">
+                    Lead Architect
+                  </div>
+                  <div className="text-[11px] text-slate-400 font-mono mt-0.5">
+                    aarav.sharma@workforce.io
+                  </div>
+                </div>
+                <ShieldCheck className="w-4 h-4 text-slate-500 group-hover:text-indigo-400 transition" />
               </button>
             </div>
           </div>
