@@ -9,6 +9,7 @@ from app.modules.auth.router import router as auth_router
 from app.modules.departments.router import router as departments_router
 from app.modules.employees.router import router as employees_router
 from app.modules.leaves.router import router as leaves_router
+from app.modules.notifications.router import router as notifications_router
 
 settings = get_settings()
 
@@ -45,6 +46,7 @@ app.include_router(auth_router, prefix=settings.API_V1_PREFIX)
 app.include_router(departments_router, prefix=settings.API_V1_PREFIX)
 app.include_router(employees_router, prefix=settings.API_V1_PREFIX)
 app.include_router(leaves_router, prefix=settings.API_V1_PREFIX)
+app.include_router(notifications_router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get("/", tags=["Root"])
