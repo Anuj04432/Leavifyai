@@ -11,7 +11,7 @@ from app.models.employee import Employee
 from app.models.payment import Payment, PaymentStatus
 from app.models.payroll import BatchStatus, PayrollBatch, PayrollItem
 from app.models.user import User
-from app.modules.notifications.service import notification_service
+from app.modules.notifications.service import NotificationService
 from app.modules.payments.paypal_client import paypal_client
 from app.schemas.payment import (
     DisbursePayrollResponse,
@@ -149,19 +149,17 @@ class PaymentService:
             pr_item.status = "paid"
 
             # Notify employee
-            if emp and emp.user_id:
+            if emp:
                 try:
-                    await notification_service.create_notification(
-                        db=db,
-                        user_id=emp.user_id,
-                        company_id=company_id,
-                        title="Salary Disbursed",
-                        message=f"Your salary of ${pr_item.net_salary:,.2f} for {batch.period_month}/{batch.period_year} has been disbursed via PayPal.",
-                        notification_type="payroll",
-                        data={"batch_id": str(batch.id), "amount": str(pr_item.net_salary), "provider": "paypal"},
+                    notif_svc = NotificationService(db)
+                    await notif_svc.create_notification(
+                        employee_id=emp.id,
+                        subject="Salary Disbursed",
+                        body=f"Your salary of ${pr_item.net_salary:,.2f} for {batch.period_month}/{batch.period_year} has been disbursed via PayPal.",
+                        raw_payload={"batch_id": str(batch.id), "amount": str(pr_item.net_salary), "provider": "paypal"},
                     )
                 except Exception as ex:
-                    logger.warning(f"Failed to dispatch disbursement notification to user {emp.user_id}: {ex}")
+                    logger.warning(f"Failed to dispatch disbursement notification to employee {emp.id}: {ex}")
 
             emp_name = f"{emp.user.first_name} {emp.user.last_name}" if emp and emp.user else "Employee"
             details.append(

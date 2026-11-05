@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.dependencies import get_current_active_user, require_role
+from app.dependencies import get_current_user, require_roles
 from app.models.user import User
 from app.modules.payments.service import payment_service
 from app.schemas.payment import (
@@ -28,7 +28,7 @@ router = APIRouter(prefix="/payments", tags=["PayPal Payments & Payouts"])
 async def disburse_payroll(
     batch_id: uuid.UUID,
     payload: DisbursePayrollRequest = None,
-    current_user: User = Depends(require_role(["super_admin", "company_admin", "hr_manager"])),
+    current_user: User = Depends(require_roles(["super_admin", "company_admin", "hr_manager"])),
     db: AsyncSession = Depends(get_db),
 ):
     """Execute automated PayPal batch payout for an approved payroll batch."""
@@ -62,7 +62,7 @@ async def disburse_payroll(
 )
 async def get_batch_payout_status(
     batch_id: uuid.UUID,
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Query itemized PayPal disbursement status for a payroll batch."""
