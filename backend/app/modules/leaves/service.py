@@ -7,6 +7,7 @@ from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.models.communication import CommunicationEvent
 from app.models.employee import Employee
 from app.models.leave import Approval, LeaveBalance, LeavePolicy, LeaveRequest, LeaveRequestStatus
 from app.models.user import User
@@ -266,11 +267,28 @@ class LeaveService:
         if bal_record:
             bal_record.pending += total_days
 
+        # Fetch joined details for notification and clean response
+        emp = await self.db.get(Employee, employee_id)
+        applicant_name = f"{emp.first_name} {emp.last_name}" if emp else "An employee"
+
+        # 7. Create in-app notification event for HR review queue
+        notif = CommunicationEvent(
+            channel="in_app",
+            direction="outbound",
+            employee_id=None,  # Broadcast to company HR/Admins
+            leave_request_id=req.id,
+            sender_identifier="system",
+            subject=f"New Leave Application: {req.request_number}",
+            body=f"{applicant_name} applied for {total_days} days of {policy.name} ({data.start_date} to {data.end_date}).",
+            raw_payload={"request_number": req.request_number, "applicant": applicant_name, "days": str(total_days)},
+            ai_extracted_data={},
+            processing_status="unread",
+        )
+        self.db.add(notif)
+
         await self.db.commit()
         await self.db.refresh(req)
 
-        # Fetch joined details for clean response
-        emp = await self.db.get(Employee, employee_id)
         return LeaveRequestResponse(
             id=req.id,
             request_number=req.request_number,
@@ -312,7 +330,7 @@ class LeaveService:
                 detail="Action must be either 'approve' or 'reject'.",
             )
 
-        # Fetch request with relationships
+        # Fetch request with row-level lock for optimistic concurrency control
         stmt = (
             select(LeaveRequest)
             .options(
@@ -320,6 +338,7 @@ class LeaveService:
                 selectinload(LeaveRequest.leave_policy),
             )
             .where(LeaveRequest.id == request_id)
+            .with_for_update()
         )
         res = await self.db.execute(stmt)
         req = res.scalars().first()
@@ -332,8 +351,8 @@ class LeaveService:
 
         if req.status != LeaveRequestStatus.PENDING.value:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Cannot action request. Current status is '{req.status}'.",
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Conflict: request has already been processed by another reviewer (Status: '{req.status}').",
             )
 
         # Locate employee balance entry for that policy and year
@@ -369,6 +388,30 @@ class LeaveService:
             sequence_order=1,
         )
         self.db.add(approval_log)
+
+        # Notify employee of decision
+        decision_notif = CommunicationEvent(
+            channel="in_app",
+            direction="outbound",
+            employee_id=req.employee_id,
+            leave_request_id=req.id,
+            sender_identifier="system",
+            subject=f"Leave Request {req.status.capitalize()}: {req.request_number}",
+            body=(
+                f"Your request for {req.total_days} day(s) of "
+                f"{req.leave_policy.name if req.leave_policy else 'Leave'} has been {req.status}. "
+                f"{f'Note: {action_data.comment}' if action_data.comment else ''}"
+            ).strip(),
+            raw_payload={
+                "request_number": req.request_number,
+                "status": req.status,
+                "action_by": reviewer_user.email,
+                "comment": action_data.comment,
+            },
+            ai_extracted_data={},
+            processing_status="unread",
+        )
+        self.db.add(decision_notif)
 
         await self.db.commit()
         await self.db.refresh(req)
