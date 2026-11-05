@@ -4,7 +4,6 @@ import {
   Search,
   Plus,
   Upload,
-  LogOut,
   Building2,
   Mail,
   Loader2,
@@ -18,7 +17,6 @@ import {
 } from "lucide-react";
 import { api } from "../../lib/api";
 import { useAuthStore } from "../../store/authStore";
-import { useNavigate } from "react-router-dom";
 import Navbar from "../../components/layout/Navbar";
 
 interface Department {
@@ -43,8 +41,7 @@ interface Employee {
 }
 
 export default function EmployeeDirectory() {
-  const navigate = useNavigate();
-  const { user, logout } = useAuthStore();
+  const { user } = useAuthStore();
 
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -187,11 +184,6 @@ export default function EmployeeDirectory() {
     } finally {
       setImporting(false);
     }
-  };
-
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
   };
 
   const isHrOrAdmin = user?.role === "admin" || user?.role === "hr";
