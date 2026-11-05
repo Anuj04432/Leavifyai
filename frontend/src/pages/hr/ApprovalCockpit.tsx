@@ -11,12 +11,12 @@ import {
   ShieldAlert,
   UserCheck,
   Calendar,
-  Sparkles,
   RefreshCw,
   Search,
 } from "lucide-react";
 import { api } from "../../lib/api";
 import Navbar from "../../components/layout/Navbar";
+import AIRecommendationBadge from "../../components/hr/AIRecommendationBadge";
 
 interface LeaveRequest {
   id: string;
@@ -264,18 +264,12 @@ export default function ApprovalCockpit() {
                       </div>
                     )}
 
-                    {/* AI Recommendation Placeholder (Phase 5 Bridge) */}
-                    <div className="p-2.5 rounded-lg bg-indigo-950/20 border border-indigo-500/20 flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-2 text-indigo-300">
-                        <Sparkles className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                        <span className="text-[11px]">
-                          <strong>AI Policy Copilot:</strong> Request complies with notice and allocation rules.
-                        </span>
-                      </div>
-                      <span className="text-[10px] font-mono text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
-                        98% Confidence
-                      </span>
-                    </div>
+                    {/* Live AI Recommendation Engine */}
+                    <AIRecommendationBadge
+                      requestId={req.id}
+                      recommendation={req.ai_recommendation}
+                      onEvaluated={fetchRequests}
+                    />
 
                     {/* Action Buttons for Pending Requests */}
                     {req.status === "pending" && (
