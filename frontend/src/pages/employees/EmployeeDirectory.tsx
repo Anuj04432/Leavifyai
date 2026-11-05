@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { api } from "../../lib/api";
 import { useAuthStore } from "../../store/authStore";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 interface Department {
   id: string;
@@ -206,14 +206,31 @@ export default function EmployeeDirectory() {
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans antialiased">
       {/* PASS 1: Fixed Navigation Bar without glassmorphism */}
       <header className="h-14 border-b border-slate-800 bg-slate-900 px-6 flex items-center justify-between sticky top-0 z-30">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-white text-sm">
-            W
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-white text-sm">
+              W
+            </div>
+            <div>
+              <span className="font-extrabold text-white text-sm tracking-tight">WorkforceAI</span>
+              <span className="text-[10px] text-slate-400 font-mono ml-2 uppercase">Personnel</span>
+            </div>
           </div>
-          <div>
-            <span className="font-extrabold text-white text-sm tracking-tight">WorkforceAI</span>
-            <span className="text-[10px] text-slate-400 font-mono ml-2 uppercase">Personnel</span>
-          </div>
+
+          <nav className="hidden md:flex items-center gap-1 text-xs">
+            <Link
+              to="/employees"
+              className="px-3 py-1.5 rounded-lg text-white bg-slate-800 font-medium"
+            >
+              Employees
+            </Link>
+            <Link
+              to="/leaves"
+              className="px-3 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition"
+            >
+              Leave Management
+            </Link>
+          </nav>
         </div>
 
         <div className="flex items-center gap-4">
