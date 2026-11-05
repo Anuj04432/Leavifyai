@@ -1,6 +1,16 @@
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, ChangeEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { ShieldCheck, Lock, Mail, Loader2, Cpu, CheckCircle2, ArrowRight } from "lucide-react";
+import {
+  ShieldCheck,
+  Lock,
+  Mail,
+  Loader2,
+  Cpu,
+  CheckCircle2,
+  ArrowRight,
+  Building2,
+  CreditCard,
+} from "lucide-react";
 import { api } from "../../lib/api";
 import { useAuthStore } from "../../store/authStore";
 
@@ -8,12 +18,27 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const setAuth = useAuthStore((s) => s.setAuth);
 
+  const [activeTab, setActiveTab] = useState<"login" | "register">("login");
+
+  // Sign In Form State
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  // Register Organization Form State
+  const [regData, setRegData] = useState({
+    company_name: "",
+    company_slug: "",
+    first_name: "",
+    last_name: "",
+    email: "",
+    password: "",
+  });
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleLoginSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
@@ -29,7 +54,7 @@ export default function LoginPage() {
         });
         setAuth(access_token, refresh_token, meRes.data);
       }
-      navigate("/employees");
+      navigate("/dashboard");
     } catch (err: any) {
       const detail = err.response?.data?.detail;
       setError(
@@ -42,22 +67,79 @@ export default function LoginPage() {
     }
   };
 
+  const handleRegisterSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    try {
+      // 1. Register organization & admin account
+      await api.post("/auth/register", {
+        company_name: regData.company_name.trim(),
+        company_slug: regData.company_slug.trim() || undefined,
+        first_name: regData.first_name.trim(),
+        last_name: regData.last_name.trim(),
+        email: regData.email.trim().toLowerCase(),
+        password: regData.password,
+        role: "admin",
+      });
+
+      // 2. Automatically log in with new credentials
+      const loginRes = await api.post("/auth/login", {
+        email: regData.email.trim().toLowerCase(),
+        password: regData.password,
+      });
+
+      const { access_token, refresh_token, user } = loginRes.data;
+      if (user) {
+        setAuth(access_token, refresh_token, user);
+      } else {
+        const meRes = await api.get("/auth/me", {
+          headers: { Authorization: `Bearer ${access_token}` },
+        });
+        setAuth(access_token, refresh_token, meRes.data);
+      }
+
+      setSuccessMsg("Organization registered successfully. Launching workspace...");
+      setTimeout(() => navigate("/dashboard"), 500);
+    } catch (err: any) {
+      const detail = err.response?.data?.detail;
+      setError(
+        typeof detail === "string"
+          ? detail
+          : "Organization registration failed. Please ensure the email is unique."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCompanyNameChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const name = e.target.value;
+    const slug = name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+    setRegData({ ...regData, company_name: name, company_slug: slug });
+  };
+
   const fillQuickLogin = (roleEmail: string) => {
+    setActiveTab("login");
     setEmail(roleEmail);
     setPassword("Password123!");
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex font-sans antialiased">
       {/* PASS 1: Asymmetric Left Architecture Panel (Hidden on small screens) */}
       <div className="hidden lg:flex lg:w-5/12 bg-slate-900 border-r border-slate-800 flex-col justify-between p-12 relative overflow-hidden">
-        {/* Subtle grid pattern background */}
+        {/* Subtle dot pattern */}
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]" />
 
         <div>
           {/* Logo & Product Identity */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-lg text-white">
+            <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-lg text-white shadow-sm">
               W
             </div>
             <div>
@@ -71,7 +153,7 @@ export default function LoginPage() {
           </div>
 
           {/* Value Prop Headline */}
-          <div className="mt-16 space-y-4">
+          <div className="mt-14 space-y-4">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               Neon Postgres 18.6 Live
@@ -79,164 +161,334 @@ export default function LoginPage() {
             <h1 className="text-3xl font-extrabold tracking-tight text-white leading-tight">
               Agentic AI workforce & automated payroll operations.
             </h1>
-            <p className="text-sm text-slate-400 leading-relaxed">
-              Autonomous workforce management engine with vector memory, dual compliance rails, and automated PayPal Payouts.
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Autonomous workforce engine with LangGraph supervisors, deterministic leave reconciliation, and PayPal Payouts integration.
             </p>
           </div>
         </div>
 
-        {/* System Capabilities Rail */}
-        <div className="space-y-4 pt-12 border-t border-slate-800/80">
+        {/* Telemetry Architecture Cards */}
+        <div className="space-y-3.5 pt-8 border-t border-slate-800/80">
           <div className="flex items-start gap-3">
-            <Cpu className="w-5 h-5 text-indigo-400 mt-0.5 shrink-0" />
+            <Cpu className="w-4 h-4 text-indigo-400 mt-1 shrink-0" />
             <div>
-              <div className="text-xs font-semibold text-white">Continuous Policy Verification</div>
+              <div className="text-xs font-semibold text-white">LangGraph AI Policy Supervisor</div>
               <div className="text-[11px] text-slate-400 leading-normal">
-                Autonomous leave ledger balancing and tax bracket deduction engine.
+                Natural language parsing, SQL balance verification, and transparent rule citations.
               </div>
             </div>
           </div>
+
           <div className="flex items-start gap-3">
-            <CheckCircle2 className="w-5 h-5 text-indigo-400 mt-0.5 shrink-0" />
+            <CreditCard className="w-4 h-4 text-indigo-400 mt-1 shrink-0" />
             <div>
-              <div className="text-xs font-semibold text-white">Pluggable Settlement Rails</div>
+              <div className="text-xs font-semibold text-white">Deterministic Payroll Engine</div>
               <div className="text-[11px] text-slate-400 leading-normal">
-                PayPal Sandbox Payouts API paired with clean domestic banking abstractions.
+                Reconciles unpaid leave deductions using Python Decimal zero-float precision.
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3">
+            <CheckCircle2 className="w-4 h-4 text-indigo-400 mt-1 shrink-0" />
+            <div>
+              <div className="text-xs font-semibold text-white">PayPal Sandbox Disbursements</div>
+              <div className="text-[11px] text-slate-400 leading-normal">
+                Automated batch payouts with sender idempotency and cryptographic webhook audits.
               </div>
             </div>
           </div>
         </div>
 
         {/* Footer Meta */}
-        <div className="text-[11px] text-slate-500 font-mono tracking-tight">
-          BUILD 2026.11 // PAYPAL AI HACKATHON
+        <div className="text-[11px] text-slate-500 font-mono tracking-tight pt-4">
+          PAYPAL AI HACKATHON 2026 // BUILD PROD
         </div>
       </div>
 
-      {/* PASS 2 & 3: Right Form Panel (Asymmetric 7/12 width) */}
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-12">
-        <div className="w-full max-w-md space-y-8">
-          <div>
-            {/* Mobile Header */}
-            <div className="flex items-center gap-3 lg:hidden mb-6">
-              <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-white text-base">
-                W
-              </div>
-              <span className="font-extrabold text-white text-base tracking-tight">
-                WorkforceAI
-              </span>
+      {/* PASS 2 & 3: Right Form Viewport (Asymmetric 7/12 width) */}
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-12 overflow-y-auto">
+        <div className="w-full max-w-md space-y-6">
+          {/* Mobile Header */}
+          <div className="flex items-center gap-3 lg:hidden">
+            <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-white text-base">
+              W
             </div>
+            <span className="font-extrabold text-white text-base tracking-tight">
+              WorkforceAI
+            </span>
+          </div>
 
-            <h2 className="text-2xl font-bold tracking-tight text-white">
-              Sign in to your organization
+          {/* Tab Selector: Sign In vs Register Organization */}
+          <div className="bg-slate-900 p-1 rounded-xl border border-slate-800 flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab("login");
+                setError(null);
+              }}
+              className={`flex-1 py-2 text-xs font-semibold rounded-lg transition cursor-pointer text-center ${
+                activeTab === "login"
+                  ? "bg-slate-800 text-white border border-slate-700 shadow-sm"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              Sign In
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab("register");
+                setError(null);
+              }}
+              className={`flex-1 py-2 text-xs font-semibold rounded-lg transition cursor-pointer text-center ${
+                activeTab === "register"
+                  ? "bg-slate-800 text-white border border-slate-700 shadow-sm"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              Register Organization
+            </button>
+          </div>
+
+          {/* Form Header */}
+          <div>
+            <h2 className="text-xl font-bold tracking-tight text-white">
+              {activeTab === "login" ? "Sign in to your organization" : "Register new company workspace"}
             </h2>
-            <p className="text-xs text-slate-400 mt-1.5 tracking-normal">
-              Enter your corporate credentials to access the management portal.
+            <p className="text-xs text-slate-400 mt-1">
+              {activeTab === "login"
+                ? "Enter your credentials to access the WorkforceAI portal."
+                : "Provision an isolated organization cluster and administrator account."}
             </p>
           </div>
 
+          {/* Alerts */}
           {error && (
             <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs font-medium leading-relaxed">
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="block text-xs font-semibold tracking-wide text-slate-300 uppercase mb-2">
-                Work Email
-              </label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@workforce.io"
-                  className="w-full bg-slate-900 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder-slate-600 outline-none transition"
-                />
-              </div>
+          {successMsg && (
+            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-medium leading-relaxed flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+              <span>{successMsg}</span>
             </div>
+          )}
 
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-xs font-semibold tracking-wide text-slate-300 uppercase">
+          {/* SIGN IN FORM */}
+          {activeTab === "login" ? (
+            <form onSubmit={handleLoginSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                  Work Email
+                </label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="admin@workforce.io"
+                    className="w-full bg-slate-900 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-100 placeholder-slate-600 outline-none transition"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1.5">
                   Password
                 </label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+                  <input
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full bg-slate-900 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-100 placeholder-slate-600 outline-none transition"
+                  />
+                </div>
               </div>
-              <div className="relative">
-                <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-indigo-600 hover:bg-indigo-500 active:scale-[0.99] disabled:opacity-50 text-white font-semibold text-xs py-2.5 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Authenticating...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Sign In</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-indigo-200" />
+                  </>
+                )}
+              </button>
+            </form>
+          ) : (
+            /* REGISTER ORGANIZATION FORM */
+            <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  Organization / Company Name
+                </label>
+                <div className="relative">
+                  <Building2 className="w-4 h-4 text-slate-500 absolute left-3.5 top-2.5" />
+                  <input
+                    type="text"
+                    required
+                    value={regData.company_name}
+                    onChange={handleCompanyNameChange}
+                    placeholder="Acme Global Inc"
+                    className="w-full bg-slate-900 border border-slate-800 focus:border-indigo-500 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-100 placeholder-slate-600 outline-none transition"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  Workspace Slug Identifier
+                </label>
                 <input
-                  type="password"
+                  type="text"
                   required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full bg-slate-900 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder-slate-600 outline-none transition"
+                  value={regData.company_slug}
+                  onChange={(e) => setRegData({ ...regData, company_slug: e.target.value })}
+                  placeholder="acme-global"
+                  className="w-full bg-slate-900 border border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-2 text-xs text-slate-100 font-mono placeholder-slate-600 outline-none transition"
                 />
               </div>
-            </div>
 
-            {/* PASS 4: Action Button with Crisp Micro-interactions */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 active:scale-[0.99] disabled:opacity-50 text-white font-semibold text-sm py-2.5 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-none"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Authenticating...</span>
-                </>
-              ) : (
-                <>
-                  <span>Sign In</span>
-                  <ArrowRight className="w-4 h-4 text-indigo-200" />
-                </>
-              )}
-            </button>
-          </form>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    First Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={regData.first_name}
+                    onChange={(e) => setRegData({ ...regData, first_name: e.target.value })}
+                    placeholder="Alex"
+                    className="w-full bg-slate-900 border border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder-slate-600 outline-none transition"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    Last Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={regData.last_name}
+                    onChange={(e) => setRegData({ ...regData, last_name: e.target.value })}
+                    placeholder="Morgan"
+                    className="w-full bg-slate-900 border border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder-slate-600 outline-none transition"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  Administrator Corporate Email
+                </label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-2.5" />
+                  <input
+                    type="email"
+                    required
+                    value={regData.email}
+                    onChange={(e) => setRegData({ ...regData, email: e.target.value })}
+                    placeholder="alex@acme.com"
+                    className="w-full bg-slate-900 border border-slate-800 focus:border-indigo-500 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-100 placeholder-slate-600 outline-none transition"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  Master Password (min 8 characters)
+                </label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-2.5" />
+                  <input
+                    type="password"
+                    required
+                    minLength={8}
+                    value={regData.password}
+                    onChange={(e) => setRegData({ ...regData, password: e.target.value })}
+                    placeholder="••••••••"
+                    className="w-full bg-slate-900 border border-slate-800 focus:border-indigo-500 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-100 placeholder-slate-600 outline-none transition"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-indigo-600 hover:bg-indigo-500 active:scale-[0.99] disabled:opacity-50 text-white font-semibold text-xs py-2.5 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-sm mt-2"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Provisioning Organization...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Register & Launch Organization</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-indigo-200" />
+                  </>
+                )}
+              </button>
+            </form>
+          )}
 
           {/* Quick Demo Credentials Panel */}
-          <div className="pt-6 border-t border-slate-800">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+          <div className="pt-5 border-t border-slate-800/80">
+            <div className="flex items-center justify-between mb-2.5">
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
                 Demo Credentials
               </span>
-              <span className="text-[10px] text-slate-500 font-mono">Click to autofill</span>
+              <span className="text-[10px] text-slate-500 font-mono">1-click autofill</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
               <button
                 type="button"
                 onClick={() => fillQuickLogin("admin@workforce.io")}
-                className="p-3 bg-slate-900 hover:bg-slate-800/80 border border-slate-800 hover:border-slate-700 rounded-xl text-left transition flex items-center justify-between group"
+                className="p-2.5 bg-slate-900 hover:bg-slate-800/80 border border-slate-800 hover:border-slate-700 rounded-xl text-left transition flex items-center justify-between group cursor-pointer"
               >
                 <div>
-                  <div className="font-semibold text-white group-hover:text-indigo-400 transition">
+                  <div className="font-semibold text-white group-hover:text-indigo-400 transition text-xs">
                     Administrator
                   </div>
-                  <div className="text-[11px] text-slate-400 font-mono mt-0.5">
+                  <div className="text-[10px] text-slate-400 font-mono mt-0.5">
                     admin@workforce.io
                   </div>
                 </div>
-                <ShieldCheck className="w-4 h-4 text-slate-500 group-hover:text-indigo-400 transition" />
+                <ShieldCheck className="w-3.5 h-3.5 text-slate-500 group-hover:text-indigo-400 transition" />
               </button>
 
               <button
                 type="button"
                 onClick={() => fillQuickLogin("aarav.sharma@workforce.io")}
-                className="p-3 bg-slate-900 hover:bg-slate-800/80 border border-slate-800 hover:border-slate-700 rounded-xl text-left transition flex items-center justify-between group"
+                className="p-2.5 bg-slate-900 hover:bg-slate-800/80 border border-slate-800 hover:border-slate-700 rounded-xl text-left transition flex items-center justify-between group cursor-pointer"
               >
                 <div>
-                  <div className="font-semibold text-white group-hover:text-indigo-400 transition">
+                  <div className="font-semibold text-white group-hover:text-indigo-400 transition text-xs">
                     Lead Architect
                   </div>
-                  <div className="text-[11px] text-slate-400 font-mono mt-0.5">
+                  <div className="text-[10px] text-slate-400 font-mono mt-0.5">
                     aarav.sharma@workforce.io
                   </div>
                 </div>
-                <ShieldCheck className="w-4 h-4 text-slate-500 group-hover:text-indigo-400 transition" />
+                <ShieldCheck className="w-3.5 h-3.5 text-slate-500 group-hover:text-indigo-400 transition" />
               </button>
             </div>
           </div>
