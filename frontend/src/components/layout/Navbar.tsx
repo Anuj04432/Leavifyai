@@ -7,10 +7,7 @@ import {
   Users,
   LayoutDashboard,
   CheckSquare,
-  CheckCircle2,
-  Clock,
   Loader2,
-  X,
 } from "lucide-react";
 import { api } from "../../lib/api";
 import { useAuthStore } from "../../store/authStore";
