@@ -2,18 +2,11 @@ import { useState, useEffect, useMemo } from "react";
 import {
   CreditCard,
   Calendar,
-  CheckCircle2,
-  AlertCircle,
-  TrendingDown,
   Loader2,
   DollarSign,
   Play,
   Check,
   FileText,
-  Building2,
-  Mail,
-  ShieldCheck,
-  RefreshCw,
   X,
   Printer,
 } from "lucide-react";
@@ -91,7 +84,6 @@ export default function PayrollExecution() {
 
   const [batches, setBatches] = useState<BatchSummary[]>([]);
   const [activeBatch, setActiveBatch] = useState<PayrollBatch | null>(null);
-  const [loadingBatches, setLoadingBatches] = useState(true);
   const [loadingActive, setLoadingActive] = useState(false);
   const [calculating, setCalculating] = useState(false);
   const [approving, setApproving] = useState(false);
@@ -103,13 +95,11 @@ export default function PayrollExecution() {
 
   // Payslip modal state
   const [selectedPayslip, setSelectedPayslip] = useState<PayslipData | null>(null);
-  const [loadingPayslip, setLoadingPayslip] = useState(false);
 
   const isHrOrAdmin = user?.role === "admin" || user?.role === "hr";
 
   const fetchBatches = async () => {
     try {
-      setLoadingBatches(true);
       const res = await api.get("/payroll/batches");
       setBatches(res.data);
 
@@ -118,8 +108,6 @@ export default function PayrollExecution() {
       }
     } catch (err) {
       console.error("Failed to load payroll batches", err);
-    } finally {
-      setLoadingBatches(false);
     }
   };
 
@@ -172,13 +160,10 @@ export default function PayrollExecution() {
 
   const handleViewPayslip = async (itemId: string) => {
     try {
-      setLoadingPayslip(true);
       const res = await api.get(`/payroll/payslips/${itemId}`);
       setSelectedPayslip(res.data);
     } catch (err: any) {
       alert(err.response?.data?.detail || "Failed to load payslip.");
-    } finally {
-      setLoadingPayslip(false);
     }
   };
 
