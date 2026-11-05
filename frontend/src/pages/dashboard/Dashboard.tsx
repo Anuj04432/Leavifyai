@@ -236,26 +236,47 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Main 8-Column Left Pane */}
           <div className="lg:col-span-8 space-y-6">
-            {/* Quick Metrics Bar */}
-            <div className="grid grid-cols-3 gap-4">
-              <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
-                <span className="text-[11px] font-mono text-slate-400 uppercase">Available Days</span>
-                <div className="text-2xl font-bold font-mono text-white">{totalAvailableDays}d</div>
-                <span className="text-[10px] text-slate-500">Across all policy buckets</span>
-              </div>
-              <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
-                <span className="text-[11px] font-mono text-slate-400 uppercase">Pending Review</span>
-                <div className="text-2xl font-bold font-mono text-amber-400">
-                  {requests.filter((r) => r.status === "pending").length}
+            {/* PASS 1: Asymmetric Balance Metric Grid (7:5 Split) */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+              <div className="md:col-span-7 p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider">
+                    Available Time-Off Pool
+                  </span>
+                  <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                    Active Entitlement
+                  </span>
                 </div>
-                <span className="text-[10px] text-slate-500">Awaiting manager decision</span>
-              </div>
-              <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
-                <span className="text-[11px] font-mono text-slate-400 uppercase">Approved Leaves</span>
-                <div className="text-2xl font-bold font-mono text-emerald-400">
-                  {requests.filter((r) => r.status === "approved").length}
+                <div className="flex items-baseline gap-3">
+                  <div className="text-3xl font-extrabold font-mono text-white tracking-tight">
+                    {totalAvailableDays} <span className="text-sm font-sans font-normal text-slate-400">days</span>
+                  </div>
+                  <span className="text-xs text-slate-400">across all active company policies</span>
                 </div>
-                <span className="text-[10px] text-slate-500">Current calendar year</span>
+                <div className="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden flex gap-0.5 p-0.5 border border-slate-800/80">
+                  <div
+                    className="bg-indigo-500 h-full rounded-full transition-all duration-500"
+                    style={{ width: `${Math.min(100, Math.max(15, totalAvailableDays * 3))}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="md:col-span-5 grid grid-cols-2 gap-3">
+                <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 flex flex-col justify-between">
+                  <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">In Review</span>
+                  <div className="text-2xl font-bold font-mono text-amber-400 my-1">
+                    {requests.filter((r) => r.status === "pending").length}
+                  </div>
+                  <span className="text-[10px] text-slate-500">Awaiting Manager</span>
+                </div>
+
+                <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 flex flex-col justify-between">
+                  <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">Approved</span>
+                  <div className="text-2xl font-bold font-mono text-emerald-400 my-1">
+                    {requests.filter((r) => r.status === "approved").length}
+                  </div>
+                  <span className="text-[10px] text-slate-500">Current Year</span>
+                </div>
               </div>
             </div>
 
@@ -376,30 +397,44 @@ export default function Dashboard() {
                 <p className="text-xs text-slate-500 italic py-2">No policy balances initialized.</p>
               ) : (
                 <div className="space-y-3">
-                  {balances.map((b) => (
-                    <div
-                      key={b.id}
-                      className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-2"
-                    >
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-semibold text-white">{b.policy_name || "Leave"}</span>
-                        <span className="font-mono text-indigo-400 font-bold">
-                          {b.available}d remaining
-                        </span>
+                  {balances.map((b) => {
+                    const total = Number(b.total_allocated) || 1;
+                    const used = Number(b.used) || 0;
+                    const pct = Math.min(100, Math.round((used / total) * 100));
+                    return (
+                      <div
+                        key={b.id}
+                        className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-2 hover:border-slate-700/80 transition"
+                      >
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-semibold text-white">{b.policy_name || "Leave"}</span>
+                          <span className="font-mono text-indigo-400 font-bold">
+                            {b.available}d remaining
+                          </span>
+                        </div>
+
+                        {/* Progress Meter */}
+                        <div className="w-full bg-slate-900 rounded-full h-1 overflow-hidden">
+                          <div
+                            className="bg-indigo-500 h-full rounded-full transition-all duration-300"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-1 text-[10px] font-mono text-slate-400 pt-1 border-t border-slate-900">
+                          <div>
+                            Alloc: <span className="text-slate-200">{b.total_allocated}d</span>
+                          </div>
+                          <div>
+                            Used: <span className="text-slate-200">{b.used}d</span>
+                          </div>
+                          <div>
+                            Pending: <span className="text-amber-400">{b.pending}d</span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="grid grid-cols-3 gap-1 text-[10px] font-mono text-slate-400 pt-1.5 border-t border-slate-900">
-                        <div>
-                          Alloc: <span className="text-slate-200">{b.total_allocated}d</span>
-                        </div>
-                        <div>
-                          Used: <span className="text-slate-200">{b.used}d</span>
-                        </div>
-                        <div>
-                          Pending: <span className="text-amber-400">{b.pending}d</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
