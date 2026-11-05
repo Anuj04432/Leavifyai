@@ -3,14 +3,11 @@ import {
   Sparkles,
   Send,
   X,
-  Minimize2,
   Calendar,
   Check,
   Loader2,
   CheckCircle2,
-  AlertCircle,
   Bot,
-  User,
 } from "lucide-react";
 import { api } from "../../lib/api";
 
