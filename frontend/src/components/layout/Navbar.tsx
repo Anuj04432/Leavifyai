@@ -34,20 +34,41 @@ export default function Navbar() {
   const notifRef = useRef<HTMLDivElement>(null);
 
   const isEmployee = user?.role === "employee";
-  const canAccessPayroll =
-    user?.role === "super_admin" ||
-    user?.role === "ir_manager" ||
-    user?.role === "hr" ||
-    user?.role === "hr_manager";
+  const isCeo = user?.role === "ceo" || user?.role === "super_admin";
 
-  const canAccessEmployees = !isEmployee;
+  const canAccessPayroll =
+    isCeo ||
+    user?.role === "ir_manager" ||
+    user?.role === "finance_manager" ||
+    user?.role === "hr" ||
+    user?.role === "hr_manager" ||
+    !!user?.permissions?.can_run_payroll ||
+    !!user?.permissions?.can_handle_paypal;
+
+  const canAccessEmployees =
+    isCeo ||
+    user?.role === "admin" ||
+    user?.role === "hr" ||
+    user?.role === "hr_manager" ||
+    user?.role === "finance_manager" ||
+    !!user?.permissions?.can_manage_roster;
+
   const canAccessApprovals =
-    user?.role === "super_admin" ||
+    isCeo ||
     user?.role === "hr" ||
     user?.role === "hr_manager" ||
     user?.role === "manager" ||
-    user?.role === "ir_manager";
-  const canAccessPolicies = !isEmployee;
+    user?.role === "ir_manager" ||
+    user?.role === "admin" ||
+    !!user?.permissions?.can_approve_leaves;
+
+  const canAccessPolicies =
+    isCeo ||
+    user?.role === "content_manager" ||
+    user?.role === "admin" ||
+    user?.role === "hr" ||
+    user?.role === "hr_manager" ||
+    !!user?.permissions?.can_manage_policies;
 
   const fetchNotifications = async () => {
     try {
@@ -292,7 +313,15 @@ export default function Navbar() {
         {/* Profile Pill */}
         <div className="text-right hidden sm:block">
           <span className="text-xs font-medium text-slate-200 mr-2">{user?.email}</span>
-          <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 capitalize text-xs font-medium">
+          <span
+            className={`px-2 py-0.5 rounded text-xs font-medium capitalize border ${
+              user?.role === "ceo"
+                ? "bg-amber-500/10 text-amber-300 border-amber-500/30 font-semibold"
+                : user?.role === "finance_manager"
+                ? "bg-blue-500/10 text-blue-300 border-blue-500/30"
+                : "bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
+            }`}
+          >
             {user?.role?.replace("_", " ")}
           </span>
         </div>
