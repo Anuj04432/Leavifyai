@@ -46,9 +46,9 @@ export default function AIRecommendationBadge({
         <button
           onClick={handleEvaluate}
           disabled={evaluating}
-          className="px-2.5 py-1 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded text-[11px] font-semibold flex items-center gap-1 transition cursor-pointer disabled:opacity-50"
+          className="px-2.5 py-1 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded text-xs font-medium flex items-center gap-1 transition-colors motion-reduce:transition-none cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none active:scale-[0.98]"
         >
-          {evaluating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+          {evaluating ? <Loader2 className="w-3 h-3 animate-spin motion-reduce:animate-none" /> : <Sparkles className="w-3 h-3" />}
           Run AI Review
         </button>
       </div>
@@ -67,23 +67,23 @@ export default function AIRecommendationBadge({
           <span className="font-semibold text-slate-200">AI Policy Copilot</span>
 
           {decision === "APPROVE" && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-mono font-bold">
-              <CheckCircle2 className="w-3 h-3" /> APPROVE
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-semibold">
+              <CheckCircle2 className="w-3 h-3" /> Approve
             </span>
           )}
           {decision === "REJECT" && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20 text-[10px] font-mono font-bold">
-              <XCircle className="w-3 h-3" /> REJECT
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20 text-xs font-semibold">
+              <XCircle className="w-3 h-3" /> Reject
             </span>
           )}
           {decision !== "APPROVE" && decision !== "REJECT" && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] font-mono font-bold">
-              <AlertCircle className="w-3 h-3" /> NEEDS REVIEW
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-semibold">
+              <AlertCircle className="w-3 h-3" /> Needs Review
             </span>
           )}
         </div>
 
-        <span className="text-[10px] font-mono text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
+        <span className="text-xs text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20 font-medium">
           {confidence}% Confidence
         </span>
       </div>
@@ -98,7 +98,7 @@ export default function AIRecommendationBadge({
       {/* Policy Rule Citations */}
       {rec.policy_citations && rec.policy_citations.length > 0 && (
         <div className="pt-1.5 border-t border-slate-900 flex flex-wrap items-center gap-1.5">
-          <span className="text-[10px] font-mono text-slate-500 flex items-center gap-1">
+          <span className="text-xs text-slate-400 flex items-center gap-1 font-medium">
             <BookOpen className="w-2.5 h-2.5" /> Citations:
           </span>
           {rec.policy_citations.map((cite, idx) => (
