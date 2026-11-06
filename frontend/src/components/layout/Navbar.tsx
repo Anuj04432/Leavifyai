@@ -119,7 +119,7 @@ export default function Navbar() {
           </div>
           <div>
             <span className="font-extrabold text-white text-sm tracking-tight">WorkforceAI</span>
-            <span className="text-[10px] text-slate-400 font-mono ml-2 uppercase">Platform</span>
+            <span className="text-xs text-slate-400 ml-2">Platform</span>
           </div>
         </Link>
 
@@ -292,8 +292,8 @@ export default function Navbar() {
         {/* Profile Pill */}
         <div className="text-right hidden sm:block">
           <span className="text-xs font-medium text-slate-200 mr-2">{user?.email}</span>
-          <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 uppercase font-mono text-[10px] font-semibold">
-            {user?.role}
+          <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 capitalize text-xs font-medium">
+            {user?.role?.replace("_", " ")}
           </span>
         </div>
 
