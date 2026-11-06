@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.dependencies import get_current_user, require_roles
+from app.dependencies import get_current_user, require_permission, require_roles
 from app.models.company import Department
 from app.models.user import User, UserRole
 from app.schemas.department import (
@@ -25,7 +25,12 @@ router = APIRouter(prefix="/departments", tags=["Departments"])
 )
 async def create_department(
     data: DepartmentCreateRequest,
-    current_user: User = Depends(require_roles([UserRole.ADMIN.value, UserRole.HR.value])),
+    current_user: User = Depends(
+        require_permission(
+            "can_manage_roster",
+            fallback_roles=[UserRole.ADMIN.value, UserRole.HR.value, "hr_manager"],
+        )
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     # Check if department with same name exists in company
