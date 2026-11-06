@@ -303,7 +303,7 @@ export default function Dashboard() {
                 </div>
                 <div className="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden flex gap-0.5 p-0.5 border border-slate-800/80">
                   <div
-                    className="bg-indigo-500 h-full rounded-full transition-[width] duration-500 ease-out motion-reduce:transition-none"
+                    className="bg-indigo-500 h-full rounded-full"
                     style={{ width: `${Math.min(100, Math.max(15, totalAvailableDays * 3))}%` }}
                   />
                 </div>
@@ -464,7 +464,7 @@ export default function Dashboard() {
                         {/* Progress Meter */}
                         <div className="w-full bg-slate-900 rounded-full h-1 overflow-hidden">
                           <div
-                            className="bg-indigo-500 h-full rounded-full transition-[width] duration-300 ease-out motion-reduce:transition-none"
+                            className="bg-indigo-500 h-full rounded-full"
                             style={{ width: `${pct}%` }}
                           />
                         </div>
