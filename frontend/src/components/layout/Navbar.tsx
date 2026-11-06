@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Bell,
@@ -26,12 +26,41 @@ interface Notification {
 export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout } = useAuthStore();
+  const { user, logout, updateUser } = useAuthStore();
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifMenu, setShowNotifMenu] = useState(false);
   const [loadingNotifs, setLoadingNotifs] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
+
+  // Sync latest user profile with organization name from backend if missing
+  useEffect(() => {
+    if (!user?.company_name) {
+      api
+        .get("/auth/me")
+        .then((res) => {
+          if (res.data) {
+            updateUser({ ...user, ...res.data });
+          }
+        })
+        .catch(() => {});
+    }
+  }, [user?.company_name]);
+
+  const displayOrgName = useMemo(() => {
+    if (user?.company_name && user.company_name.trim()) {
+      return user.company_name;
+    }
+    const domain =
+      user?.company_domain || (user?.email?.includes("@") ? user.email.split("@")[1] : "");
+    if (domain) {
+      const cleanSlug = domain.split(".")[0];
+      if (cleanSlug && cleanSlug !== "workforce" && cleanSlug !== "company") {
+        return cleanSlug.charAt(0).toUpperCase() + cleanSlug.slice(1);
+      }
+    }
+    return "Organization";
+  }, [user?.company_name, user?.company_domain, user?.email]);
 
   const isCeo = user?.role === "ceo" || user?.role === "super_admin";
 
@@ -134,22 +163,20 @@ export default function Navbar() {
       {/* Brand & Primary Navigation */}
       <div className="flex items-center gap-6">
         <Link to="/dashboard" className="flex items-center gap-2.5 group">
-          <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-white text-sm shadow-sm group-hover:bg-indigo-500 transition">
-            {user?.company_name ? user.company_name.charAt(0).toUpperCase() : "W"}
+          <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center font-black text-white text-sm shadow-sm group-hover:bg-indigo-500 transition">
+            {displayOrgName.charAt(0).toUpperCase()}
           </div>
           <div className="flex flex-col">
             <div className="flex items-center gap-1.5">
-              <span className="font-bold text-white text-sm tracking-tight leading-tight max-w-[180px] sm:max-w-[240px] truncate">
-                {user?.company_name || "WorkforceAI"}
+              <span className="font-bold text-white text-sm tracking-tight leading-tight max-w-[200px] sm:max-w-[280px] truncate">
+                {displayOrgName}
               </span>
-              {user?.company_name && (
-                <span className="px-1.5 py-0.2 rounded text-[9px] font-semibold tracking-wider uppercase bg-indigo-950/80 text-indigo-400 border border-indigo-800/60">
-                  Org
-                </span>
-              )}
+              <span className="px-1.5 py-0.2 rounded text-[9px] font-semibold tracking-wider uppercase bg-indigo-950/80 text-indigo-400 border border-indigo-800/60">
+                Org
+              </span>
             </div>
             <span className="text-[10px] text-slate-400 leading-none mt-0.5">
-              WorkforceAI OS
+              WorkforceAI Workspace
             </span>
           </div>
         </Link>
