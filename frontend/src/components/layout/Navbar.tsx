@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   CheckSquare,
   CreditCard,
+  BookOpen,
   Loader2,
 } from "lucide-react";
 import { api } from "../../lib/api";
@@ -170,6 +171,18 @@ export default function Navbar() {
               >
                 <CreditCard className="w-3.5 h-3.5" />
                 Payroll
+              </Link>
+
+              <Link
+                to="/policies"
+                className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
+                  location.pathname === "/policies"
+                    ? "text-white bg-slate-800 font-medium"
+                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+                }`}
+              >
+                <BookOpen className="w-3.5 h-3.5" />
+                Policies (OKF)
               </Link>
             </>
           )}
