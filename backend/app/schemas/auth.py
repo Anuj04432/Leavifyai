@@ -1,9 +1,17 @@
 from datetime import datetime
 from typing import Optional
 import uuid
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.models.user import UserRole
+
+
+class CompanyCeoRegisterRequest(BaseModel):
+    """Payload for registering a new company with CEO account."""
+    company_name: str = Field(..., min_length=2, max_length=255, description="Official company / organization name")
+    ceo_first_name: str = Field(..., min_length=1, max_length=100, description="CEO given name")
+    ceo_last_name: str = Field(..., min_length=1, max_length=100, description="CEO family name")
+    password: str = Field(..., min_length=8, max_length=100, description="Account password (min 8 characters)")
 
 
 class UserRegisterRequest(BaseModel):
@@ -25,16 +33,18 @@ class UserLoginRequest(BaseModel):
 
 class UserResponse(BaseModel):
     """Public user identity and profile view."""
+    model_config = ConfigDict(from_attributes=True)
+
     id: uuid.UUID
     email: str
     role: str
     company_id: uuid.UUID
     employee_id: Optional[uuid.UUID] = None
     is_active: bool
+    permissions: dict = Field(default_factory=dict)
+    company_name: Optional[str] = None
+    company_domain: Optional[str] = None
     created_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 class TokenResponse(BaseModel):
