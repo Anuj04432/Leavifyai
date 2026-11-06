@@ -110,5 +110,53 @@ class OKFPolicyService:
         self.reload_policies()
         return self.get_policy_by_code(policy_code)
 
+    def create_or_upload_policy(
+        self,
+        filename: str,
+        content: str,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Save a new or updated policy document to the OKF knowledge directory."""
+        if not self.knowledge_dir.exists():
+            self.knowledge_dir.mkdir(parents=True, exist_ok=True)
+
+        safe_name = re.sub(r"[^a-zA-Z0-9_\-\.]", "_", filename).lower()
+        if not safe_name.endswith(".md"):
+            safe_name = f"{safe_name.rsplit('.', 1)[0]}.md"
+
+        filepath = self.knowledge_dir / safe_name
+
+        frontmatter_pattern = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
+        match = frontmatter_pattern.match(content)
+
+        if match:
+            full_text = content
+        else:
+            meta = metadata or {}
+            leave_type = meta.get("leave_type", safe_name.replace(".md", "")).lower()
+            code_prefix = leave_type[:3].upper()
+            frontmatter_dict = {
+                "policy_code": meta.get("policy_code", f"POL-{code_prefix}-01"),
+                "title": meta.get("title", f"{leave_type.capitalize()} Leave Policy"),
+                "leave_type": leave_type,
+                "annual_allowance": int(meta.get("annual_allowance", 12)),
+                "max_consecutive_days": int(meta.get("max_consecutive_days", 5)),
+                "notice_period_days": int(meta.get("notice_period_days", 1)),
+                "is_paid": bool(meta.get("is_paid", True)),
+                "carryover_limit": int(meta.get("carryover_limit", 0)),
+                "requires_manager_approval": bool(meta.get("requires_manager_approval", True)),
+                "tags": [leave_type, "leave_policy", "hr"],
+                "last_updated": "2026-11-06",
+            }
+            yaml_str = yaml.dump(frontmatter_dict, default_flow_style=False)
+            full_text = f"---\n{yaml_str}---\n\n{content.strip()}\n"
+
+        filepath.write_text(full_text, encoding="utf-8")
+        self.reload_policies()
+
+        parsed = self._parse_okf_file(full_text, safe_name)
+        code = parsed.get("policy_code")
+        return self.get_policy_by_code(code) or parsed
+
 
 okf_service = OKFPolicyService()
