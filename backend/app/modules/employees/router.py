@@ -42,12 +42,19 @@ async def create_employee(
 async def list_employees(
     search: Optional[str] = Query(None, description="Search by name, email, employee code, or title"),
     department_id: Optional[uuid.UUID] = Query(None, description="Filter by department UUID"),
-    is_active: Optional[bool] = Query(True, description="Filter by active status"),
+    is_active: Optional[bool] = Query(None, description="Filter by active status"),
+    status: Optional[str] = Query(None, description="Filter by active status string ('true'/'false')"),
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    page_size: int = Query(100, ge=1, le=500),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    if is_active is None and status is not None and status.strip() != "":
+        if status.strip().lower() == "true":
+            is_active = True
+        elif status.strip().lower() == "false":
+            is_active = False
+
     service = EmployeeService(db, current_user.company_id)
     return await service.list_employees(
         search=search,
