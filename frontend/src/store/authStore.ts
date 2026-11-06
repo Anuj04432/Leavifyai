@@ -4,16 +4,22 @@ export interface UserProfile {
   id: string;
   email: string;
   role:
+    | "ceo"
     | "super_admin"
     | "admin"
     | "ir_manager"
+    | "finance_manager"
     | "hr"
     | "hr_manager"
+    | "content_manager"
     | "manager"
     | "employee";
   company_id: string;
   employee_id?: string | null;
   is_active: boolean;
+  permissions?: Record<string, boolean>;
+  company_name?: string | null;
+  company_domain?: string | null;
   created_at: string;
 }
 
