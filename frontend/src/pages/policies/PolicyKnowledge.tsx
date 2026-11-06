@@ -11,7 +11,6 @@ import {
   AlertCircle,
   Tag,
   Upload,
-  Plus,
   X,
 } from "lucide-react";
 import { api } from "../../lib/api";
