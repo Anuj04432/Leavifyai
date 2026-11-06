@@ -16,6 +16,7 @@ import {
   Layers,
   Sparkles,
   ArrowRight,
+  Trash2,
 } from "lucide-react";
 import { api } from "../../lib/api";
 import { useAuthStore } from "../../store/authStore";
@@ -89,6 +90,7 @@ export default function EmployeeDirectory() {
     imported: number;
     errors: string[];
   } | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchEmployees = async () => {
     try {
@@ -131,6 +133,22 @@ export default function EmployeeDirectory() {
     }, 200);
     return () => clearTimeout(timer);
   }, [search, selectedDept, statusFilter]);
+
+  const handleDeleteEmployee = async (id: string, name: string) => {
+    if (!window.confirm(`Are you sure you want to remove ${name} from the directory? This will purge or deactivate their personnel profile.`)) {
+      return;
+    }
+    try {
+      setDeletingId(id);
+      await api.delete(`/employees/${id}`);
+      await fetchEmployees();
+    } catch (err) {
+      console.error("Failed to remove employee", err);
+      alert("Failed to remove employee. Please try again.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const handleCreateEmployee = async (e: FormEvent) => {
     e.preventDefault();
@@ -353,6 +371,7 @@ export default function EmployeeDirectory() {
                         <th className="py-2.5 px-4 font-semibold">Base Salary</th>
                         <th className="py-2.5 px-4 font-semibold">PayPal Payout</th>
                         <th className="py-2.5 px-4 font-semibold">Status</th>
+                        <th className="py-2.5 px-4 font-semibold text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800/80 text-slate-300">
@@ -404,6 +423,26 @@ export default function EmployeeDirectory() {
                             >
                               {emp.is_active ? "Active" : "Inactive"}
                             </span>
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleDeleteEmployee(
+                                  emp.id,
+                                  `${emp.first_name} ${emp.last_name}`
+                                )
+                              }
+                              disabled={deletingId === emp.id}
+                              title="Remove employee record"
+                              className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors disabled:opacity-50"
+                            >
+                              {deletingId === emp.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin text-rose-400" />
+                              ) : (
+                                <Trash2 className="w-4 h-4" />
+                              )}
+                            </button>
                           </td>
                         </tr>
                       ))}
