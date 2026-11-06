@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.common.security import get_password_hash
-from app.models.company import Department
+from app.models.company import Company, Department
 from app.models.employee import Employee
 from app.models.user import User, UserRole
 from app.schemas.employee import (
@@ -39,6 +39,7 @@ class EmployeeService:
             else None
         )
         user_role = emp.user.role if emp.user else "employee"
+        permissions = emp.user.permissions if emp.user and emp.user.permissions else {}
         return EmployeeResponse(
             id=emp.id,
             user_id=emp.user_id,
@@ -50,6 +51,7 @@ class EmployeeService:
             phone=emp.phone,
             designation=emp.designation,
             role=user_role,
+            permissions=permissions,
             department_id=emp.department_id,
             department_name=dept_name,
             reporting_manager_id=emp.reporting_manager_id,
@@ -66,9 +68,27 @@ class EmployeeService:
         )
 
     async def create_employee(self, data: EmployeeCreateRequest) -> EmployeeResponse:
-        """Provisions a new employee record and associated user login."""
-        # 1. Check email uniqueness in company
-        email_clean = data.email.lower().strip()
+        """Provisions a new employee record, auto-generates corporate email if needed, and sets capabilities."""
+        # 1. Resolve corporate email (auto-provision using company domain if omitted)
+        if data.email:
+            email_clean = data.email.lower().strip()
+        else:
+            company_query = select(Company).where(Company.id == self.company_id)
+            company = (await self.db.execute(company_query)).scalar_one_or_none()
+            domain = (company.domain if company and company.domain else f"{company.slug if company else 'workforce'}.workforce.io")
+            first_clean = re.sub(r"[^a-z0-9]", "", data.first_name.lower()) or "user"
+            last_clean = re.sub(r"[^a-z0-9]", "", data.last_name.lower()) or "staff"
+            base_email = f"{first_clean}.{last_clean}@{domain}"
+            email_clean = base_email
+            counter = 1
+            while True:
+                exists = (await self.db.execute(select(User).where(User.email == email_clean))).scalar_one_or_none()
+                if not exists:
+                    break
+                email_clean = f"{first_clean}.{last_clean}{counter}@{domain}"
+                counter += 1
+
+        # Check email uniqueness in company
         existing_emp = (
             await self.db.execute(
                 select(Employee).where(
@@ -99,12 +119,32 @@ class EmployeeService:
                 detail=f"Employee code '{code}' is already assigned to another employee",
             )
 
-        # 3. Check or create User entity
+        # 3. Resolve role and granular capability permissions
+        target_role = data.role or UserRole.EMPLOYEE.value
+        permissions = dict(data.permissions or {})
+        if not permissions:
+            if target_role == "finance_manager":
+                permissions = {"can_handle_paypal": True, "can_run_payroll": True}
+            elif target_role in ["hr", "hr_manager"]:
+                permissions = {"can_run_payroll": True, "can_approve_leaves": True, "can_manage_roster": True}
+            elif target_role in ["ceo", "super_admin"]:
+                permissions = {
+                    "can_handle_paypal": True,
+                    "can_run_payroll": True,
+                    "can_approve_leaves": True,
+                    "can_manage_roster": True,
+                    "can_manage_policies": True,
+                }
+            elif target_role == "content_manager":
+                permissions = {"can_manage_policies": True}
+            elif target_role == "admin":
+                permissions = {"can_manage_roster": True, "can_approve_leaves": True, "can_manage_policies": True}
+
+        # 4. Check or create User entity
         user = (
             await self.db.execute(select(User).where(User.email == email_clean))
         ).scalar_one_or_none()
 
-        target_role = data.role or UserRole.EMPLOYEE.value
         if not user:
             raw_password = data.initial_password or f"Welcome@{uuid.uuid4().hex[:4]}"
             user = User(
@@ -112,14 +152,18 @@ class EmployeeService:
                 password_hash=get_password_hash(raw_password),
                 role=target_role,
                 company_id=self.company_id,
+                permissions=permissions,
                 is_active=True,
             )
             self.db.add(user)
             await self.db.flush()
-        elif data.role:
-            user.role = target_role
+        else:
+            if data.role:
+                user.role = target_role
+            if permissions:
+                user.permissions = permissions
 
-        # 4. Create Employee record
+        # 5. Create Employee record
         employee = Employee(
             user_id=user.id,
             company_id=self.company_id,
@@ -226,10 +270,14 @@ class EmployeeService:
 
         update_dict = data.model_dump(exclude_unset=True)
         role = update_dict.pop("role", None)
-        if role and emp.user_id:
+        permissions = update_dict.pop("permissions", None)
+        if (role or permissions is not None) and emp.user_id:
             user = (await self.db.execute(select(User).where(User.id == emp.user_id))).scalar_one_or_none()
             if user:
-                user.role = role
+                if role:
+                    user.role = role
+                if permissions is not None:
+                    user.permissions = permissions
 
         for field, value in update_dict.items():
             setattr(emp, field, value)
