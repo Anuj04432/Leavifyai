@@ -108,7 +108,7 @@ class AuthService:
             email=corporate_email,
             date_of_joining=datetime.now(timezone.utc).date(),
             employment_type="full_time",
-            department="Executive",
+            department_id=None,
             designation="Chief Executive Officer",
             salary_basic=0,
             salary_allowances={},
