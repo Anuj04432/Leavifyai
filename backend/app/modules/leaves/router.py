@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.dependencies import get_current_user, require_roles
+from app.dependencies import get_current_user, require_permission, require_roles
 from app.models.employee import Employee
 from app.models.user import User, UserRole
 from app.modules.leaves.service import LeaveService
@@ -127,8 +127,12 @@ async def list_leave_requests(
 ):
     service = LeaveService(db, current_user.company_id)
 
-    # Regular employees only see their own requests
-    if current_user.role not in [UserRole.ADMIN.value, UserRole.HR.value]:
+    # Regular employees only see their own requests unless they have approval capability
+    can_view_all = (
+        current_user.role in [UserRole.CEO.value, UserRole.SUPER_ADMIN.value, UserRole.ADMIN.value, UserRole.HR.value, "hr_manager"]
+        or bool((current_user.permissions or {}).get("can_approve_leaves", False))
+    )
+    if not can_view_all:
         emp = await _get_current_employee(current_user, db)
         if not emp:
             return []
@@ -140,12 +144,17 @@ async def list_leave_requests(
 @router.patch(
     "/requests/{request_id}/action",
     response_model=LeaveRequestResponse,
-    summary="Approve or reject a leave request (HR/Manager/Admin)",
+    summary="Approve or reject a leave request (HR/Manager/Admin/Authorized Personnel)",
 )
 async def action_leave_request(
     request_id: uuid.UUID,
     action_data: LeaveActionRequest,
-    current_user: User = Depends(require_roles([UserRole.ADMIN.value, UserRole.HR.value, UserRole.MANAGER.value])),
+    current_user: User = Depends(
+        require_permission(
+            "can_approve_leaves",
+            fallback_roles=[UserRole.ADMIN.value, UserRole.HR.value, "hr_manager", UserRole.MANAGER.value],
+        )
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     service = LeaveService(db, current_user.company_id)
