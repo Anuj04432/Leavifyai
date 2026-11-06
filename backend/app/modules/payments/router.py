@@ -28,7 +28,7 @@ router = APIRouter(prefix="/payments", tags=["PayPal Payments & Payouts"])
 async def disburse_payroll(
     batch_id: uuid.UUID,
     payload: DisbursePayrollRequest = None,
-    current_user: User = Depends(require_roles(["super_admin", "company_admin", "hr_manager"])),
+    current_user: User = Depends(require_roles(["super_admin", "ir_manager", "hr", "hr_manager"])),
     db: AsyncSession = Depends(get_db),
 ):
     """Execute automated PayPal batch payout for an approved payroll batch."""
