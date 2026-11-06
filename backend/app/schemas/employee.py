@@ -14,6 +14,7 @@ class EmployeeCreateRequest(BaseModel):
     phone: Optional[str] = Field(None, max_length=20)
     designation: Optional[str] = Field(None, max_length=100)
     department_id: Optional[uuid.UUID] = None
+    department_name: Optional[str] = Field(None, max_length=100, description="Name of new or existing department if department_id is omitted")
     reporting_manager_id: Optional[uuid.UUID] = None
     date_of_joining: date = Field(default_factory=date.today)
     employment_type: str = Field(default="full_time")
@@ -33,6 +34,7 @@ class EmployeeUpdateRequest(BaseModel):
     phone: Optional[str] = None
     designation: Optional[str] = None
     department_id: Optional[uuid.UUID] = None
+    department_name: Optional[str] = Field(None, max_length=100, description="Name of new or existing department if department_id is omitted")
     reporting_manager_id: Optional[uuid.UUID] = None
     date_of_joining: Optional[date] = None
     date_of_exit: Optional[date] = None
