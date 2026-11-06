@@ -33,8 +33,21 @@ export default function Navbar() {
   const [loadingNotifs, setLoadingNotifs] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
 
-  const isManagerOrHr =
-    user?.role === "admin" || user?.role === "hr" || user?.role === "manager";
+  const isEmployee = user?.role === "employee";
+  const canAccessPayroll =
+    user?.role === "super_admin" ||
+    user?.role === "ir_manager" ||
+    user?.role === "hr" ||
+    user?.role === "hr_manager";
+
+  const canAccessEmployees = !isEmployee;
+  const canAccessApprovals =
+    user?.role === "super_admin" ||
+    user?.role === "hr" ||
+    user?.role === "hr_manager" ||
+    user?.role === "manager" ||
+    user?.role === "ir_manager";
+  const canAccessPolicies = !isEmployee;
 
   const fetchNotifications = async () => {
     try {
@@ -123,17 +136,19 @@ export default function Navbar() {
             Dashboard
           </Link>
 
-          <Link
-            to="/employees"
-            className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
-              location.pathname === "/employees"
-                ? "text-white bg-slate-800 font-medium"
-                : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
-            }`}
-          >
-            <Users className="w-3.5 h-3.5" />
-            Employees
-          </Link>
+          {canAccessEmployees && (
+            <Link
+              to="/employees"
+              className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
+                location.pathname === "/employees"
+                  ? "text-white bg-slate-800 font-medium"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+              }`}
+            >
+              <Users className="w-3.5 h-3.5" />
+              Employees
+            </Link>
+          )}
 
           <Link
             to="/leaves"
@@ -147,44 +162,46 @@ export default function Navbar() {
             Leaves & Time-Off
           </Link>
 
-          {isManagerOrHr && (
-            <>
-              <Link
-                to="/approvals"
-                className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
-                  location.pathname === "/approvals"
-                    ? "text-white bg-slate-800 font-medium"
-                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
-                }`}
-              >
-                <CheckSquare className="w-3.5 h-3.5" />
-                Approval Cockpit
-              </Link>
+          {canAccessApprovals && (
+            <Link
+              to="/approvals"
+              className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
+                location.pathname === "/approvals"
+                  ? "text-white bg-slate-800 font-medium"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+              }`}
+            >
+              <CheckSquare className="w-3.5 h-3.5" />
+              Approval Cockpit
+            </Link>
+          )}
 
-              <Link
-                to="/payroll"
-                className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
-                  location.pathname === "/payroll"
-                    ? "text-white bg-slate-800 font-medium"
-                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
-                }`}
-              >
-                <CreditCard className="w-3.5 h-3.5" />
-                Payroll
-              </Link>
+          {canAccessPayroll && (
+            <Link
+              to="/payroll"
+              className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
+                location.pathname === "/payroll"
+                  ? "text-white bg-slate-800 font-medium"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+              }`}
+            >
+              <CreditCard className="w-3.5 h-3.5" />
+              Payroll
+            </Link>
+          )}
 
-              <Link
-                to="/policies"
-                className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
-                  location.pathname === "/policies"
-                    ? "text-white bg-slate-800 font-medium"
-                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
-                }`}
-              >
-                <BookOpen className="w-3.5 h-3.5" />
-                Policies (OKF)
-              </Link>
-            </>
+          {canAccessPolicies && (
+            <Link
+              to="/policies"
+              className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
+                location.pathname === "/policies"
+                  ? "text-white bg-slate-800 font-medium"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+              }`}
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              Policies (OKF)
+            </Link>
           )}
         </nav>
       </div>
