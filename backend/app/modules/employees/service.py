@@ -15,6 +15,7 @@ from app.common.security import get_password_hash
 from app.models.company import Company, Department
 from app.models.employee import Employee
 from app.models.user import User, UserRole
+from app.modules.agents.onboarding_agent import onboarding_agent
 from app.schemas.employee import (
     AnalyzeImportResponse,
     EmployeeCreateRequest,
@@ -23,6 +24,7 @@ from app.schemas.employee import (
     EmployeeResponse,
     EmployeeUpdateRequest,
     ImportErrorDetail,
+    ImportedCredentialItem,
 )
 
 
@@ -514,6 +516,7 @@ class EmployeeService:
         errors: List[ImportErrorDetail] = []
         seen_file_emails = set()
         seen_file_codes = set()
+        generated_credentials: List[ImportedCredentialItem] = []
 
         for idx, row in df.iterrows():
             row_num = int(idx) + 2  # 1-indexed, header is row 1
@@ -622,7 +625,19 @@ class EmployeeService:
             else:
                 paypal_val = None
 
-            # Create User Account
+            # Resolve personal Gmail/email from file
+            raw_personal_email = str(
+                row.get("personal_email")
+                or row.get("gmail")
+                or row.get("contact_email")
+                or row.get("external_email")
+                or ""
+            ).strip().lower()
+            raw_orig_email = str(row.get("email", "")).strip().lower()
+            if not raw_personal_email and raw_orig_email and "@" in raw_orig_email:
+                raw_personal_email = raw_orig_email
+
+            # Create User Account with Cleartext Initial Password
             user = (
                 await self.db.execute(select(User).where(User.email == email_val))
             ).scalar_one_or_none()
@@ -632,11 +647,15 @@ class EmployeeService:
             valid_roles = ["super_admin", "admin", "hr", "hr_manager", "ir_manager", "manager", "employee"]
             role_val = raw_role if raw_role in valid_roles else UserRole.EMPLOYEE.value
 
+            clean_code_pwd = re.sub(r"[^A-Za-z0-9]", "", str(emp_code)).upper()
+            raw_password = str(row.get("password") or row.get("initial_password") or "").strip()
+            if not raw_password or raw_password == "nan":
+                raw_password = f"Welcome@{clean_code_pwd}"
+
             if not user:
-                default_password = get_password_hash(f"Welcome@{uuid.uuid4().hex[:4]}")
                 user = User(
                     email=email_val,
-                    password_hash=default_password,
+                    password_hash=get_password_hash(raw_password),
                     role=role_val,
                     company_id=self.company_id,
                     is_active=True,
@@ -645,6 +664,30 @@ class EmployeeService:
                 await self.db.flush()
             elif raw_role in valid_roles:
                 user.role = role_val
+
+            # Dispatch credentials to employee's personal Gmail via Onboarding Agent (Standard SMTP / No Google Cloud)
+            full_name = f"{first_name} {last_name}".strip()
+            dispatch_info = onboarding_agent.dispatch_credentials(
+                employee_name=full_name,
+                corporate_email=email_val,
+                initial_password=raw_password,
+                personal_email=raw_personal_email if "@" in raw_personal_email else None,
+                company_name=company.name if company else "Workforce Organization",
+            )
+
+            cred_item = ImportedCredentialItem(
+                employee_code=emp_code,
+                employee_name=full_name,
+                corporate_email=email_val,
+                personal_email=raw_personal_email if "@" in raw_personal_email else None,
+                initial_password=raw_password,
+                role=role_val,
+                department_name=raw_dept if raw_dept and raw_dept != "nan" else "General",
+                designation=desig_val,
+                email_dispatched=dispatch_info.get("dispatched", False),
+                dispatch_status=dispatch_info.get("status"),
+            )
+            generated_credentials.append(cred_item)
 
             # Create Employee
             phone_val = str(row.get("phone", "")).strip()
@@ -680,4 +723,5 @@ class EmployeeService:
             successful_count=successful_count,
             failed_count=len(errors),
             errors=errors,
+            credentials=generated_credentials,
         )
