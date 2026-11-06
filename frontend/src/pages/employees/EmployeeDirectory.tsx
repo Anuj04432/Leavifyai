@@ -42,6 +42,7 @@ interface Employee {
   paypal_email: string | null;
   department_name?: string | null;
   department_id?: string | null;
+  role?: string | null;
 }
 
 interface AnalyzeResult {
@@ -78,6 +79,7 @@ export default function EmployeeDirectory() {
     salary_currency: "USD",
     paypal_email: "",
     department_id: "",
+    role: "employee",
   });
   const [formSubmitting, setFormSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -103,6 +105,7 @@ export default function EmployeeDirectory() {
     employment_type: "full_time",
     salary_basic: 0,
     paypal_email: "",
+    role: "employee",
     is_active: true,
   });
   const [editSubmitting, setEditSubmitting] = useState(false);
@@ -160,6 +163,7 @@ export default function EmployeeDirectory() {
       employment_type: emp.employment_type || "full_time",
       salary_basic: Number(emp.salary_basic || 0),
       paypal_email: emp.paypal_email || "",
+      role: emp.role || "employee",
       is_active: emp.is_active,
     });
     setEditError(null);
@@ -179,6 +183,7 @@ export default function EmployeeDirectory() {
         employment_type: editFormData.employment_type,
         salary_basic: Number(editFormData.salary_basic || 0),
         paypal_email: editFormData.paypal_email || null,
+        role: editFormData.role,
         is_active: editFormData.is_active,
       };
       await api.put(`/employees/${editingEmployee.id}`, payload);
@@ -224,6 +229,7 @@ export default function EmployeeDirectory() {
         salary_basic: Number(formData.base_salary || 0),
         department_id: formData.department_id || undefined,
         paypal_email: formData.paypal_email || undefined,
+        role: formData.role || "employee",
       };
 
       await api.post("/employees/", payload);
@@ -239,6 +245,7 @@ export default function EmployeeDirectory() {
         salary_currency: "USD",
         paypal_email: "",
         department_id: "",
+        role: "employee",
       });
       fetchEmployees();
     } catch (err: any) {
@@ -455,9 +462,27 @@ export default function EmployeeDirectory() {
                           </td>
                           <td className="py-3 px-4 text-slate-300">
                             <div>{emp.designation || "Staff"}</div>
-                            <span className="text-[10px] text-slate-500 uppercase font-mono">
-                              {(emp.employment_type || "full_time").replace("_", " ")}
-                            </span>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span className="text-[10px] text-slate-500 uppercase font-mono">
+                                {(emp.employment_type || "full_time").replace("_", " ")}
+                              </span>
+                              <span className="text-slate-600">•</span>
+                              <span
+                                className={`px-1.5 py-0.5 rounded text-[9px] font-mono uppercase font-bold ${
+                                  emp.role === "super_admin"
+                                    ? "bg-purple-500/10 text-purple-400 border border-purple-500/20"
+                                    : emp.role === "ir_manager"
+                                    ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                                    : emp.role === "hr" || emp.role === "hr_manager"
+                                    ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                                    : emp.role === "admin"
+                                    ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                                    : "bg-slate-800 text-slate-400 border border-slate-700/60"
+                                }`}
+                              >
+                                {emp.role || "employee"}
+                              </span>
+                            </div>
                           </td>
                           <td className="py-3 px-4 font-mono font-medium text-slate-200">
                             ${Number(emp.salary_basic || 0).toLocaleString()} USD
@@ -795,6 +820,25 @@ export default function EmployeeDirectory() {
                 </div>
               </div>
 
+              <div>
+                <label className="block text-slate-300 font-medium mb-1">
+                  System Access Role
+                </label>
+                <select
+                  value={formData.role}
+                  onChange={(e) =>
+                    setFormData({ ...formData, role: e.target.value })
+                  }
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-slate-200 outline-none focus:border-indigo-500 font-mono text-[11px]"
+                >
+                  <option value="employee">Employee (Self-Service Dashboard & Leave Portal)</option>
+                  <option value="hr">HR Manager (Leaves, Approvals, & Salaries)</option>
+                  <option value="ir_manager">IR Manager (PayPal Disbursements & Payouts)</option>
+                  <option value="admin">Administrator (Organization Management)</option>
+                  <option value="super_admin">Super Admin (Unrestricted System Access)</option>
+                </select>
+              </div>
+
               <div className="pt-3 flex justify-end gap-2.5 border-t border-slate-800">
                 <button
                   type="button"
@@ -982,6 +1026,25 @@ export default function EmployeeDirectory() {
                     <option value="false">Inactive</option>
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-medium mb-1">
+                  System Access Role
+                </label>
+                <select
+                  value={editFormData.role}
+                  onChange={(e) =>
+                    setEditFormData({ ...editFormData, role: e.target.value })
+                  }
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-slate-200 outline-none focus:border-indigo-500 font-mono text-[11px]"
+                >
+                  <option value="employee">Employee (Self-Service Dashboard & Leave Portal)</option>
+                  <option value="hr">HR Manager (Leaves, Approvals, & Salaries)</option>
+                  <option value="ir_manager">IR Manager (PayPal Disbursements & Payouts)</option>
+                  <option value="admin">Administrator (Organization Management)</option>
+                  <option value="super_admin">Super Admin (Unrestricted System Access)</option>
+                </select>
               </div>
 
               <div className="pt-3 flex justify-end gap-2.5 border-t border-slate-800">
