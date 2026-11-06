@@ -3,7 +3,15 @@ import { useAuthStore } from "../../store/authStore";
 import HRAssistantWidget from "../chat/HRAssistantWidget";
 
 interface ProtectedRouteProps {
-  allowedRoles?: Array<"admin" | "hr" | "manager" | "employee">;
+  allowedRoles?: Array<
+    | "super_admin"
+    | "admin"
+    | "ir_manager"
+    | "hr"
+    | "hr_manager"
+    | "manager"
+    | "employee"
+  >;
 }
 
 export default function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
