@@ -413,8 +413,8 @@ export default function EmployeeDirectory() {
             <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
               {loading ? (
                 <div className="p-12 text-center text-slate-400 flex flex-col items-center justify-center gap-2">
-                  <Loader2 className="w-5 h-5 animate-spin text-indigo-400" />
-                  <span className="text-xs font-medium">Querying Neon Postgres database...</span>
+                  <Loader2 className="w-5 h-5 animate-spin text-indigo-400 motion-reduce:animate-none" />
+                  <span className="text-xs font-medium">Querying Neon Postgres database…</span>
                 </div>
               ) : employees.length === 0 ? (
                 <div className="p-12 text-center text-slate-400">
@@ -463,12 +463,12 @@ export default function EmployeeDirectory() {
                           <td className="py-3 px-4 text-slate-300">
                             <div>{emp.designation || "Staff"}</div>
                             <div className="flex items-center gap-1.5 mt-0.5">
-                              <span className="text-[10px] text-slate-500 uppercase font-mono">
+                              <span className="text-xs text-slate-400 capitalize">
                                 {(emp.employment_type || "full_time").replace("_", " ")}
                               </span>
                               <span className="text-slate-600">•</span>
                               <span
-                                className={`px-1.5 py-0.5 rounded text-[9px] font-mono uppercase font-bold ${
+                                className={`px-1.5 py-0.5 rounded text-xs capitalize font-medium ${
                                   emp.role === "super_admin"
                                     ? "bg-purple-500/10 text-purple-400 border border-purple-500/20"
                                     : emp.role === "ir_manager"
@@ -480,7 +480,7 @@ export default function EmployeeDirectory() {
                                     : "bg-slate-800 text-slate-400 border border-slate-700/60"
                                 }`}
                               >
-                                {emp.role || "employee"}
+                                {(emp.role || "employee").replace("_", " ")}
                               </span>
                             </div>
                           </td>
@@ -489,16 +489,16 @@ export default function EmployeeDirectory() {
                           </td>
                           <td className="py-3 px-4">
                             {emp.paypal_email ? (
-                              <span className="text-emerald-400 font-mono text-[11px]">
+                              <span className="text-emerald-400 font-mono text-xs">
                                 {emp.paypal_email}
                               </span>
                             ) : (
-                              <span className="text-slate-600 italic text-[11px]">Unlinked</span>
+                              <span className="text-slate-600 italic text-xs">Unlinked</span>
                             )}
                           </td>
                           <td className="py-3 px-4">
                             <span
-                              className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase font-mono ${
+                              className={`px-2 py-0.5 rounded text-xs font-medium ${
                                 emp.is_active
                                   ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                                   : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
@@ -551,19 +551,19 @@ export default function EmployeeDirectory() {
             {/* Card 1: Live Workforce Telemetry */}
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
               <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                <span className="text-xs font-semibold text-white uppercase tracking-wider flex items-center gap-1.5">
+                <span className="text-xs font-semibold text-white flex items-center gap-1.5">
                   <TrendingUp className="w-3.5 h-3.5 text-indigo-400" />
                   Workforce Metrics
                 </span>
-                <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-xs text-emerald-400 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse motion-reduce:animate-none" />
                   Live
                 </span>
               </div>
 
               <div className="grid grid-cols-2 gap-3 pt-1">
                 <div className="bg-slate-950 p-3 rounded-lg border border-slate-800/80">
-                  <div className="text-[10px] uppercase font-mono text-slate-400">Headcount</div>
+                  <div className="text-xs text-slate-400 font-medium">Headcount</div>
                   <div className="text-xl font-bold text-white mt-1 font-mono">
                     {employees.length}
                   </div>
@@ -571,7 +571,7 @@ export default function EmployeeDirectory() {
                 </div>
 
                 <div className="bg-slate-950 p-3 rounded-lg border border-slate-800/80">
-                  <div className="text-[10px] uppercase font-mono text-slate-400">Monthly Run</div>
+                  <div className="text-xs text-slate-400 font-medium">Monthly Run</div>
                   <div className="text-xl font-bold text-white mt-1 font-mono">
                     ${Math.round(totalSalaries / 12).toLocaleString()}
                   </div>
@@ -606,7 +606,7 @@ export default function EmployeeDirectory() {
 
             {/* Card 2: Settlement & Integration Pipeline */}
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
-              <div className="text-xs font-semibold text-white uppercase tracking-wider flex items-center gap-1.5 pb-2 border-b border-slate-800">
+              <div className="text-xs font-semibold text-white flex items-center gap-1.5 pb-2 border-b border-slate-800">
                 <CreditCard className="w-3.5 h-3.5 text-indigo-400" />
                 Settlement Rails
               </div>
@@ -1173,10 +1173,10 @@ export default function EmployeeDirectory() {
                           type="button"
                           onClick={() => executeImport(true)}
                           disabled={importing}
-                          className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-sm disabled:opacity-50"
+                          className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center gap-1.5 transition-colors motion-reduce:transition-none cursor-pointer shadow-sm disabled:opacity-50 whitespace-nowrap"
                         >
                           {importing ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <Loader2 className="w-3.5 h-3.5 animate-spin motion-reduce:animate-none" />
                           ) : (
                             <Sparkles className="w-3.5 h-3.5 text-indigo-200" />
                           )}
@@ -1186,7 +1186,7 @@ export default function EmployeeDirectory() {
                           type="button"
                           onClick={() => executeImport(false)}
                           disabled={importing}
-                          className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs transition cursor-pointer disabled:opacity-50"
+                          className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs transition-colors motion-reduce:transition-none cursor-pointer disabled:opacity-50 whitespace-nowrap"
                         >
                           Continue Without Generating
                         </button>
