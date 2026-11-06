@@ -8,6 +8,7 @@ import {
   Loader2,
   CheckCircle2,
   Bot,
+  Zap,
 } from "lucide-react";
 import { api } from "../../lib/api";
 
@@ -16,6 +17,8 @@ interface Message {
   sender: "user" | "bot";
   text: string;
   timestamp: string;
+  provider?: string;
+  model?: string;
   extracted_leave?: {
     is_leave_request: boolean;
     leave_type?: string;
@@ -31,16 +34,39 @@ interface Message {
   submitted?: boolean;
 }
 
+function getProviderBadge(provider?: string, model?: string) {
+  if (!provider) return null;
+  const p = provider.toLowerCase();
+  if (p === "omniroute") {
+    return { name: "OmniRoute", model: model || "gpt-4o-mini", color: "text-amber-400 border-amber-500/30 bg-amber-500/10" };
+  }
+  if (p === "openrouter") {
+    return { name: "OpenRouter", model: model || "llama-3.3", color: "text-cyan-400 border-cyan-500/30 bg-cyan-500/10" };
+  }
+  if (p === "gemini") {
+    return { name: "Gemini", model: model || "gemini-2.5-flash", color: "text-emerald-400 border-emerald-500/30 bg-emerald-500/10" };
+  }
+  if (p === "grok") {
+    return { name: "Grok", model: model || "grok-2", color: "text-rose-400 border-rose-500/30 bg-rose-500/10" };
+  }
+  if (p === "local") {
+    return { name: "Local LLM", model: model || "llama3", color: "text-indigo-400 border-indigo-500/30 bg-indigo-500/10" };
+  }
+  return { name: "Deterministic Engine", model: "Rule Engine", color: "text-slate-400 border-slate-700 bg-slate-800/40" };
+}
+
 export default function HRAssistantWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [submittingLeaveId, setSubmittingLeaveId] = useState<string | null>(null);
+  const [activeProvider, setActiveProvider] = useState<string | null>(null);
+  const [activeModel, setActiveModel] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "initial-msg",
       sender: "bot",
-      text: "Hi! I am your WorkforceAI Supervisor powered by Gemini 2.5 Flash. You can ask me about your leave balances, company policies, or type something like 'I need next Monday off for personal reasons' to draft a request.",
+      text: "Hi! I am your WorkforceAI Supervisor powered by our Multi-Provider Fallback Router (OmniRoute, OpenRouter, Gemini, Grok, Local, & In-House Engine). You can ask me about your leave balances, company policies, or type something like 'I need next Monday off for personal reasons' to draft a request.",
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     },
   ]);
@@ -70,11 +96,17 @@ export default function HRAssistantWidget() {
 
     try {
       const res = await api.post("/agents/chat", { message: textToSend });
+      if (res.data.provider) {
+        setActiveProvider(res.data.provider);
+        setActiveModel(res.data.model);
+      }
       const botMsg: Message = {
         id: `bot-${Date.now()}`,
         sender: "bot",
         text: res.data.reply,
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        provider: res.data.provider,
+        model: res.data.model,
         extracted_leave: res.data.extracted_leave,
       };
       setMessages((prev) => [...prev, botMsg]);
@@ -157,8 +189,11 @@ export default function HRAssistantWidget() {
               </div>
               <div>
                 <h3 className="text-xs font-bold text-white leading-tight">WorkforceAI Copilot</h3>
-                <span className="text-xs text-emerald-400 flex items-center gap-1 font-medium">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Gemini 2.5 Flash
+                <span className="text-[11px] text-emerald-400 flex items-center gap-1 font-medium">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                  {activeProvider
+                    ? `${getProviderBadge(activeProvider, activeModel)?.name || activeProvider} (${activeModel || 'Active'})`
+                    : "Multi-LLM Fallback Engine"}
                 </span>
               </div>
             </div>
@@ -235,9 +270,20 @@ export default function HRAssistantWidget() {
                     </div>
                   )}
 
-                  <span className="text-[10px] opacity-60 block text-right mt-1">
-                    {m.timestamp}
-                  </span>
+                  <div className="flex items-center justify-between text-[10px] opacity-70 pt-1 border-t border-slate-800/60 mt-1">
+                    {m.provider ? (
+                      (() => {
+                        const b = getProviderBadge(m.provider, m.model);
+                        return b ? (
+                          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono border ${b.color}`}>
+                            <Zap className="w-2.5 h-2.5" />
+                            <span>{b.name}</span>
+                          </span>
+                        ) : <span />;
+                      })()
+                    ) : <span />}
+                    <span>{m.timestamp}</span>
+                  </div>
                 </div>
               </div>
             ))}
