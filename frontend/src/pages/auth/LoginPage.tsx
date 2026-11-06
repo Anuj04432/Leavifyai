@@ -24,19 +24,27 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  // Register Organization Form State
+  // Register Organization / CEO Form State
   const [regData, setRegData] = useState({
     company_name: "",
-    company_slug: "",
-    first_name: "",
-    last_name: "",
-    email: "",
+    ceo_first_name: "",
+    ceo_last_name: "",
     password: "",
   });
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Live corporate email preview computation
+  const previewDomain =
+    regData.company_name.toLowerCase().replace(/[^a-z0-9]+/g, "") || "company";
+  const previewUser = `${
+    regData.ceo_first_name.toLowerCase().replace(/[^a-z0-9]+/g, "") || "firstname"
+  }.${
+    regData.ceo_last_name.toLowerCase().replace(/[^a-z0-9]+/g, "") || "lastname"
+  }`;
+  const previewEmail = `${previewUser}@${previewDomain}.workforce.io`;
 
   const handleLoginSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -73,24 +81,15 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // 1. Register organization & admin account
-      await api.post("/auth/register", {
+      // Register company & CEO account with auto-provisioned WorkforceAI corporate email
+      const res = await api.post("/auth/register-company", {
         company_name: regData.company_name.trim(),
-        company_slug: regData.company_slug.trim() || undefined,
-        first_name: regData.first_name.trim(),
-        last_name: regData.last_name.trim(),
-        email: regData.email.trim().toLowerCase(),
-        password: regData.password,
-        role: "admin",
-      });
-
-      // 2. Automatically log in with new credentials
-      const loginRes = await api.post("/auth/login", {
-        email: regData.email.trim().toLowerCase(),
+        ceo_first_name: regData.ceo_first_name.trim(),
+        ceo_last_name: regData.ceo_last_name.trim(),
         password: regData.password,
       });
 
-      const { access_token, refresh_token, user } = loginRes.data;
+      const { access_token, refresh_token, user } = res.data;
       if (user) {
         setAuth(access_token, refresh_token, user);
       } else {
@@ -100,27 +99,20 @@ export default function LoginPage() {
         setAuth(access_token, refresh_token, meRes.data);
       }
 
-      setSuccessMsg("Organization registered successfully. Launching workspace...");
-      setTimeout(() => navigate("/dashboard"), 500);
+      setSuccessMsg(
+        `Welcome CEO! Corporate email assigned: ${user?.email || previewEmail}`
+      );
+      setTimeout(() => navigate("/dashboard"), 700);
     } catch (err: any) {
       const detail = err.response?.data?.detail;
       setError(
         typeof detail === "string"
           ? detail
-          : "Organization registration failed. Please ensure the email is unique."
+          : "Company registration failed. Please try again."
       );
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleCompanyNameChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const name = e.target.value;
-    const slug = name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "");
-    setRegData({ ...regData, company_name: name, company_slug: slug });
   };
 
   const fillQuickLogin = (roleEmail: string) => {
@@ -247,19 +239,19 @@ export default function LoginPage() {
                   : "text-slate-400 hover:text-slate-200"
               }`}
             >
-              Register Organization
+              Register as Company CEO
             </button>
           </div>
 
           {/* Form Header */}
           <div>
             <h2 className="text-xl font-bold tracking-tight text-white">
-              {activeTab === "login" ? "Sign in to your organization" : "Register new company workspace"}
+              {activeTab === "login" ? "Sign in to your organization" : "Register company as CEO"}
             </h2>
             <p className="text-xs text-slate-400 mt-1">
               {activeTab === "login"
-                ? "Enter your credentials to access the WorkforceAI portal."
-                : "Provision an isolated organization cluster and administrator account."}
+                ? "Enter your Antigravity WorkforceAI credentials to access your organization portal."
+                : "Register as Company CEO. Corporate email and workspace are provisioned automatically."}
             </p>
           </div>
 
@@ -333,7 +325,7 @@ export default function LoginPage() {
               </button>
             </form>
           ) : (
-            /* REGISTER ORGANIZATION FORM */
+            /* REGISTER AS COMPANY CEO FORM */
             <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
               <div>
                 <label className="block text-xs font-medium text-slate-300 mb-1">
@@ -345,76 +337,65 @@ export default function LoginPage() {
                     type="text"
                     required
                     value={regData.company_name}
-                    onChange={handleCompanyNameChange}
+                    onChange={(e) =>
+                      setRegData({ ...regData, company_name: e.target.value })
+                    }
                     placeholder="Acme Global Inc"
                     className="w-full bg-slate-900 border border-slate-800 focus:border-indigo-500 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-100 placeholder-slate-600 outline-none transition"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">
-                  Workspace Slug Identifier
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={regData.company_slug}
-                  onChange={(e) => setRegData({ ...regData, company_slug: e.target.value })}
-                  placeholder="acme-global"
-                  className="w-full bg-slate-900 border border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-2 text-xs text-slate-100 font-mono placeholder-slate-600 outline-none transition"
-                />
-              </div>
-
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-slate-300 mb-1">
-                    First Name
+                    CEO First Name
                   </label>
                   <input
                     type="text"
                     required
-                    value={regData.first_name}
-                    onChange={(e) => setRegData({ ...regData, first_name: e.target.value })}
-                    placeholder="Alex"
+                    value={regData.ceo_first_name}
+                    onChange={(e) =>
+                      setRegData({ ...regData, ceo_first_name: e.target.value })
+                    }
+                    placeholder="Jane"
                     className="w-full bg-slate-900 border border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder-slate-600 outline-none transition"
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-300 mb-1">
-                    Last Name
+                    CEO Last Name
                   </label>
                   <input
                     type="text"
                     required
-                    value={regData.last_name}
-                    onChange={(e) => setRegData({ ...regData, last_name: e.target.value })}
-                    placeholder="Morgan"
+                    value={regData.ceo_last_name}
+                    onChange={(e) =>
+                      setRegData({ ...regData, ceo_last_name: e.target.value })
+                    }
+                    placeholder="Doe"
                     className="w-full bg-slate-900 border border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder-slate-600 outline-none transition"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">
-                  Administrator Corporate Email
-                </label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-2.5" />
-                  <input
-                    type="email"
-                    required
-                    value={regData.email}
-                    onChange={(e) => setRegData({ ...regData, email: e.target.value })}
-                    placeholder="alex@acme.com"
-                    className="w-full bg-slate-900 border border-slate-800 focus:border-indigo-500 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-100 placeholder-slate-600 outline-none transition"
-                  />
+              {/* Live Auto-Provisioned Antigravity WorkforceAI Email Display */}
+              <div className="p-3 bg-slate-900 rounded-xl border border-indigo-500/30 text-xs space-y-1.5">
+                <div className="flex items-center gap-1.5 text-indigo-400 font-semibold text-[11px]">
+                  <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Provisioned WorkforceAI Corporate Email</span>
+                </div>
+                <div className="font-mono text-white text-xs bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-800 break-all select-all">
+                  {previewEmail}
+                </div>
+                <div className="text-[10px] text-slate-400 leading-tight">
+                  No personal email required. As CEO and for every team member, WorkforceAI issues a unique corporate login.
                 </div>
               </div>
 
               <div>
                 <label className="block text-xs font-medium text-slate-300 mb-1">
-                  Master Password (min 8 characters)
+                  CEO Master Password (min 8 characters)
                 </label>
                 <div className="relative">
                   <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-2.5" />
@@ -423,7 +404,9 @@ export default function LoginPage() {
                     required
                     minLength={8}
                     value={regData.password}
-                    onChange={(e) => setRegData({ ...regData, password: e.target.value })}
+                    onChange={(e) =>
+                      setRegData({ ...regData, password: e.target.value })
+                    }
                     placeholder="••••••••"
                     className="w-full bg-slate-900 border border-slate-800 focus:border-indigo-500 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-100 placeholder-slate-600 outline-none transition"
                   />
@@ -438,11 +421,11 @@ export default function LoginPage() {
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Provisioning Organization...</span>
+                    <span>Registering Company as CEO...</span>
                   </>
                 ) : (
                   <>
-                    <span>Register & Launch Organization</span>
+                    <span>Register Company & Launch as CEO</span>
                     <ArrowRight className="w-3.5 h-3.5 text-indigo-200" />
                   </>
                 )}
