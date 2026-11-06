@@ -14,6 +14,7 @@ class Company(Base, UUIDMixin, TimestampMixin):
 
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     slug: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)
+    domain: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     settings: Mapped[dict] = mapped_column(JSONB, default=dict, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
