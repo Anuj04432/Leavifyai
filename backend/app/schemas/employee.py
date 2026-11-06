@@ -21,6 +21,7 @@ class EmployeeCreateRequest(BaseModel):
     salary_allowances: Dict[str, Any] = Field(default_factory=dict)
     bank_account_info: Dict[str, Any] = Field(default_factory=dict)
     paypal_email: Optional[EmailStr] = None
+    role: Optional[str] = Field("employee", description="System access role: employee, hr, ir_manager, admin, super_admin")
     initial_password: Optional[str] = Field(None, min_length=8)
 
 
@@ -39,6 +40,7 @@ class EmployeeUpdateRequest(BaseModel):
     salary_allowances: Optional[Dict[str, Any]] = None
     bank_account_info: Optional[Dict[str, Any]] = None
     paypal_email: Optional[EmailStr] = None
+    role: Optional[str] = Field(None, description="System access role: employee, hr, ir_manager, admin, super_admin")
     is_active: Optional[bool] = None
 
 
@@ -53,6 +55,7 @@ class EmployeeResponse(BaseModel):
     email: str
     phone: Optional[str] = None
     designation: Optional[str] = None
+    role: Optional[str] = "employee"
     department_id: Optional[uuid.UUID] = None
     department_name: Optional[str] = None
     reporting_manager_id: Optional[uuid.UUID] = None
