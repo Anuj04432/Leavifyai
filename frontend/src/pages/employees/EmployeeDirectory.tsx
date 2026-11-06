@@ -93,10 +93,15 @@ export default function EmployeeDirectory() {
   const fetchEmployees = async () => {
     try {
       setLoading(true);
-      const params: Record<string, string> = {};
+      const params: Record<string, string> = {
+        page_size: "100",
+      };
       if (search) params.search = search;
       if (selectedDept) params.department_id = selectedDept;
-      if (statusFilter) params.status = statusFilter;
+      if (statusFilter !== "") {
+        params.is_active = statusFilter;
+        params.status = statusFilter;
+      }
 
       const res = await api.get("/employees/", { params });
       setEmployees(res.data.items || []);
@@ -210,7 +215,8 @@ export default function EmployeeDirectory() {
         imported: res.data.successful_count,
         errors: (res.data.errors || []).map((e: any) => `Row ${e.row}: ${e.error}`),
       });
-      fetchEmployees();
+      await fetchEmployees();
+      await fetchDepartments();
     } catch (err: any) {
       const detail = err.response?.data?.detail;
       setImportResult({
