@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, File, Query, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.dependencies import get_current_user, require_roles
+from app.dependencies import get_current_user, require_permission, require_roles
 from app.models.user import User, UserRole
 from app.modules.employees.service import EmployeeService
 from app.schemas.employee import (
@@ -18,6 +18,17 @@ from app.schemas.employee import (
 
 router = APIRouter(prefix="/employees", tags=["Employees"])
 
+roster_management_guard = require_permission(
+    "can_manage_roster",
+    fallback_roles=[
+        UserRole.CEO.value,
+        UserRole.SUPER_ADMIN.value,
+        UserRole.ADMIN.value,
+        UserRole.HR.value,
+        "hr_manager",
+    ],
+)
+
 
 @router.post(
     "/",
@@ -27,7 +38,7 @@ router = APIRouter(prefix="/employees", tags=["Employees"])
 )
 async def create_employee(
     data: EmployeeCreateRequest,
-    current_user: User = Depends(require_roles([UserRole.ADMIN.value, UserRole.HR.value])),
+    current_user: User = Depends(roster_management_guard),
     db: AsyncSession = Depends(get_db),
 ):
     service = EmployeeService(db, current_user.company_id)
@@ -87,7 +98,7 @@ async def get_employee(
 async def update_employee(
     id: uuid.UUID,
     data: EmployeeUpdateRequest,
-    current_user: User = Depends(require_roles([UserRole.ADMIN.value, UserRole.HR.value])),
+    current_user: User = Depends(roster_management_guard),
     db: AsyncSession = Depends(get_db),
 ):
     service = EmployeeService(db, current_user.company_id)
@@ -101,7 +112,7 @@ async def update_employee(
 )
 async def delete_employee(
     id: uuid.UUID,
-    current_user: User = Depends(require_roles([UserRole.ADMIN.value, UserRole.HR.value])),
+    current_user: User = Depends(roster_management_guard),
     db: AsyncSession = Depends(get_db),
 ):
     service = EmployeeService(db, current_user.company_id)
@@ -116,7 +127,7 @@ async def delete_employee(
 )
 async def analyze_import(
     file: UploadFile = File(..., description="CSV or Excel (.xlsx) file to inspect"),
-    current_user: User = Depends(require_roles([UserRole.ADMIN.value, UserRole.HR.value])),
+    current_user: User = Depends(roster_management_guard),
     db: AsyncSession = Depends(get_db),
 ):
     service = EmployeeService(db, current_user.company_id)
@@ -131,7 +142,7 @@ async def analyze_import(
 async def import_employees(
     file: UploadFile = File(..., description="CSV or Excel (.xlsx) file with employee roster"),
     auto_generate_missing: bool = Query(True, description="Auto-generate missing corporate email and designation"),
-    current_user: User = Depends(require_roles([UserRole.ADMIN.value, UserRole.HR.value])),
+    current_user: User = Depends(roster_management_guard),
     db: AsyncSession = Depends(get_db),
 ):
     service = EmployeeService(db, current_user.company_id)
