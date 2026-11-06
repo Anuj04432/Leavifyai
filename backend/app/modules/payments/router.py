@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.dependencies import get_current_user, require_roles
+from app.dependencies import get_current_user, require_permission, require_roles
 from app.models.user import User
 from app.modules.payments.service import payment_service
 from app.schemas.payment import (
@@ -28,7 +28,12 @@ router = APIRouter(prefix="/payments", tags=["PayPal Payments & Payouts"])
 async def disburse_payroll(
     batch_id: uuid.UUID,
     payload: DisbursePayrollRequest = None,
-    current_user: User = Depends(require_roles(["super_admin", "ir_manager", "hr", "hr_manager"])),
+    current_user: User = Depends(
+        require_permission(
+            "can_handle_paypal",
+            fallback_roles=["super_admin", "ceo", "finance_manager", "ir_manager"],
+        )
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     """Execute automated PayPal batch payout for an approved payroll batch."""
