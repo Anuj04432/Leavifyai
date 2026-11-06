@@ -17,6 +17,7 @@ import {
   Sparkles,
   ArrowRight,
   Trash2,
+  Pencil,
 } from "lucide-react";
 import { api } from "../../lib/api";
 import { useAuthStore } from "../../store/authStore";
@@ -92,6 +93,21 @@ export default function EmployeeDirectory() {
   } | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  // Edit Employee State
+  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [editFormData, setEditFormData] = useState({
+    first_name: "",
+    last_name: "",
+    designation: "",
+    department_id: "",
+    employment_type: "full_time",
+    salary_basic: 0,
+    paypal_email: "",
+    is_active: true,
+  });
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+
   const fetchEmployees = async () => {
     try {
       setLoading(true);
@@ -133,6 +149,48 @@ export default function EmployeeDirectory() {
     }, 200);
     return () => clearTimeout(timer);
   }, [search, selectedDept, statusFilter]);
+
+  const handleOpenEdit = (emp: Employee) => {
+    setEditingEmployee(emp);
+    setEditFormData({
+      first_name: emp.first_name,
+      last_name: emp.last_name,
+      designation: emp.designation || "",
+      department_id: emp.department_id || "",
+      employment_type: emp.employment_type || "full_time",
+      salary_basic: Number(emp.salary_basic || 0),
+      paypal_email: emp.paypal_email || "",
+      is_active: emp.is_active,
+    });
+    setEditError(null);
+  };
+
+  const handleUpdateEmployee = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!editingEmployee) return;
+    setEditSubmitting(true);
+    setEditError(null);
+    try {
+      const payload: any = {
+        first_name: editFormData.first_name,
+        last_name: editFormData.last_name,
+        designation: editFormData.designation || null,
+        department_id: editFormData.department_id || null,
+        employment_type: editFormData.employment_type,
+        salary_basic: Number(editFormData.salary_basic || 0),
+        paypal_email: editFormData.paypal_email || null,
+        is_active: editFormData.is_active,
+      };
+      await api.put(`/employees/${editingEmployee.id}`, payload);
+      setEditingEmployee(null);
+      await fetchEmployees();
+    } catch (err: any) {
+      const detail = err.response?.data?.detail;
+      setEditError(typeof detail === "string" ? detail : "Failed to update employee.");
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
 
   const handleDeleteEmployee = async (id: string, name: string) => {
     if (!window.confirm(`Are you sure you want to remove ${name} from the directory? This will purge or deactivate their personnel profile.`)) {
@@ -425,24 +483,34 @@ export default function EmployeeDirectory() {
                             </span>
                           </td>
                           <td className="py-3 px-4 text-right">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleDeleteEmployee(
-                                  emp.id,
-                                  `${emp.first_name} ${emp.last_name}`
-                                )
-                              }
-                              disabled={deletingId === emp.id}
-                              title="Remove employee record"
-                              className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors disabled:opacity-50"
-                            >
-                              {deletingId === emp.id ? (
-                                <Loader2 className="w-4 h-4 animate-spin text-rose-400" />
-                              ) : (
-                                <Trash2 className="w-4 h-4" />
-                              )}
-                            </button>
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEdit(emp)}
+                                title="Edit employee profile"
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-colors"
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleDeleteEmployee(
+                                    emp.id,
+                                    `${emp.first_name} ${emp.last_name}`
+                                  )
+                                }
+                                disabled={deletingId === emp.id}
+                                title="Remove employee record"
+                                className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors disabled:opacity-50"
+                              >
+                                {deletingId === emp.id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin text-rose-400" />
+                                ) : (
+                                  <Trash2 className="w-4 h-4" />
+                                )}
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -742,6 +810,195 @@ export default function EmployeeDirectory() {
                 >
                   {formSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   Create Record
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Employee Modal */}
+      {editingEmployee && (
+        <div className="fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-lg w-full p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Pencil className="w-4 h-4 text-indigo-400" />
+                Edit Profile: {editingEmployee.first_name} {editingEmployee.last_name}
+              </h3>
+              <button
+                onClick={() => setEditingEmployee(null)}
+                className="text-slate-400 hover:text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {editError && (
+              <div className="mt-3 p-3 bg-rose-500/10 border border-rose-500/20 rounded-lg text-rose-300 text-xs">
+                {editError}
+              </div>
+            )}
+
+            <form onSubmit={handleUpdateEmployee} className="mt-4 space-y-3.5 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-medium mb-1">
+                    First Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editFormData.first_name}
+                    onChange={(e) =>
+                      setEditFormData({ ...editFormData, first_name: e.target.value })
+                    }
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-slate-200 outline-none focus:border-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-medium mb-1">
+                    Last Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editFormData.last_name}
+                    onChange={(e) =>
+                      setEditFormData({ ...editFormData, last_name: e.target.value })
+                    }
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-slate-200 outline-none focus:border-indigo-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-medium mb-1">
+                    Designation / Title
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Senior Engineer"
+                    value={editFormData.designation}
+                    onChange={(e) =>
+                      setEditFormData({ ...editFormData, designation: e.target.value })
+                    }
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-slate-200 outline-none focus:border-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-medium mb-1">
+                    Department
+                  </label>
+                  <select
+                    value={editFormData.department_id}
+                    onChange={(e) =>
+                      setEditFormData({ ...editFormData, department_id: e.target.value })
+                    }
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-slate-200 outline-none focus:border-indigo-500"
+                  >
+                    <option value="">No Department</option>
+                    {departments.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-medium mb-1">
+                    Base Salary ($) *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min={0}
+                    value={editFormData.salary_basic}
+                    onChange={(e) =>
+                      setEditFormData({
+                        ...editFormData,
+                        salary_basic: Number(e.target.value),
+                      })
+                    }
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-slate-200 outline-none focus:border-indigo-500 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-medium mb-1">
+                    Employment Type
+                  </label>
+                  <select
+                    value={editFormData.employment_type}
+                    onChange={(e) =>
+                      setEditFormData({
+                        ...editFormData,
+                        employment_type: e.target.value,
+                      })
+                    }
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-slate-200 outline-none focus:border-indigo-500"
+                  >
+                    <option value="full_time">Full Time</option>
+                    <option value="part_time">Part Time</option>
+                    <option value="contract">Contract</option>
+                    <option value="intern">Intern</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-medium mb-1">
+                    PayPal Payout Email
+                  </label>
+                  <input
+                    type="email"
+                    placeholder="worker.sandbox@paypal.com"
+                    value={editFormData.paypal_email}
+                    onChange={(e) =>
+                      setEditFormData({ ...editFormData, paypal_email: e.target.value })
+                    }
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-slate-200 outline-none focus:border-indigo-500 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-medium mb-1">
+                    Employment Status
+                  </label>
+                  <select
+                    value={editFormData.is_active ? "true" : "false"}
+                    onChange={(e) =>
+                      setEditFormData({
+                        ...editFormData,
+                        is_active: e.target.value === "true",
+                      })
+                    }
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-slate-200 outline-none focus:border-indigo-500"
+                  >
+                    <option value="true">Active</option>
+                    <option value="false">Inactive</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="pt-3 flex justify-end gap-2.5 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setEditingEmployee(null)}
+                  className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={editSubmitting}
+                  className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium flex items-center gap-1.5 transition cursor-pointer"
+                >
+                  {editSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  Save Changes
                 </button>
               </div>
             </form>
