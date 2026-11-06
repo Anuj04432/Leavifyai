@@ -61,9 +61,20 @@ async def get_current_user(
     return user
 
 
+def has_permission(user: User, permission_key: str) -> bool:
+    """Checks if user has capability permission or is superuser (CEO, SUPER_ADMIN)."""
+    if user.role in ["ceo", "super_admin"]:
+        return True
+    user_perms = user.permissions or {}
+    return bool(user_perms.get(permission_key, False))
+
+
 def require_roles(allowed_roles: List[str]):
     """Authorization factory that restricts endpoint access to specified roles."""
     async def role_checker(current_user: User = Depends(get_current_user)) -> User:
+        # CEO and SUPER_ADMIN always have administrative access
+        if current_user.role in ["ceo", "super_admin"]:
+            return current_user
         if current_user.role not in allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -72,3 +83,18 @@ def require_roles(allowed_roles: List[str]):
         return current_user
 
     return role_checker
+
+
+def require_permission(permission_key: str, fallback_roles: Optional[List[str]] = None):
+    """Authorization factory that checks granular capability permission or authorized roles."""
+    async def permission_checker(current_user: User = Depends(get_current_user)) -> User:
+        if has_permission(current_user, permission_key):
+            return current_user
+        if fallback_roles and current_user.role in fallback_roles:
+            return current_user
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Operation not permitted. Requires capability '{permission_key}' or an authorized executive role.",
+        )
+
+    return permission_checker
