@@ -250,8 +250,8 @@ export default function LoginPage() {
             </h2>
             <p className="text-xs text-slate-400 mt-1">
               {activeTab === "login"
-                ? "Enter your Antigravity WorkforceAI credentials to access your organization portal."
-                : "Register as Company CEO. Corporate email and workspace are provisioned automatically."}
+                ? "Enter your provisioned WorkforceAI corporate email and password (CEO, HR, Finance, or Employee)."
+                : "Register as Company CEO. Team members and employees should use 'Sign In' with credentials issued by their company."}
             </p>
           </div>
 
