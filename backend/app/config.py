@@ -46,10 +46,32 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
-    # AI Configuration (Gemini)
+    # Multi-Provider AI & LLM Routing Configuration
+    LLM_ROUTING_ORDER: str = "omniroute,openrouter,gemini,grok,local,deterministic"
+
+    # OmniRoute (Free Credits / Aggregator)
+    OMNIROUTE_API_KEY: str = ""
+    OMNIROUTE_BASE_URL: str = "https://api.omniroute.ai/v1"
+    OMNIROUTE_MODEL: str = "auto"
+
+    # OpenRouter (Aggregator / Free tiers)
+    OPENROUTER_API_KEY: str = ""
+    OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
+    OPENROUTER_MODEL: str = "meta-llama/llama-3.3-70b-instruct:free"
+
+    # Google Gemini
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-2.5-flash"
     EMBEDDING_MODEL: str = "text-embedding-004"
+
+    # Grok (xAI)
+    GROK_API_KEY: str = ""
+    GROK_BASE_URL: str = "https://api.x.ai/v1"
+    GROK_MODEL: str = "grok-beta"
+
+    # Local / Near AI Models (Ollama, vLLM, Near)
+    LOCAL_LLM_URL: str = "http://localhost:11434/v1"
+    LOCAL_LLM_MODEL: str = "llama3"
 
     # PayPal Developer Sandbox
     PAYPAL_MODE: str = "sandbox"
