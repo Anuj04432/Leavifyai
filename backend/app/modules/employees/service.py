@@ -145,8 +145,9 @@ class EmployeeService:
             await self.db.execute(select(User).where(User.email == email_clean))
         ).scalar_one_or_none()
 
+        clean_code_pwd = code.replace("-", "").strip()
+        raw_password = data.initial_password or f"Welcome@{clean_code_pwd}"
         if not user:
-            raw_password = data.initial_password or f"Welcome@{uuid.uuid4().hex[:4]}"
             user = User(
                 email=email_clean,
                 password_hash=get_password_hash(raw_password),
@@ -187,7 +188,9 @@ class EmployeeService:
         await self.db.commit()
 
         # Re-query with eager loads
-        return await self.get_employee(employee.id)
+        res = await self.get_employee(employee.id)
+        res.initial_password = raw_password
+        return res
 
     async def get_employee(self, employee_id: uuid.UUID) -> EmployeeResponse:
         """Retrieves a single employee by ID."""
