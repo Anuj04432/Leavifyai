@@ -6,6 +6,7 @@ from app.dependencies import get_current_user
 from app.models.user import User
 from app.modules.auth.service import AuthService
 from app.schemas.auth import (
+    CompanyCeoRegisterRequest,
     TokenRefreshRequest,
     TokenResponse,
     UserLoginRequest,
@@ -14,6 +15,20 @@ from app.schemas.auth import (
 )
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+
+
+@router.post(
+    "/register-company",
+    response_model=TokenResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Register a new company and CEO account with auto-provisioned WorkforceAI email",
+)
+async def register_company(
+    data: CompanyCeoRegisterRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    service = AuthService(db)
+    return await service.register_company_ceo(data)
 
 
 @router.post(
@@ -72,5 +87,8 @@ async def get_me(
         company_id=current_user.company_id,
         employee_id=employee_id,
         is_active=current_user.is_active,
+        permissions=current_user.permissions or {},
+        company_name=current_user.company.name if current_user.company else None,
+        company_domain=current_user.company.domain if current_user.company else None,
         created_at=current_user.created_at,
     )
