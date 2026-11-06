@@ -425,7 +425,7 @@ export default function PayrollExecution() {
 
             {/* Historical Batches List */}
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
-              <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+              <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
                 <Calendar className="w-4 h-4 text-indigo-400" />
                 Historical Runs
               </span>
@@ -456,7 +456,7 @@ export default function PayrollExecution() {
                         <span className="font-mono text-white font-bold block">
                           ${Number(b.total_net).toLocaleString()}
                         </span>
-                        <span className="text-[9px] uppercase font-mono text-indigo-400">
+                        <span className="text-xs text-indigo-400 capitalize">
                           {b.status}
                         </span>
                       </div>
