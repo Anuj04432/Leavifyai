@@ -93,12 +93,26 @@ class ImportErrorDetail(BaseModel):
     error: str
 
 
+class ImportedCredentialItem(BaseModel):
+    employee_code: str
+    employee_name: str
+    corporate_email: str
+    personal_email: Optional[str] = None
+    initial_password: str
+    role: str
+    department_name: Optional[str] = None
+    designation: Optional[str] = None
+    email_dispatched: bool = False
+    dispatch_status: Optional[str] = None
+
+
 class EmployeeImportResult(BaseModel):
     """Result summary of bulk CSV / Excel upload."""
     total_processed: int
     successful_count: int
     failed_count: int
-    errors: List[ImportErrorDetail]
+    errors: List[ImportErrorDetail] = []
+    credentials: List[ImportedCredentialItem] = []
 
 
 class AnalyzeImportResponse(BaseModel):
