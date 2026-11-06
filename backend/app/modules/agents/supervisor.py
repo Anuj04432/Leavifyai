@@ -27,6 +27,8 @@ class LeaveSupervisorState(TypedDict):
     policy_evaluation: Optional[Dict[str, Any]]
     recommendation: Optional[Dict[str, Any]]
     reply_message: str
+    provider: Optional[str]
+    model: Optional[str]
 
 
 class LeaveSupervisorWorkflow:
@@ -69,7 +71,7 @@ class LeaveSupervisorWorkflow:
             "Return valid JSON only without markdown formatting."
         )
 
-        response_text = await self.llm.generate_text(instruction, prompt)
+        response_text, provider_name, model_name = await self.llm.generate_with_metadata(instruction, prompt)
         try:
             # Clean possible markdown fence
             cleaned = response_text.strip()
@@ -85,7 +87,11 @@ class LeaveSupervisorWorkflow:
                 "confidence": 0.8,
             }
 
-        return {"extracted_data": extracted}
+        return {
+            "extracted_data": extracted,
+            "provider": provider_name,
+            "model": model_name,
+        }
 
     # -------------------------------------------------------------------------
     # Node 2: Balance Check Node
@@ -281,6 +287,8 @@ class LeaveSupervisorWorkflow:
             "policy_evaluation": None,
             "recommendation": None,
             "reply_message": "",
+            "provider": None,
+            "model": None,
         }
         result = await self.graph.ainvoke(initial_state)
         return result
