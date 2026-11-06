@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.dependencies import get_current_user, require_roles
+from app.dependencies import get_current_user, require_permission, require_roles
 from app.models.user import User, UserRole
 from app.modules.payroll.service import PayrollService
 from app.schemas.payroll import (
@@ -18,12 +18,17 @@ from app.schemas.payroll import (
 router = APIRouter(prefix="/payroll", tags=["Payroll"])
 
 
-ALLOWED_PAYROLL_ROLES = [
-    UserRole.SUPER_ADMIN.value,
-    UserRole.IR_MANAGER.value,
-    UserRole.HR.value,
-    "hr_manager",
-]
+payroll_access_guard = require_permission(
+    "can_run_payroll",
+    fallback_roles=[
+        UserRole.CEO.value,
+        UserRole.SUPER_ADMIN.value,
+        UserRole.FINANCE_MANAGER.value,
+        UserRole.IR_MANAGER.value,
+        UserRole.HR.value,
+        "hr_manager",
+    ],
+)
 
 
 @router.post(
@@ -34,7 +39,7 @@ ALLOWED_PAYROLL_ROLES = [
 )
 async def calculate_payroll_batch(
     payload: PayrollBatchCreate,
-    current_user: User = Depends(require_roles(ALLOWED_PAYROLL_ROLES)),
+    current_user: User = Depends(payroll_access_guard),
     db: AsyncSession = Depends(get_db),
 ):
     service = PayrollService(db, current_user.company_id)
@@ -51,7 +56,7 @@ async def calculate_payroll_batch(
     summary="List all historical payroll batches",
 )
 async def list_payroll_batches(
-    current_user: User = Depends(require_roles(ALLOWED_PAYROLL_ROLES)),
+    current_user: User = Depends(payroll_access_guard),
     db: AsyncSession = Depends(get_db),
 ):
     service = PayrollService(db, current_user.company_id)
@@ -65,7 +70,7 @@ async def list_payroll_batches(
 )
 async def get_payroll_batch_detail(
     batch_id: uuid.UUID,
-    current_user: User = Depends(require_roles(ALLOWED_PAYROLL_ROLES)),
+    current_user: User = Depends(payroll_access_guard),
     db: AsyncSession = Depends(get_db),
 ):
     service = PayrollService(db, current_user.company_id)
@@ -75,11 +80,11 @@ async def get_payroll_batch_detail(
 @router.patch(
     "/batches/{batch_id}/approve",
     response_model=PayrollBatchResponse,
-    summary="Approve and lock a calculated payroll batch (HR/IR Manager/Super Admin)",
+    summary="Approve and lock a calculated payroll batch",
 )
 async def approve_payroll_batch(
     batch_id: uuid.UUID,
-    current_user: User = Depends(require_roles(ALLOWED_PAYROLL_ROLES)),
+    current_user: User = Depends(payroll_access_guard),
     db: AsyncSession = Depends(get_db),
 ):
     service = PayrollService(db, current_user.company_id)
