@@ -34,6 +34,8 @@ class AgentChatResponse(BaseModel):
     reply: str
     extracted_leave: Optional[AgentExtractedLeave] = None
     recommendation: Optional[AIRecommendation] = None
+    provider: Optional[str] = None
+    model: Optional[str] = None
 
 
 class EvaluateRequestResponse(BaseModel):
