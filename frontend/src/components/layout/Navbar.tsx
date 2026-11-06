@@ -133,13 +133,24 @@ export default function Navbar() {
     <header className="h-14 border-b border-slate-800 bg-slate-900 px-6 flex items-center justify-between sticky top-0 z-30 font-sans">
       {/* Brand & Primary Navigation */}
       <div className="flex items-center gap-6">
-        <Link to="/dashboard" className="flex items-center gap-3 group">
+        <Link to="/dashboard" className="flex items-center gap-2.5 group">
           <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-white text-sm shadow-sm group-hover:bg-indigo-500 transition">
-            W
+            {user?.company_name ? user.company_name.charAt(0).toUpperCase() : "W"}
           </div>
-          <div>
-            <span className="font-extrabold text-white text-sm tracking-tight">WorkforceAI</span>
-            <span className="text-xs text-slate-400 ml-2">Platform</span>
+          <div className="flex flex-col">
+            <div className="flex items-center gap-1.5">
+              <span className="font-bold text-white text-sm tracking-tight leading-tight max-w-[180px] sm:max-w-[240px] truncate">
+                {user?.company_name || "WorkforceAI"}
+              </span>
+              {user?.company_name && (
+                <span className="px-1.5 py-0.2 rounded text-[9px] font-semibold tracking-wider uppercase bg-indigo-950/80 text-indigo-400 border border-indigo-800/60">
+                  Org
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] text-slate-400 leading-none mt-0.5">
+              WorkforceAI OS
+            </span>
           </div>
         </Link>
 
