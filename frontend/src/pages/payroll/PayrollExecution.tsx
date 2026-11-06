@@ -100,7 +100,21 @@ export default function PayrollExecution() {
   const [selectedPayslip, setSelectedPayslip] = useState<PayslipData | null>(null);
   const [showPayoutModal, setShowPayoutModal] = useState(false);
 
-  const isHrOrAdmin = user?.role === "admin" || user?.role === "hr";
+  const isCeo = user?.role === "ceo" || user?.role === "super_admin";
+  const canRunPayroll =
+    isCeo ||
+    user?.role === "admin" ||
+    user?.role === "hr" ||
+    user?.role === "hr_manager" ||
+    user?.role === "finance_manager" ||
+    !!user?.permissions?.can_run_payroll;
+
+  const canHandlePayouts =
+    isCeo ||
+    user?.role === "finance_manager" ||
+    user?.role === "ir_manager" ||
+    user?.role === "admin" ||
+    !!user?.permissions?.can_handle_paypal;
 
   const fetchBatches = async () => {
     try {
@@ -203,7 +217,7 @@ export default function PayrollExecution() {
             </p>
           </div>
 
-          {isHrOrAdmin && (
+          {canRunPayroll && (
             <div className="flex items-center gap-2.5">
               <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 rounded-lg px-2 py-1">
                 <select
@@ -279,7 +293,7 @@ export default function PayrollExecution() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    {isHrOrAdmin && activeBatch.status === "approved" && (
+                    {canHandlePayouts && activeBatch.status === "approved" && (
                       <button
                         onClick={() => setShowPayoutModal(true)}
                         className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-sm"
@@ -289,7 +303,7 @@ export default function PayrollExecution() {
                       </button>
                     )}
 
-                    {isHrOrAdmin && activeBatch.status !== "approved" && activeBatch.status !== "paid" && (
+                    {canRunPayroll && activeBatch.status !== "approved" && activeBatch.status !== "paid" && (
                       <button
                         onClick={handleApproveBatch}
                         disabled={approving}
