@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.dependencies import get_current_user, require_roles
+from app.dependencies import get_current_user, require_permission, require_roles
 from app.models.leave import LeavePolicy
 from app.models.user import User
 from app.modules.policies.okf_service import okf_service
@@ -62,7 +62,12 @@ async def get_policy(
 async def update_policy(
     policy_code: str,
     payload: PolicyUpdateRequest,
-    current_user: User = Depends(require_roles(["super_admin", "admin", "hr", "hr_manager"])),
+    current_user: User = Depends(
+        require_permission(
+            "can_manage_policies",
+            fallback_roles=["super_admin", "admin", "hr", "hr_manager", "content_manager", "ceo"],
+        )
+    ),
 ):
     """Update company policy markdown rules."""
     try:
@@ -92,7 +97,12 @@ async def upload_policy(
     notice_period_days: Optional[int] = Form(None),
     max_consecutive_days: Optional[int] = Form(None),
     is_paid: Optional[bool] = Form(None),
-    current_user: User = Depends(require_roles(["super_admin", "admin", "hr", "hr_manager"])),
+    current_user: User = Depends(
+        require_permission(
+            "can_manage_policies",
+            fallback_roles=["super_admin", "admin", "hr", "hr_manager", "content_manager", "ceo"],
+        )
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     """Upload custom company leave policy document (OKF format) and link to company leave policies."""
