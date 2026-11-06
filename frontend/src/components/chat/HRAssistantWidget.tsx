@@ -136,19 +136,19 @@ export default function HRAssistantWidget() {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="px-4 py-2.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white border border-slate-700 shadow-2xl flex items-center gap-2.5 transition transform hover:scale-105 cursor-pointer group"
+          className="px-4 py-2.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white border border-slate-700 flex items-center gap-2.5 transition-colors motion-reduce:transition-none cursor-pointer group focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none"
         >
           <div className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center">
             <Sparkles className="w-3.5 h-3.5 text-white" />
           </div>
           <span className="text-xs font-semibold">WorkforceAI Copilot</span>
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse motion-reduce:animate-none"></span>
         </button>
       )}
 
       {/* Expanded Floating Chat Drawer */}
       {isOpen && (
-        <div className="w-96 max-w-[calc(100vw-2rem)] h-[520px] bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+        <div className="w-96 max-w-[calc(100vw-2rem)] h-[520px] bg-slate-900 border border-slate-800 rounded-2xl flex flex-col overflow-hidden">
           {/* Header */}
           <div className="p-3.5 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
@@ -157,7 +157,7 @@ export default function HRAssistantWidget() {
               </div>
               <div>
                 <h3 className="text-xs font-bold text-white leading-tight">WorkforceAI Copilot</h3>
-                <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
+                <span className="text-xs text-emerald-400 flex items-center gap-1 font-medium">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Gemini 2.5 Flash
                 </span>
               </div>
@@ -166,7 +166,7 @@ export default function HRAssistantWidget() {
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setIsOpen(false)}
-                className="p-1 rounded text-slate-400 hover:text-white transition cursor-pointer"
+                className="p-1 rounded text-slate-400 hover:text-white transition-colors motion-reduce:transition-none cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-500"
                 title="Close chat"
               >
                 <X className="w-4 h-4" />
@@ -208,24 +208,24 @@ export default function HRAssistantWidget() {
                         </span>
                       </div>
 
-                      <div className="text-[10px] font-mono text-slate-400 space-y-0.5">
+                      <div className="text-xs text-slate-400 space-y-0.5">
                         <div>Category: <span className="text-white">{m.extracted_leave.policy_name || "Leave"}</span></div>
                         <div>Dates: <span className="text-white">{m.extracted_leave.start_date} to {m.extracted_leave.end_date}</span></div>
                         <div>Available: <span className="text-emerald-400">{m.extracted_leave.available_balance}d</span></div>
                       </div>
 
                       {m.submitted ? (
-                        <div className="inline-flex items-center gap-1 text-[11px] font-mono text-emerald-400">
+                        <div className="inline-flex items-center gap-1 text-xs text-emerald-400 font-semibold">
                           <CheckCircle2 className="w-3.5 h-3.5" /> Request Submitted
                         </div>
                       ) : (
                         <button
                           onClick={() => handleAutoSubmitLeave(m.id, m.extracted_leave!)}
                           disabled={submittingLeaveId === m.id || !m.extracted_leave.can_auto_submit}
-                          className="w-full py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer disabled:opacity-50"
+                          className="w-full py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors motion-reduce:transition-none cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-indigo-500"
                         >
                           {submittingLeaveId === m.id ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <Loader2 className="w-3.5 h-3.5 animate-spin motion-reduce:animate-none" />
                           ) : (
                             <Check className="w-3.5 h-3.5" />
                           )}
@@ -235,7 +235,7 @@ export default function HRAssistantWidget() {
                     </div>
                   )}
 
-                  <span className="text-[9px] font-mono opacity-60 block text-right mt-1">
+                  <span className="text-[10px] opacity-60 block text-right mt-1">
                     {m.timestamp}
                   </span>
                 </div>
@@ -243,8 +243,8 @@ export default function HRAssistantWidget() {
             ))}
             {loading && (
               <div className="flex items-center gap-2 text-slate-400 text-xs pl-8">
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-400" />
-                <span className="font-mono text-[11px]">Supervisor evaluating policies...</span>
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-400 motion-reduce:animate-none" />
+                <span className="text-xs">Supervisor evaluating policies…</span>
               </div>
             )}
             <div ref={messagesEndRef} />
