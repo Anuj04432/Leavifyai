@@ -34,7 +34,7 @@ interface Message {
   submitted?: boolean;
 }
 
-function getProviderBadge(provider?: string, model?: string) {
+function getProviderBadge(provider?: string | null, model?: string | null) {
   if (!provider) return null;
   const p = provider.toLowerCase();
   if (p === "omniroute") {
