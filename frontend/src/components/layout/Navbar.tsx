@@ -33,7 +33,6 @@ export default function Navbar() {
   const [loadingNotifs, setLoadingNotifs] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
 
-  const isEmployee = user?.role === "employee";
   const isCeo = user?.role === "ceo" || user?.role === "super_admin";
 
   const canAccessPayroll =
