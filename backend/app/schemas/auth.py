@@ -9,6 +9,7 @@ from app.models.user import UserRole
 class CompanyCeoRegisterRequest(BaseModel):
     """Payload for registering a new company with CEO account."""
     company_name: str = Field(..., min_length=2, max_length=255, description="Official company / organization name")
+    company_domain: Optional[str] = Field(None, max_length=100, description="Optional custom corporate domain (defaults to <slug>.com)")
     ceo_first_name: str = Field(..., min_length=1, max_length=100, description="CEO given name")
     ceo_last_name: str = Field(..., min_length=1, max_length=100, description="CEO family name")
     password: str = Field(..., min_length=8, max_length=100, description="Account password (min 8 characters)")
