@@ -27,6 +27,7 @@ export default function LoginPage() {
   // Register Organization / CEO Form State
   const [regData, setRegData] = useState({
     company_name: "",
+    company_domain: "",
     ceo_first_name: "",
     ceo_last_name: "",
     password: "",
@@ -36,15 +37,17 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // Live corporate email preview computation
+  // Live corporate email preview computation based on organization name
+  const rawOrgSlug =
+    regData.company_name.toLowerCase().replace(/[^a-z0-9]+/g, "") || "organization";
   const previewDomain =
-    regData.company_name.toLowerCase().replace(/[^a-z0-9]+/g, "") || "company";
+    regData.company_domain.trim().toLowerCase().replace(/^@/, "") || `${rawOrgSlug}.com`;
   const previewUser = `${
     regData.ceo_first_name.toLowerCase().replace(/[^a-z0-9]+/g, "") || "firstname"
   }.${
     regData.ceo_last_name.toLowerCase().replace(/[^a-z0-9]+/g, "") || "lastname"
   }`;
-  const previewEmail = `${previewUser}@${previewDomain}.workforce.io`;
+  const previewEmail = `${previewUser}@${previewDomain}`;
 
   const handleLoginSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -81,9 +84,10 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // Register company & CEO account with auto-provisioned WorkforceAI corporate email
+      // Register company & CEO account with auto-provisioned organization corporate email
       const res = await api.post("/auth/register-company", {
         company_name: regData.company_name.trim(),
+        company_domain: previewDomain,
         ceo_first_name: regData.ceo_first_name.trim(),
         ceo_last_name: regData.ceo_last_name.trim(),
         password: regData.password,
@@ -379,17 +383,17 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Live Auto-Provisioned Antigravity WorkforceAI Email Display */}
+              {/* Live Auto-Provisioned Organization Email Display */}
               <div className="p-3 bg-slate-900 rounded-xl border border-indigo-500/30 text-xs space-y-1.5">
                 <div className="flex items-center gap-1.5 text-indigo-400 font-semibold text-[11px]">
                   <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>Provisioned WorkforceAI Corporate Email</span>
+                  <span>Provisioned Organization Corporate Email</span>
                 </div>
                 <div className="font-mono text-white text-xs bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-800 break-all select-all">
                   {previewEmail}
                 </div>
                 <div className="text-[10px] text-slate-400 leading-tight">
-                  No personal email required. As CEO and for every team member, WorkforceAI issues a unique corporate login.
+                  No personal email required. As CEO and for each team member, a dedicated corporate login on @{previewDomain} is issued.
                 </div>
               </div>
 
