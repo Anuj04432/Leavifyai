@@ -227,6 +227,18 @@ export default function Dashboard() {
     0
   );
 
+  const orgName = useMemo(() => {
+    if (user?.company_name && user.company_name.trim()) return user.company_name;
+    const domain = user?.company_domain || (user?.email?.includes("@") ? user.email.split("@")[1] : "");
+    if (domain) {
+      const slug = domain.split(".")[0];
+      if (slug && slug !== "workforce" && slug !== "company") {
+        return slug.charAt(0).toUpperCase() + slug.slice(1);
+      }
+    }
+    return "Organization";
+  }, [user?.company_name, user?.company_domain, user?.email]);
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans antialiased">
       <Navbar />
@@ -239,7 +251,7 @@ export default function Dashboard() {
               {employeeProfile?.first_name ? employeeProfile.first_name[0] : user?.email[0].toUpperCase()}
             </div>
             <div>
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2.5 flex-wrap">
                 <h1 className="text-xl font-bold text-white tracking-tight">
                   {employeeProfile ? `${employeeProfile.first_name} ${employeeProfile.last_name}` : user?.email}
                 </h1>
@@ -254,15 +266,21 @@ export default function Dashboard() {
                 >
                   {user?.role?.replace("_", " ")}
                 </span>
+                <span className="px-2 py-0.5 rounded text-xs font-semibold bg-slate-800 text-indigo-300 border border-slate-700 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  {orgName}
+                </span>
               </div>
-              <div className="flex items-center gap-4 text-xs text-slate-400 mt-1">
+              <div className="flex items-center gap-4 text-xs text-slate-400 mt-1 flex-wrap">
                 <span className="flex items-center gap-1 font-mono text-slate-300">
                   {employeeProfile?.employee_code || "EMP-PORTAL"}
                 </span>
                 <span>•</span>
                 <span>{employeeProfile?.designation || "Staff Member"}</span>
                 <span>•</span>
-                <span className="text-slate-300">{employeeProfile?.department_name || "Engineering"}</span>
+                <span className="text-slate-300">{employeeProfile?.department_name || "General"}</span>
+                <span>•</span>
+                <span className="text-slate-300 font-medium">{orgName} Workspace</span>
               </div>
             </div>
           </div>
