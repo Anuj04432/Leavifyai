@@ -42,10 +42,10 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Fetch user with linked employee profile
+    # Fetch user with linked employee and company profile
     query = (
         select(User)
-        .options(selectinload(User.employee))
+        .options(selectinload(User.employee), selectinload(User.company))
         .where(User.id == user_id, User.is_active == True)
     )
     result = await db.execute(query)
