@@ -5,11 +5,14 @@ import HRAssistantWidget from "../chat/HRAssistantWidget";
 
 interface ProtectedRouteProps {
   allowedRoles?: Array<
+    | "ceo"
     | "super_admin"
     | "admin"
     | "ir_manager"
+    | "finance_manager"
     | "hr"
     | "hr_manager"
+    | "content_manager"
     | "manager"
     | "employee"
   >;
@@ -22,7 +25,13 @@ export default function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
+  // CEO and Super Admin have universal authorization across all platform routes
+  if (
+    allowedRoles &&
+    user.role !== "ceo" &&
+    user.role !== "super_admin" &&
+    !allowedRoles.includes(user.role)
+  ) {
     return (
       <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-6">
         <div className="max-w-md w-full bg-slate-900 border border-rose-900/40 rounded-2xl p-8 text-center">
