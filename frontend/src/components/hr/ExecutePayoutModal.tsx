@@ -155,7 +155,7 @@ export default function ExecutePayoutModal({
 
               {/* Itemized status */}
               <div className="space-y-2">
-                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
+                <span className="text-xs font-semibold text-slate-300 block">
                   Disbursed Line Items ({disbursementResult.items.length})
                 </span>
                 <div className="border border-slate-800 rounded-lg overflow-hidden divide-y divide-slate-800/60 max-h-48 overflow-y-auto">
@@ -169,7 +169,7 @@ export default function ExecutePayoutModal({
                         <div className="font-mono font-bold text-white text-xs">
                           ${Number(item.amount).toFixed(2)} USD
                         </div>
-                        <div className="text-[9px] font-mono text-emerald-400 uppercase">
+                        <div className="text-xs text-emerald-400 capitalize">
                           {item.status} • {item.transaction_id || "TRANS-RECORDED"}
                         </div>
                       </div>
@@ -184,13 +184,13 @@ export default function ExecutePayoutModal({
               {/* Summary Banner */}
               <div className="p-3.5 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
                 <div>
-                  <span className="text-[10px] font-mono text-slate-500 uppercase block">Total Net Authorized</span>
+                  <span className="text-xs text-slate-400 font-medium block">Total Net Authorized</span>
                   <span className="text-xl font-bold font-mono text-white">
                     ${Number(batch.total_net).toLocaleString(undefined, { minimumFractionDigits: 2 })} USD
                   </span>
                 </div>
                 <div className="text-right">
-                  <span className="text-[10px] font-mono text-slate-500 uppercase block">Employees Reconciled</span>
+                  <span className="text-xs text-slate-400 font-medium block">Employees Reconciled</span>
                   <span className="text-base font-bold font-mono text-indigo-400">
                     {batch.employee_count}
                   </span>
@@ -277,7 +277,7 @@ export default function ExecutePayoutModal({
               <button
                 onClick={handleExecutePayout}
                 disabled={submitting}
-                className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50 shadow-sm"
+                className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors motion-reduce:transition-none cursor-pointer disabled:opacity-50 shadow-sm whitespace-nowrap"
               >
                 {submitting ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
