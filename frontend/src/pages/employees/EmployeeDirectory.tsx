@@ -20,7 +20,6 @@ import {
   Pencil,
   ShieldCheck,
   Copy,
-  Check,
 } from "lucide-react";
 import { api } from "../../lib/api";
 import { useAuthStore } from "../../store/authStore";
@@ -49,7 +48,15 @@ interface Employee {
   permissions?: Record<string, boolean>;
 }
 
-const DEFAULT_ROLE_PERMISSIONS: Record<string, Record<string, boolean>> = {
+interface RolePermissions {
+  can_handle_paypal: boolean;
+  can_run_payroll: boolean;
+  can_approve_leaves: boolean;
+  can_manage_roster: boolean;
+  can_manage_policies: boolean;
+}
+
+const DEFAULT_ROLE_PERMISSIONS: Record<string, RolePermissions> = {
   ceo: {
     can_handle_paypal: true,
     can_run_payroll: true,
