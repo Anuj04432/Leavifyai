@@ -5,6 +5,7 @@ import LeaveManagement from "./pages/leaves/LeaveManagement";
 import Dashboard from "./pages/dashboard/Dashboard";
 import ApprovalCockpit from "./pages/hr/ApprovalCockpit";
 import PayrollExecution from "./pages/payroll/PayrollExecution";
+import PolicyKnowledge from "./pages/policies/PolicyKnowledge";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 export default function App() {
@@ -21,6 +22,7 @@ export default function App() {
         <Route path="/leaves" element={<LeaveManagement />} />
         <Route path="/approvals" element={<ApprovalCockpit />} />
         <Route path="/payroll" element={<PayrollExecution />} />
+        <Route path="/policies" element={<PolicyKnowledge />} />
       </Route>
 
       {/* 404 Catch-All */}
