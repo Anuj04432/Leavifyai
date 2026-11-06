@@ -13,6 +13,7 @@ from app.models.employee import Employee
 from app.models.leave import LeaveBalance, LeavePolicy, LeaveRequest, LeaveRequestStatus
 from app.modules.agents.llm_client import GeminiClient
 from app.modules.leaves.service import calculate_working_days
+from app.modules.policies.okf_service import okf_service
 
 logger = logging.getLogger("workforceai.agents.supervisor")
 
@@ -174,21 +175,33 @@ class LeaveSupervisorWorkflow:
         overlap_res = await self.db.execute(overlap_stmt)
         conflicting = overlap_res.scalars().first()
 
-        days_notice = (start_d - date.today()).days
-        notice_met = days_notice >= 1
+        days_notice = max(0, (start_d - date.today()).days)
+        
+        # Ground against Open Knowledge Format (OKF) Policy
+        okf_pol = okf_service.get_policy_by_type(balance_info.get("leave_type", "casual"))
+        req_notice = okf_pol["notice_period_days"] if okf_pol else 1
+        notice_met = days_notice >= req_notice
+
+        citations = []
+        if okf_pol:
+            citations.append(f"OKF Rule [{okf_pol['policy_code']}]: {okf_pol['title']}")
+            citations.append(f"Notice requirement: {req_notice} day(s) (Provided: {days_notice} day(s))")
+            citations.append(f"Payroll classification: {'Fully Paid' if okf_pol['is_paid'] else 'Loss of Pay (Unpaid Deduction)'}")
+        else:
+            citations.append(f"Rule 4.1: Annual entitlement ({balance_info['policy_name']})")
+            citations.append("Rule 2.4: Weekend and statutory holiday deduction exclusion")
+
+        if conflicting:
+            citations.append("OKF Rule Sec 3: Overlapping active leave prevention")
 
         policy_evaluation = {
             "has_conflict": conflicting is not None,
             "conflict_request_number": conflicting.request_number if conflicting else None,
             "notice_days_provided": days_notice,
             "notice_guardrail_met": notice_met,
-            "citations": [
-                f"Rule 4.1: Annual entitlement ({balance_info['policy_name']})",
-                "Rule 2.4: Weekend and statutory holiday deduction exclusion",
-            ],
+            "okf_policy_code": okf_pol["policy_code"] if okf_pol else None,
+            "citations": citations,
         }
-        if conflicting:
-            policy_evaluation["citations"].append("Rule 3.3: Overlapping leave prevention")
 
         return {"policy_evaluation": policy_evaluation}
 
