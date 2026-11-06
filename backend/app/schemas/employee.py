@@ -2,7 +2,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 import uuid
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class EmployeeCreateRequest(BaseModel):
@@ -10,7 +10,7 @@ class EmployeeCreateRequest(BaseModel):
     employee_code: Optional[str] = Field(None, max_length=50, description="Leave blank for auto-generated code")
     first_name: str = Field(..., min_length=1, max_length=100)
     last_name: str = Field(..., min_length=1, max_length=100)
-    email: EmailStr = Field(..., description="Employee corporate email")
+    email: Optional[EmailStr] = Field(None, description="Employee corporate email. If omitted, auto-generated from company domain")
     phone: Optional[str] = Field(None, max_length=20)
     designation: Optional[str] = Field(None, max_length=100)
     department_id: Optional[uuid.UUID] = None
@@ -21,7 +21,8 @@ class EmployeeCreateRequest(BaseModel):
     salary_allowances: Dict[str, Any] = Field(default_factory=dict)
     bank_account_info: Dict[str, Any] = Field(default_factory=dict)
     paypal_email: Optional[EmailStr] = None
-    role: Optional[str] = Field("employee", description="System access role: employee, hr, ir_manager, admin, super_admin")
+    role: Optional[str] = Field("employee", description="System access role: ceo, admin, hr_manager, finance_manager, content_manager, manager, employee")
+    permissions: Optional[Dict[str, bool]] = Field(default_factory=dict, description="Granular capability permissions")
     initial_password: Optional[str] = Field(None, min_length=8)
 
 
@@ -40,12 +41,15 @@ class EmployeeUpdateRequest(BaseModel):
     salary_allowances: Optional[Dict[str, Any]] = None
     bank_account_info: Optional[Dict[str, Any]] = None
     paypal_email: Optional[EmailStr] = None
-    role: Optional[str] = Field(None, description="System access role: employee, hr, ir_manager, admin, super_admin")
+    role: Optional[str] = Field(None, description="System access role: ceo, admin, hr_manager, finance_manager, content_manager, manager, employee")
+    permissions: Optional[Dict[str, bool]] = Field(None, description="Granular capability permissions")
     is_active: Optional[bool] = None
 
 
 class EmployeeResponse(BaseModel):
     """Complete employee profile view."""
+    model_config = ConfigDict(from_attributes=True)
+
     id: uuid.UUID
     user_id: uuid.UUID
     company_id: uuid.UUID
@@ -56,6 +60,7 @@ class EmployeeResponse(BaseModel):
     phone: Optional[str] = None
     designation: Optional[str] = None
     role: Optional[str] = "employee"
+    permissions: Optional[Dict[str, bool]] = Field(default_factory=dict)
     department_id: Optional[uuid.UUID] = None
     department_name: Optional[str] = None
     reporting_manager_id: Optional[uuid.UUID] = None
@@ -69,9 +74,6 @@ class EmployeeResponse(BaseModel):
     is_active: bool
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 class EmployeeListResponse(BaseModel):
