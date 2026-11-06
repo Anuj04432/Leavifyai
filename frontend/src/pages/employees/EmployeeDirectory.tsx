@@ -18,6 +18,9 @@ import {
   ArrowRight,
   Trash2,
   Pencil,
+  ShieldCheck,
+  Copy,
+  Check,
 } from "lucide-react";
 import { api } from "../../lib/api";
 import { useAuthStore } from "../../store/authStore";
@@ -43,7 +46,95 @@ interface Employee {
   department_name?: string | null;
   department_id?: string | null;
   role?: string | null;
+  permissions?: Record<string, boolean>;
 }
+
+const DEFAULT_ROLE_PERMISSIONS: Record<string, Record<string, boolean>> = {
+  ceo: {
+    can_handle_paypal: true,
+    can_run_payroll: true,
+    can_approve_leaves: true,
+    can_manage_roster: true,
+    can_manage_policies: true,
+  },
+  admin: {
+    can_handle_paypal: false,
+    can_run_payroll: false,
+    can_approve_leaves: true,
+    can_manage_roster: true,
+    can_manage_policies: true,
+  },
+  finance_manager: {
+    can_handle_paypal: true,
+    can_run_payroll: true,
+    can_approve_leaves: false,
+    can_manage_roster: false,
+    can_manage_policies: false,
+  },
+  hr_manager: {
+    can_handle_paypal: false,
+    can_run_payroll: true,
+    can_approve_leaves: true,
+    can_manage_roster: true,
+    can_manage_policies: false,
+  },
+  hr: {
+    can_handle_paypal: false,
+    can_run_payroll: true,
+    can_approve_leaves: true,
+    can_manage_roster: true,
+    can_manage_policies: false,
+  },
+  content_manager: {
+    can_handle_paypal: false,
+    can_run_payroll: false,
+    can_approve_leaves: false,
+    can_manage_roster: false,
+    can_manage_policies: true,
+  },
+  manager: {
+    can_handle_paypal: false,
+    can_run_payroll: false,
+    can_approve_leaves: true,
+    can_manage_roster: false,
+    can_manage_policies: false,
+  },
+  employee: {
+    can_handle_paypal: false,
+    can_run_payroll: false,
+    can_approve_leaves: false,
+    can_manage_roster: false,
+    can_manage_policies: false,
+  },
+};
+
+const CAPABILITIES_LIST = [
+  {
+    key: "can_handle_paypal",
+    label: "Authorize & Disburse PayPal Transactions",
+    description: "Execute PayPal sandbox batch payouts (Finance / Senior Posts)",
+  },
+  {
+    key: "can_run_payroll",
+    label: "Calculate & Lock Organization Payroll",
+    description: "Run monthly deterministic payroll batches and deductions",
+  },
+  {
+    key: "can_approve_leaves",
+    label: "Triage & Approve Leave Requests",
+    description: "Review employee leave requests against OKF policy guidelines",
+  },
+  {
+    key: "can_manage_roster",
+    label: "Manage Personnel & Capabilities",
+    description: "Add, edit, or de-provision employees and assign capabilities",
+  },
+  {
+    key: "can_manage_policies",
+    label: "Manage Company OKF Policies",
+    description: "Upload and modify company leave and operational policy documents",
+  },
+];
 
 interface AnalyzeResult {
   total_rows: number;
@@ -80,9 +171,25 @@ export default function EmployeeDirectory() {
     paypal_email: "",
     department_id: "",
     role: "employee",
+    permissions: {
+      can_handle_paypal: false,
+      can_run_payroll: false,
+      can_approve_leaves: false,
+      can_manage_roster: false,
+      can_manage_policies: false,
+    },
   });
   const [formSubmitting, setFormSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  // Newly Created Credentials Card State
+  const [createdCredentials, setCreatedCredentials] = useState<{
+    name: string;
+    email: string;
+    role: string;
+    permissions?: Record<string, boolean>;
+    tempPassword?: string;
+  } | null>(null);
 
   // Import State
   const [importFile, setImportFile] = useState<File | null>(null);
@@ -107,9 +214,27 @@ export default function EmployeeDirectory() {
     paypal_email: "",
     role: "employee",
     is_active: true,
+    permissions: {
+      can_handle_paypal: false,
+      can_run_payroll: false,
+      can_approve_leaves: false,
+      can_manage_roster: false,
+      can_manage_policies: false,
+    },
   });
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
+
+  // Corporate Domain
+  const companyDomain =
+    user?.company_domain ||
+    (user?.email?.includes("@") ? user.email.split("@")[1] : "company.workforce.io");
+
+  const autoCorporateEmail = `${
+    formData.first_name.toLowerCase().replace(/[^a-z0-9]/g, "") || "first"
+  }.${
+    formData.last_name.toLowerCase().replace(/[^a-z0-9]/g, "") || "last"
+  }@${companyDomain}`;
 
   const fetchEmployees = async () => {
     try {
@@ -155,6 +280,10 @@ export default function EmployeeDirectory() {
 
   const handleOpenEdit = (emp: Employee) => {
     setEditingEmployee(emp);
+    const existingPerms =
+      emp.permissions ||
+      DEFAULT_ROLE_PERMISSIONS[emp.role || "employee"] ||
+      DEFAULT_ROLE_PERMISSIONS.employee;
     setEditFormData({
       first_name: emp.first_name,
       last_name: emp.last_name,
@@ -165,6 +294,13 @@ export default function EmployeeDirectory() {
       paypal_email: emp.paypal_email || "",
       role: emp.role || "employee",
       is_active: emp.is_active,
+      permissions: {
+        can_handle_paypal: !!existingPerms.can_handle_paypal,
+        can_run_payroll: !!existingPerms.can_run_payroll,
+        can_approve_leaves: !!existingPerms.can_approve_leaves,
+        can_manage_roster: !!existingPerms.can_manage_roster,
+        can_manage_policies: !!existingPerms.can_manage_policies,
+      },
     });
     setEditError(null);
   };
@@ -184,6 +320,7 @@ export default function EmployeeDirectory() {
         salary_basic: Number(editFormData.salary_basic || 0),
         paypal_email: editFormData.paypal_email || null,
         role: editFormData.role,
+        permissions: editFormData.permissions,
         is_active: editFormData.is_active,
       };
       await api.put(`/employees/${editingEmployee.id}`, payload);
@@ -223,16 +360,25 @@ export default function EmployeeDirectory() {
         employee_code: formData.employee_code || undefined,
         first_name: formData.first_name,
         last_name: formData.last_name,
-        email: formData.work_email,
+        email: formData.work_email || undefined,
         designation: formData.designation || undefined,
         employment_type: formData.employment_type,
         salary_basic: Number(formData.base_salary || 0),
         department_id: formData.department_id || undefined,
         paypal_email: formData.paypal_email || undefined,
         role: formData.role || "employee",
+        permissions: formData.permissions,
       };
 
-      await api.post("/employees/", payload);
+      const res = await api.post("/employees/", payload);
+      const created = res.data;
+      setCreatedCredentials({
+        name: `${created.first_name} ${created.last_name}`,
+        email: created.email,
+        role: created.role,
+        permissions: created.permissions || formData.permissions,
+        tempPassword: `Welcome@${created.id.slice(0, 4)}`,
+      });
       setShowAddModal(false);
       setFormData({
         employee_code: "",
@@ -246,6 +392,13 @@ export default function EmployeeDirectory() {
         paypal_email: "",
         department_id: "",
         role: "employee",
+        permissions: {
+          can_handle_paypal: false,
+          can_run_payroll: false,
+          can_approve_leaves: false,
+          can_manage_roster: false,
+          can_manage_policies: false,
+        },
       });
       fetchEmployees();
     } catch (err: any) {
@@ -311,7 +464,14 @@ export default function EmployeeDirectory() {
     }
   };
 
-  const isHrOrAdmin = user?.role === "admin" || user?.role === "hr";
+  const isHrOrAdmin =
+    user?.role === "ceo" ||
+    user?.role === "super_admin" ||
+    user?.role === "admin" ||
+    user?.role === "hr" ||
+    user?.role === "hr_manager" ||
+    user?.role === "finance_manager" ||
+    !!user?.permissions?.can_manage_roster;
 
   // Telemetry Calculations for the Asymmetric Side Panel
   const totalSalaries = employees.reduce(
@@ -469,19 +629,28 @@ export default function EmployeeDirectory() {
                               <span className="text-slate-600">•</span>
                               <span
                                 className={`px-1.5 py-0.5 rounded text-xs capitalize font-medium ${
-                                  emp.role === "super_admin"
+                                  emp.role === "ceo"
+                                    ? "bg-amber-500/10 text-amber-300 border border-amber-500/20"
+                                    : emp.role === "super_admin"
                                     ? "bg-purple-500/10 text-purple-400 border border-purple-500/20"
-                                    : emp.role === "ir_manager"
+                                    : emp.role === "finance_manager" || emp.role === "ir_manager"
                                     ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
                                     : emp.role === "hr" || emp.role === "hr_manager"
                                     ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                                    : emp.role === "content_manager"
+                                    ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20"
                                     : emp.role === "admin"
-                                    ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                                    ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
                                     : "bg-slate-800 text-slate-400 border border-slate-700/60"
                                 }`}
                               >
                                 {(emp.role || "employee").replace("_", " ")}
                               </span>
+                              {emp.permissions?.can_handle_paypal && (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-medium">
+                                  PayPal Auth
+                                </span>
+                              )}
                             </div>
                           </td>
                           <td className="py-3 px-4 font-mono font-medium text-slate-200">
@@ -739,18 +908,20 @@ export default function EmployeeDirectory() {
 
               <div>
                 <label className="block text-slate-300 font-medium mb-1">
-                  Corporate Email *
+                  Antigravity WorkforceAI Corporate Email
                 </label>
                 <input
                   type="email"
-                  required
-                  placeholder="priya.nair@workforce.io"
+                  placeholder={autoCorporateEmail}
                   value={formData.work_email}
                   onChange={(e) =>
                     setFormData({ ...formData, work_email: e.target.value })
                   }
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-slate-200 outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-slate-200 outline-none focus:border-indigo-500 font-mono text-xs"
                 />
+                <div className="text-[10px] text-slate-500 mt-1">
+                  Default: <span className="font-mono text-indigo-400">{autoCorporateEmail}</span> (Auto-derived from company domain for authentication)
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -826,17 +997,71 @@ export default function EmployeeDirectory() {
                 </label>
                 <select
                   value={formData.role}
-                  onChange={(e) =>
-                    setFormData({ ...formData, role: e.target.value })
-                  }
+                  onChange={(e) => {
+                    const newRole = e.target.value;
+                    const defaults =
+                      DEFAULT_ROLE_PERMISSIONS[newRole] ||
+                      DEFAULT_ROLE_PERMISSIONS.employee;
+                    setFormData({
+                      ...formData,
+                      role: newRole,
+                      permissions: { ...defaults },
+                    });
+                  }}
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-slate-200 outline-none focus:border-indigo-500 font-mono text-[11px]"
                 >
-                  <option value="employee">Employee (Self-Service Dashboard & Leave Portal)</option>
-                  <option value="hr">HR Manager (Leaves, Approvals, & Salaries)</option>
-                  <option value="ir_manager">IR Manager (PayPal Disbursements & Payouts)</option>
+                  <option value="employee">Employee / Candidate (Self-Service Portal)</option>
+                  <option value="manager">Lead / Manager (Team Leave Approvals)</option>
+                  <option value="hr_manager">HR Manager (Leaves, Payroll Calculation, Roster)</option>
+                  <option value="finance_manager">Finance Department Manager (PayPal Payouts & Payroll)</option>
+                  <option value="content_manager">Content Manager (OKF Company Policies)</option>
                   <option value="admin">Administrator (Organization Management)</option>
-                  <option value="super_admin">Super Admin (Unrestricted System Access)</option>
+                  <option value="ceo">CEO (Universal Executive Authority)</option>
                 </select>
+              </div>
+
+              {/* Granular Capabilities & Permissions Matrix */}
+              <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2">
+                <div className="flex items-center justify-between pb-1.5 border-b border-slate-800/80">
+                  <span className="text-slate-200 font-semibold text-xs flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
+                    Assigned Capabilities (What this person can do)
+                  </span>
+                  <span className="text-[10px] text-slate-500 font-mono">
+                    {Object.values(formData.permissions).filter(Boolean).length} / {CAPABILITIES_LIST.length} enabled
+                  </span>
+                </div>
+                <div className="space-y-1.5 pt-0.5">
+                  {CAPABILITIES_LIST.map((cap) => (
+                    <label
+                      key={cap.key}
+                      className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-slate-900 cursor-pointer border border-transparent hover:border-slate-800/60 transition"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={!!formData.permissions[cap.key as keyof typeof formData.permissions]}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            permissions: {
+                              ...formData.permissions,
+                              [cap.key]: e.target.checked,
+                            },
+                          })
+                        }
+                        className="mt-0.5 rounded border-slate-700 bg-slate-900 text-indigo-600 focus:ring-0 cursor-pointer"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-slate-200 font-medium text-[11px] leading-tight">
+                          {cap.label}
+                        </div>
+                        <div className="text-[10px] text-slate-500 leading-tight mt-0.5">
+                          {cap.description}
+                        </div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
               </div>
 
               <div className="pt-3 flex justify-end gap-2.5 border-t border-slate-800">
@@ -1034,17 +1259,71 @@ export default function EmployeeDirectory() {
                 </label>
                 <select
                   value={editFormData.role}
-                  onChange={(e) =>
-                    setEditFormData({ ...editFormData, role: e.target.value })
-                  }
+                  onChange={(e) => {
+                    const newRole = e.target.value;
+                    const defaults =
+                      DEFAULT_ROLE_PERMISSIONS[newRole] ||
+                      DEFAULT_ROLE_PERMISSIONS.employee;
+                    setEditFormData({
+                      ...editFormData,
+                      role: newRole,
+                      permissions: { ...defaults },
+                    });
+                  }}
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-slate-200 outline-none focus:border-indigo-500 font-mono text-[11px]"
                 >
-                  <option value="employee">Employee (Self-Service Dashboard & Leave Portal)</option>
-                  <option value="hr">HR Manager (Leaves, Approvals, & Salaries)</option>
-                  <option value="ir_manager">IR Manager (PayPal Disbursements & Payouts)</option>
+                  <option value="employee">Employee / Candidate (Self-Service Portal)</option>
+                  <option value="manager">Lead / Manager (Team Leave Approvals)</option>
+                  <option value="hr_manager">HR Manager (Leaves, Payroll Calculation, Roster)</option>
+                  <option value="finance_manager">Finance Department Manager (PayPal Payouts & Payroll)</option>
+                  <option value="content_manager">Content Manager (OKF Company Policies)</option>
                   <option value="admin">Administrator (Organization Management)</option>
-                  <option value="super_admin">Super Admin (Unrestricted System Access)</option>
+                  <option value="ceo">CEO (Universal Executive Authority)</option>
                 </select>
+              </div>
+
+              {/* Granular Capabilities & Permissions Matrix */}
+              <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2">
+                <div className="flex items-center justify-between pb-1.5 border-b border-slate-800/80">
+                  <span className="text-slate-200 font-semibold text-xs flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
+                    Assigned Capabilities (What this person can do)
+                  </span>
+                  <span className="text-[10px] text-slate-500 font-mono">
+                    {Object.values(editFormData.permissions).filter(Boolean).length} / {CAPABILITIES_LIST.length} enabled
+                  </span>
+                </div>
+                <div className="space-y-1.5 pt-0.5">
+                  {CAPABILITIES_LIST.map((cap) => (
+                    <label
+                      key={cap.key}
+                      className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-slate-900 cursor-pointer border border-transparent hover:border-slate-800/60 transition"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={!!editFormData.permissions[cap.key as keyof typeof editFormData.permissions]}
+                        onChange={(e) =>
+                          setEditFormData({
+                            ...editFormData,
+                            permissions: {
+                              ...editFormData.permissions,
+                              [cap.key]: e.target.checked,
+                            },
+                          })
+                        }
+                        className="mt-0.5 rounded border-slate-700 bg-slate-900 text-indigo-600 focus:ring-0 cursor-pointer"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-slate-200 font-medium text-[11px] leading-tight">
+                          {cap.label}
+                        </div>
+                        <div className="text-[10px] text-slate-500 leading-tight mt-0.5">
+                          {cap.description}
+                        </div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
               </div>
 
               <div className="pt-3 flex justify-end gap-2.5 border-t border-slate-800">
@@ -1065,6 +1344,84 @@ export default function EmployeeDirectory() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Newly Provisioned Credentials Modal */}
+      {createdCredentials && (
+        <div className="fixed inset-0 bg-slate-950/90 z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-indigo-500/30 rounded-xl max-w-md w-full p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white tracking-tight">
+                  Corporate Identity Provisioned
+                </h3>
+                <p className="text-xs text-slate-400">
+                  WorkforceAI email and login issued for {createdCredentials.name}
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-slate-950 border border-slate-800 rounded-xl p-3.5 space-y-3">
+              <div>
+                <span className="text-[10px] uppercase font-semibold text-slate-500 block mb-1">
+                  Assigned Corporate Login Email
+                </span>
+                <div className="flex items-center justify-between bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg font-mono text-xs text-indigo-300">
+                  <span className="truncate">{createdCredentials.email}</span>
+                  <button
+                    type="button"
+                    onClick={() => navigator.clipboard.writeText(createdCredentials.email)}
+                    title="Copy email"
+                    className="ml-2 text-slate-400 hover:text-white"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <span className="text-[10px] uppercase font-semibold text-slate-500 block mb-1">
+                  Temporary Master Password
+                </span>
+                <div className="flex items-center justify-between bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg font-mono text-xs text-amber-300">
+                  <span>{createdCredentials.tempPassword}</span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigator.clipboard.writeText(createdCredentials.tempPassword || "")
+                    }
+                    title="Copy password"
+                    className="ml-2 text-slate-400 hover:text-white"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs">
+                <span className="text-slate-400 font-medium">System Role:</span>
+                <span className="font-semibold text-white capitalize">
+                  {createdCredentials.role.replace("_", " ")}
+                </span>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-slate-400 leading-relaxed">
+              No personal email was used. The member can immediately log in to WorkforceAI using this corporate email and temporary password.
+            </p>
+
+            <button
+              type="button"
+              onClick={() => setCreatedCredentials(null)}
+              className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold transition cursor-pointer"
+            >
+              Done & Return to Directory
+            </button>
           </div>
         </div>
       )}
