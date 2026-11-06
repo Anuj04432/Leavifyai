@@ -14,6 +14,8 @@ import {
   TrendingUp,
   Cpu,
   Layers,
+  Sparkles,
+  ArrowRight,
 } from "lucide-react";
 import { api } from "../../lib/api";
 import { useAuthStore } from "../../store/authStore";
@@ -38,6 +40,14 @@ interface Employee {
   paypal_email: string | null;
   department_name?: string | null;
   department_id?: string | null;
+}
+
+interface AnalyzeResult {
+  total_rows: number;
+  detected_columns: string[];
+  mapped_fields: Record<string, string>;
+  missing_fields: string[];
+  sample_preview: Record<string, any>[];
 }
 
 export default function EmployeeDirectory() {
@@ -73,6 +83,8 @@ export default function EmployeeDirectory() {
   // Import State
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<AnalyzeResult | null>(null);
   const [importResult, setImportResult] = useState<{
     imported: number;
     errors: string[];
@@ -156,8 +168,32 @@ export default function EmployeeDirectory() {
     }
   };
 
-  const handleImportSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleFileSelect = async (file: File) => {
+    setImportFile(file);
+    setImportResult(null);
+    setAnalysisResult(null);
+    setAnalyzing(true);
+
+    const data = new FormData();
+    data.append("file", file);
+
+    try {
+      const res = await api.post("/employees/analyze-import", data, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setAnalysisResult(res.data);
+    } catch (err: any) {
+      const detail = err.response?.data?.detail;
+      setImportResult({
+        imported: 0,
+        errors: [typeof detail === "string" ? detail : "Failed to analyze file."],
+      });
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  const executeImport = async (autoGenerate: boolean) => {
     if (!importFile) return;
 
     setImporting(true);
@@ -167,12 +203,12 @@ export default function EmployeeDirectory() {
     data.append("file", importFile);
 
     try {
-      const res = await api.post("/employees/import", data, {
+      const res = await api.post(`/employees/import?auto_generate_missing=${autoGenerate}`, data, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       setImportResult({
-        imported: res.data.imported_count,
-        errors: res.data.errors || [],
+        imported: res.data.successful_count,
+        errors: (res.data.errors || []).map((e: any) => `Row ${e.row}: ${e.error}`),
       });
       fetchEmployees();
     } catch (err: any) {
@@ -668,88 +704,193 @@ export default function EmployeeDirectory() {
         </div>
       )}
 
-      {/* CSV Import Modal (Solid Dark Theme, No Glassmorphism) */}
+      {/* AI Smart CSV/Excel Import Modal */}
       {showImportModal && (
-        <div className="fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-md w-full p-6 shadow-2xl">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Upload className="w-4 h-4 text-indigo-400" />
-                Bulk Import Roster
-              </h3>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white">Smart Roster Ingestion & Column Harmonizer</h3>
+                  <p className="text-[11px] text-slate-400 font-mono mt-0.5">
+                    Upload any CSV or Excel file. AI automatically structures columns and normalizes records.
+                  </p>
+                </div>
+              </div>
               <button
-                onClick={() => setShowImportModal(false)}
-                className="text-slate-400 hover:text-white cursor-pointer"
+                onClick={() => {
+                  setShowImportModal(false);
+                  setImportFile(null);
+                  setAnalysisResult(null);
+                  setImportResult(null);
+                }}
+                className="text-slate-400 hover:text-white cursor-pointer p-1 rounded-lg hover:bg-slate-800 transition"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleImportSubmit} className="mt-4 space-y-4 text-xs">
-              <p className="text-slate-400 leading-relaxed">
-                Upload CSV or Excel file containing:{" "}
-                <code className="text-indigo-300 bg-slate-950 px-1 py-0.5 rounded font-mono text-[11px]">
-                  employee_code, first_name, last_name, email, designation, salary_basic, paypal_email
-                </code>
-              </p>
-
-              <div className="border border-dashed border-slate-800 hover:border-slate-700 rounded-xl p-6 text-center cursor-pointer bg-slate-950">
+            <div className="space-y-4 text-xs">
+              {/* File Upload Zone */}
+              <div className="border border-dashed border-slate-800 hover:border-slate-700 rounded-xl p-5 text-center cursor-pointer bg-slate-950">
                 <input
                   type="file"
                   accept=".csv, .xlsx, .xls"
                   onChange={(e: ChangeEvent<HTMLInputElement>) => {
                     if (e.target.files && e.target.files[0]) {
-                      setImportFile(e.target.files[0]);
+                      handleFileSelect(e.target.files[0]);
                     }
                   }}
-                  className="w-full text-xs text-slate-400 file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500 cursor-pointer"
+                  className="w-full text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500 cursor-pointer"
                 />
+                <span className="text-[11px] text-slate-500 block mt-2 font-mono">
+                  Accepts standard or non-standard CSV / Excel rosters.
+                </span>
               </div>
 
-              {importResult && (
-                <div
-                  className={`p-3 rounded-lg text-xs ${
-                    importResult.errors.length > 0
-                      ? "bg-amber-500/10 border border-amber-500/20 text-amber-300"
-                      : "bg-emerald-500/10 border border-emerald-500/20 text-emerald-300"
-                  }`}
-                >
-                  <div className="flex items-center gap-2 font-semibold">
-                    {importResult.errors.length === 0 ? (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    ) : (
-                      <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
-                    )}
-                    Imported {importResult.imported} records successfully.
+              {/* Analyzing State */}
+              {analyzing && (
+                <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center gap-2.5 text-indigo-400">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span className="text-xs font-mono text-slate-300">
+                    AI is analyzing column headers and structure...
+                  </span>
+                </div>
+              )}
+
+              {/* Analysis Result Card */}
+              {analysisResult && (
+                <div className="space-y-3">
+                  {/* Found stats */}
+                  <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between text-xs font-mono">
+                    <span className="text-slate-400">Total Records Discovered:</span>
+                    <span className="font-bold text-white">{analysisResult.total_rows} employees</span>
                   </div>
-                  {importResult.errors.length > 0 && (
-                    <ul className="list-disc pl-5 mt-1.5 space-y-0.5 text-[11px]">
-                      {importResult.errors.slice(0, 5).map((err, i) => (
-                        <li key={i}>{err}</li>
+
+                  {/* Column mappings */}
+                  <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-2">
+                    <span className="text-[10px] uppercase font-mono text-slate-500 font-bold block">
+                      Auto-Harmonized Column Mappings
+                    </span>
+                    <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+                      {Object.entries(analysisResult.mapped_fields).map(([orig, target]) => (
+                        <div
+                          key={orig}
+                          className="px-2 py-1 rounded bg-slate-900 border border-slate-800 text-[10px] font-mono flex items-center gap-1.5"
+                        >
+                          <span className="text-slate-400">{orig}</span>
+                          <ArrowRight className="w-2.5 h-2.5 text-indigo-400" />
+                          <span className="text-indigo-300 font-bold">{target}</span>
+                        </div>
                       ))}
-                    </ul>
+                    </div>
+                  </div>
+
+                  {/* Missing Columns Pop-up Alert */}
+                  {analysisResult.missing_fields.length > 0 && (
+                    <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 space-y-2">
+                      <div className="flex items-center gap-2 font-bold text-xs text-amber-300">
+                        <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                        <span>Missing Required Columns Detected</span>
+                      </div>
+                      <p className="text-[11px] text-amber-300/80 leading-relaxed">
+                        The file is missing:{" "}
+                        <span className="font-mono font-semibold text-white">
+                          {analysisResult.missing_fields.join(", ")}
+                        </span>
+                        . Would you like our AI to auto-generate unique corporate emails, infer designations from department/experience, and configure sandbox PayPal emails?
+                      </p>
+                      <div className="flex items-center gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => executeImport(true)}
+                          disabled={importing}
+                          className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-sm disabled:opacity-50"
+                        >
+                          {importing ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Sparkles className="w-3.5 h-3.5 text-indigo-200" />
+                          )}
+                          Auto-Generate & Import Roster
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => executeImport(false)}
+                          disabled={importing}
+                          className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs transition cursor-pointer disabled:opacity-50"
+                        >
+                          Continue Without Generating
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* No missing columns: direct confirm */}
+                  {analysisResult.missing_fields.length === 0 && (
+                    <div className="pt-2 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => executeImport(true)}
+                        disabled={importing}
+                        className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-sm"
+                      >
+                        {importing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                        Confirm & Import {analysisResult.total_rows} Records
+                      </button>
+                    </div>
                   )}
                 </div>
               )}
 
-              <div className="pt-2 flex justify-end gap-2.5 border-t border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setShowImportModal(false)}
-                  className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium transition cursor-pointer"
+              {/* Import Results */}
+              {importResult && (
+                <div
+                  className={`p-3.5 rounded-xl text-xs space-y-1.5 ${
+                    importResult.errors.length > 0 && importResult.imported === 0
+                      ? "bg-rose-500/10 border border-rose-500/20 text-rose-300"
+                      : "bg-emerald-500/10 border border-emerald-500/20 text-emerald-300"
+                  }`}
                 >
-                  Close
-                </button>
-                <button
-                  type="submit"
-                  disabled={!importFile || importing}
-                  className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-medium flex items-center gap-1.5 transition cursor-pointer"
-                >
-                  {importing && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  Upload & Import
-                </button>
-              </div>
-            </form>
+                  <div className="flex items-center gap-2 font-bold">
+                    {importResult.imported > 0 ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                    )}
+                    Successfully provisioned {importResult.imported} employees into the directory.
+                  </div>
+                  {importResult.errors.length > 0 && (
+                    <div className="text-[11px] text-slate-400 pt-1">
+                      <span className="font-semibold text-rose-400 block mb-0.5">Warnings / Skipped:</span>
+                      <ul className="list-disc pl-4 space-y-0.5 max-h-24 overflow-y-auto">
+                        {importResult.errors.slice(0, 5).map((err, i) => (
+                          <li key={i}>{err}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="pt-3 flex justify-end gap-2 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowImportModal(false);
+                  setImportFile(null);
+                  setAnalysisResult(null);
+                  setImportResult(null);
+                }}
+                className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs transition cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
