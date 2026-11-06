@@ -243,7 +243,15 @@ export default function Dashboard() {
                 <h1 className="text-xl font-bold text-white tracking-tight">
                   {employeeProfile ? `${employeeProfile.first_name} ${employeeProfile.last_name}` : user?.email}
                 </h1>
-                <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-xs capitalize font-medium">
+                <span
+                  className={`px-2 py-0.5 rounded text-xs capitalize font-medium ${
+                    user?.role === "ceo"
+                      ? "bg-amber-500/10 text-amber-300 border border-amber-500/30 font-semibold"
+                      : user?.role === "finance_manager"
+                      ? "bg-blue-500/10 text-blue-300 border border-blue-500/30 font-semibold"
+                      : "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
+                  }`}
+                >
                   {user?.role?.replace("_", " ")}
                 </span>
               </div>
