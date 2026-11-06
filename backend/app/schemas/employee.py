@@ -72,6 +72,7 @@ class EmployeeResponse(BaseModel):
     salary_allowances: Dict[str, Any]
     paypal_email: Optional[str] = None
     is_active: bool
+    initial_password: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
