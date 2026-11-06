@@ -3,7 +3,14 @@ import { create } from "zustand";
 export interface UserProfile {
   id: string;
   email: string;
-  role: "admin" | "hr" | "manager" | "employee";
+  role:
+    | "super_admin"
+    | "admin"
+    | "ir_manager"
+    | "hr"
+    | "hr_manager"
+    | "manager"
+    | "employee";
   company_id: string;
   employee_id?: string | null;
   is_active: boolean;
