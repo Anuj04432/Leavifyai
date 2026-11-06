@@ -134,7 +134,7 @@ export default function LoginPage() {
       {/* PASS 1: Asymmetric Left Architecture Panel (Hidden on small screens) */}
       <div className="hidden lg:flex lg:w-5/12 bg-slate-900 border-r border-slate-800 flex-col justify-between p-12 relative overflow-hidden">
         {/* Subtle dot pattern */}
-        <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]" />
+        <div className="absolute inset-0 pointer-events-none [background-image:radial-gradient(var(--surface-grid)_1px,transparent_1px)] [background-size:16px_16px]" />
 
         <div>
           {/* Logo & Product Identity */}
@@ -146,7 +146,7 @@ export default function LoginPage() {
               <span className="font-extrabold text-white text-lg tracking-tight block">
                 WorkforceAI
               </span>
-              <span className="text-[11px] font-medium uppercase tracking-wider text-slate-400 block -mt-0.5">
+              <span className="text-xs font-medium text-slate-400 block -mt-0.5">
                 Enterprise Payroll OS
               </span>
             </div>
@@ -201,8 +201,8 @@ export default function LoginPage() {
         </div>
 
         {/* Footer Meta */}
-        <div className="text-[11px] text-slate-500 font-mono tracking-tight pt-4">
-          PAYPAL AI HACKATHON 2026 // BUILD PROD
+        <div className="text-xs text-slate-500 tracking-tight pt-4">
+          PayPal AI Hackathon 2026 · Build Production
         </div>
       </div>
 
@@ -453,10 +453,10 @@ export default function LoginPage() {
           {/* Quick Demo Credentials Panel */}
           <div className="pt-5 border-t border-slate-800/80">
             <div className="flex items-center justify-between mb-2.5">
-              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+              <span className="text-xs font-semibold text-slate-400">
                 Demo Credentials
               </span>
-              <span className="text-[10px] text-slate-500 font-mono">1-click autofill</span>
+              <span className="text-xs text-slate-500">1-click autofill</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
               <button
