@@ -178,6 +178,7 @@ export default function EmployeeDirectory() {
     salary_currency: "USD",
     paypal_email: "",
     department_id: "",
+    custom_department: "",
     role: "employee",
     permissions: {
       can_handle_paypal: false,
@@ -217,6 +218,7 @@ export default function EmployeeDirectory() {
     last_name: "",
     designation: "",
     department_id: "",
+    custom_department: "",
     employment_type: "full_time",
     salary_basic: 0,
     paypal_email: "",
@@ -233,10 +235,22 @@ export default function EmployeeDirectory() {
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
-  // Corporate Domain
-  const companyDomain =
-    user?.company_domain ||
-    (user?.email?.includes("@") ? user.email.split("@")[1] : "company.workforce.io");
+  // Organization Corporate Domain
+  let companyDomain = user?.company_domain;
+  if (!companyDomain) {
+    if (user?.company_name) {
+      companyDomain = `${user.company_name.toLowerCase().replace(/[^a-z0-9]/g, "")}.com`;
+    } else if (user?.email?.includes("@")) {
+      const emailDomain = user.email.split("@")[1];
+      companyDomain = emailDomain.endsWith(".workforce.io")
+        ? `${emailDomain.replace(".workforce.io", "")}.com`
+        : emailDomain;
+    } else {
+      companyDomain = "company.com";
+    }
+  } else if (companyDomain.endsWith(".workforce.io")) {
+    companyDomain = `${companyDomain.replace(".workforce.io", "")}.com`;
+  }
 
   const autoCorporateEmail = `${
     formData.first_name.toLowerCase().replace(/[^a-z0-9]/g, "") || "first"
@@ -297,6 +311,7 @@ export default function EmployeeDirectory() {
       last_name: emp.last_name,
       designation: emp.designation || "",
       department_id: emp.department_id || "",
+      custom_department: "",
       employment_type: emp.employment_type || "full_time",
       salary_basic: Number(emp.salary_basic || 0),
       paypal_email: emp.paypal_email || "",
@@ -319,11 +334,13 @@ export default function EmployeeDirectory() {
     setEditSubmitting(true);
     setEditError(null);
     try {
+      const isCustomDept = editFormData.department_id === "__new__";
       const payload: any = {
         first_name: editFormData.first_name,
         last_name: editFormData.last_name,
         designation: editFormData.designation || null,
-        department_id: editFormData.department_id || null,
+        department_id: !isCustomDept && editFormData.department_id ? editFormData.department_id : null,
+        department_name: isCustomDept && editFormData.custom_department.trim() ? editFormData.custom_department.trim() : undefined,
         employment_type: editFormData.employment_type,
         salary_basic: Number(editFormData.salary_basic || 0),
         paypal_email: editFormData.paypal_email || null,
@@ -334,6 +351,7 @@ export default function EmployeeDirectory() {
       await api.put(`/employees/${editingEmployee.id}`, payload);
       setEditingEmployee(null);
       await fetchEmployees();
+      await fetchDepartments();
     } catch (err: any) {
       const detail = err.response?.data?.detail;
       setEditError(typeof detail === "string" ? detail : "Failed to update employee.");
@@ -364,6 +382,7 @@ export default function EmployeeDirectory() {
     setFormError(null);
 
     try {
+      const isCustomDept = formData.department_id === "__new__";
       const payload: any = {
         employee_code: formData.employee_code || undefined,
         first_name: formData.first_name,
@@ -373,7 +392,8 @@ export default function EmployeeDirectory() {
         designation: formData.designation || undefined,
         employment_type: formData.employment_type,
         salary_basic: Number(formData.base_salary || 0),
-        department_id: formData.department_id || undefined,
+        department_id: !isCustomDept && formData.department_id ? formData.department_id : undefined,
+        department_name: isCustomDept && formData.custom_department.trim() ? formData.custom_department.trim() : undefined,
         paypal_email: formData.paypal_email || undefined,
         role: formData.role || "employee",
         permissions: formData.permissions,
@@ -405,6 +425,7 @@ export default function EmployeeDirectory() {
         salary_currency: "USD",
         paypal_email: "",
         department_id: "",
+        custom_department: "",
         role: "employee",
         permissions: {
           can_handle_paypal: false,
@@ -414,7 +435,8 @@ export default function EmployeeDirectory() {
           can_manage_policies: false,
         },
       });
-      fetchEmployees();
+      await fetchEmployees();
+      await fetchDepartments();
     } catch (err: any) {
       const detail = err.response?.data?.detail;
       setFormError(typeof detail === "string" ? detail : "Failed to create employee.");
@@ -876,13 +898,30 @@ export default function EmployeeDirectory() {
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-300 font-medium mb-1">
-                    Department
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-slate-300 font-medium">
+                      Department
+                    </label>
+                    {formData.department_id === "__new__" && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setFormData({ ...formData, department_id: "", custom_department: "" })
+                        }
+                        className="text-[10px] text-indigo-400 hover:text-indigo-300 cursor-pointer"
+                      >
+                        Choose from list
+                      </button>
+                    )}
+                  </div>
                   <select
                     value={formData.department_id}
                     onChange={(e) =>
-                      setFormData({ ...formData, department_id: e.target.value })
+                      setFormData({
+                        ...formData,
+                        department_id: e.target.value,
+                        custom_department: e.target.value === "__new__" ? formData.custom_department : "",
+                      })
                     }
                     className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-slate-200 outline-none focus:border-indigo-500"
                   >
@@ -892,7 +931,22 @@ export default function EmployeeDirectory() {
                         {d.name}
                       </option>
                     ))}
+                    <option value="__new__" className="text-indigo-400 font-semibold">
+                      + Write New Department...
+                    </option>
                   </select>
+                  {formData.department_id === "__new__" && (
+                    <input
+                      type="text"
+                      required
+                      placeholder="Type department name (e.g. AI Research)"
+                      value={formData.custom_department}
+                      onChange={(e) =>
+                        setFormData({ ...formData, custom_department: e.target.value })
+                      }
+                      className="mt-1.5 w-full bg-slate-950 border border-indigo-500/60 rounded-lg px-3 py-1.5 text-slate-200 placeholder-slate-600 outline-none focus:border-indigo-500 text-xs"
+                    />
+                  )}
                 </div>
               </div>
 
@@ -932,7 +986,7 @@ export default function EmployeeDirectory() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-slate-300 font-medium mb-1">
-                    WorkforceAI Corporate Email
+                    Organization Corporate Email
                   </label>
                   <input
                     type="email"
@@ -1199,13 +1253,30 @@ export default function EmployeeDirectory() {
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-300 font-medium mb-1">
-                    Department
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-slate-300 font-medium">
+                      Department
+                    </label>
+                    {editFormData.department_id === "__new__" && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setEditFormData({ ...editFormData, department_id: "", custom_department: "" })
+                        }
+                        className="text-[10px] text-indigo-400 hover:text-indigo-300 cursor-pointer"
+                      >
+                        Choose from list
+                      </button>
+                    )}
+                  </div>
                   <select
                     value={editFormData.department_id}
                     onChange={(e) =>
-                      setEditFormData({ ...editFormData, department_id: e.target.value })
+                      setEditFormData({
+                        ...editFormData,
+                        department_id: e.target.value,
+                        custom_department: e.target.value === "__new__" ? editFormData.custom_department : "",
+                      })
                     }
                     className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-slate-200 outline-none focus:border-indigo-500"
                   >
@@ -1215,7 +1286,22 @@ export default function EmployeeDirectory() {
                         {d.name}
                       </option>
                     ))}
+                    <option value="__new__" className="text-indigo-400 font-semibold">
+                      + Write New Department...
+                    </option>
                   </select>
+                  {editFormData.department_id === "__new__" && (
+                    <input
+                      type="text"
+                      required
+                      placeholder="Type department name (e.g. AI Research)"
+                      value={editFormData.custom_department}
+                      onChange={(e) =>
+                        setEditFormData({ ...editFormData, custom_department: e.target.value })
+                      }
+                      className="mt-1.5 w-full bg-slate-950 border border-indigo-500/60 rounded-lg px-3 py-1.5 text-slate-200 placeholder-slate-600 outline-none focus:border-indigo-500 text-xs"
+                    />
+                  )}
                 </div>
               </div>
 
@@ -1403,7 +1489,7 @@ export default function EmployeeDirectory() {
                   Corporate Identity Provisioned
                 </h3>
                 <p className="text-xs text-slate-400">
-                  WorkforceAI email and login issued for {createdCredentials.name}
+                  Corporate organization email and login issued for {createdCredentials.name}
                 </p>
               </div>
             </div>
