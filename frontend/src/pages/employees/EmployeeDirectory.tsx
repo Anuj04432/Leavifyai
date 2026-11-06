@@ -20,6 +20,8 @@ import {
   Pencil,
   ShieldCheck,
   Copy,
+  Download,
+  FileSpreadsheet,
 } from "lucide-react";
 import { api } from "../../lib/api";
 import { useAuthStore } from "../../store/authStore";
@@ -151,6 +153,19 @@ interface AnalyzeResult {
   sample_preview: Record<string, any>[];
 }
 
+interface ImportedCredential {
+  employee_code: string;
+  employee_name: string;
+  corporate_email: string;
+  personal_email?: string | null;
+  initial_password: string;
+  role: string;
+  department_name?: string | null;
+  designation?: string | null;
+  email_dispatched: boolean;
+  dispatch_status?: string | null;
+}
+
 export default function EmployeeDirectory() {
   const { user } = useAuthStore();
 
@@ -209,6 +224,7 @@ export default function EmployeeDirectory() {
     imported: number;
     errors: string[];
   } | null>(null);
+  const [bulkCredentials, setBulkCredentials] = useState<ImportedCredential[]>([]);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Edit Employee State
@@ -487,6 +503,12 @@ export default function EmployeeDirectory() {
         imported: res.data.successful_count,
         errors: (res.data.errors || []).map((e: any) => `Row ${e.row}: ${e.error}`),
       });
+
+      if (res.data.credentials && res.data.credentials.length > 0) {
+        setBulkCredentials(res.data.credentials);
+        setShowImportModal(false);
+      }
+
       await fetchEmployees();
       await fetchDepartments();
     } catch (err: any) {
@@ -498,6 +520,54 @@ export default function EmployeeDirectory() {
     } finally {
       setImporting(false);
     }
+  };
+
+  const downloadCredentialsCSV = () => {
+    if (bulkCredentials.length === 0) return;
+    const headers = [
+      "Employee Name",
+      "Employee Code",
+      "Corporate Sign-In Email",
+      "Initial Password",
+      "Personal Email (Gmail)",
+      "Role",
+      "Department",
+      "Designation",
+      "Dispatch Status",
+    ];
+    const rows = bulkCredentials.map((c) => [
+      `"${c.employee_name.replace(/"/g, '""')}"`,
+      `"${c.employee_code.replace(/"/g, '""')}"`,
+      `"${c.corporate_email.replace(/"/g, '""')}"`,
+      `"${c.initial_password.replace(/"/g, '""')}"`,
+      `"${(c.personal_email || "").replace(/"/g, '""')}"`,
+      `"${c.role.replace(/"/g, '""')}"`,
+      `"${(c.department_name || "").replace(/"/g, '""')}"`,
+      `"${(c.designation || "").replace(/"/g, '""')}"`,
+      `"${(c.dispatch_status || "").replace(/"/g, '""')}"`,
+    ]);
+    const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `workforce_credentials_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const copyAllCredentials = () => {
+    if (bulkCredentials.length === 0) return;
+    const text = bulkCredentials
+      .map(
+        (c) =>
+          `${c.employee_name} (${c.employee_code})\nCorporate Login: ${c.corporate_email}\nInitial Password: ${c.initial_password}\nPersonal Email: ${c.personal_email || "N/A"}\n---`
+      )
+      .join("\n");
+    navigator.clipboard.writeText(text);
+    alert("All credentials copied to clipboard!");
   };
 
   const isHrOrAdmin =
@@ -1550,6 +1620,152 @@ export default function EmployeeDirectory() {
             >
               Done & Return to Directory
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Provisioned Credentials Modal & Download Hub */}
+      {bulkCredentials.length > 0 && (
+        <div className="fixed inset-0 bg-slate-950/90 z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-indigo-500/30 rounded-2xl max-w-4xl w-full p-6 space-y-4 max-h-[90vh] flex flex-col">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-800 gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+                  <FileSpreadsheet className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
+                    Bulk Employee Credentials Provisioned ({bulkCredentials.length})
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Corporate login emails and initial passwords generated for your organization.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={downloadCredentialsCSV}
+                  className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-sm"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Download Credentials (.csv / Excel)
+                </button>
+                <button
+                  type="button"
+                  onClick={copyAllCredentials}
+                  className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs flex items-center gap-1.5 transition cursor-pointer"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  Copy All
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBulkCredentials([])}
+                  className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Table of Credentials */}
+            <div className="flex-1 overflow-y-auto border border-slate-800 rounded-xl bg-slate-950">
+              <table className="w-full text-left text-xs text-slate-300">
+                <thead className="bg-slate-900 border-b border-slate-800 sticky top-0 text-[11px] text-slate-400 uppercase tracking-wider font-semibold">
+                  <tr>
+                    <th className="p-3">Employee</th>
+                    <th className="p-3">Corporate Sign-In Email</th>
+                    <th className="p-3">Initial Password</th>
+                    <th className="p-3">Personal Email (Gmail)</th>
+                    <th className="p-3">AI Agent Dispatch</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/80">
+                  {bulkCredentials.map((c, i) => (
+                    <tr key={i} className="hover:bg-slate-900/60 transition">
+                      <td className="p-3">
+                        <div className="font-medium text-white">{c.employee_name}</div>
+                        <div className="font-mono text-[10px] text-slate-500">{c.employee_code} • {c.department_name || "General"}</div>
+                      </td>
+                      <td className="p-3">
+                        <div className="flex items-center gap-1.5 font-mono text-indigo-300 text-xs">
+                          <span className="truncate max-w-[200px]">{c.corporate_email}</span>
+                          <button
+                            type="button"
+                            onClick={() => navigator.clipboard.writeText(c.corporate_email)}
+                            title="Copy email"
+                            className="text-slate-500 hover:text-slate-300"
+                          >
+                            <Copy className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        <div className="flex items-center gap-1.5 font-mono text-amber-300 text-xs bg-slate-900 px-2 py-1 rounded border border-amber-500/20 max-w-fit">
+                          <span>{c.initial_password}</span>
+                          <button
+                            type="button"
+                            onClick={() => navigator.clipboard.writeText(c.initial_password)}
+                            title="Copy password"
+                            className="text-slate-500 hover:text-slate-300"
+                          >
+                            <Copy className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </td>
+                      <td className="p-3 font-mono text-slate-400 text-xs">
+                        {c.personal_email || (
+                          <span className="text-slate-600 italic">None provided</span>
+                        )}
+                      </td>
+                      <td className="p-3">
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-semibold flex items-center gap-1 max-w-fit ${
+                            c.email_dispatched
+                              ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                              : "bg-slate-800 text-slate-400 border border-slate-700"
+                          }`}
+                          title={c.dispatch_status || ""}
+                        >
+                          {c.email_dispatched && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />}
+                          {c.email_dispatched ? "Dispatched" : "Not Sent"}
+                        </span>
+                        {c.dispatch_status && (
+                          <div className="text-[9px] text-slate-500 mt-0.5 truncate max-w-[180px]" title={c.dispatch_status}>
+                            {c.dispatch_status}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Footer Notice */}
+            <div className="pt-3 border-t border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-3">
+              <span className="text-[11px] text-slate-400">
+                🔒 <strong>Notice:</strong> Initial passwords are shown now so you can download or distribute them. Once closed, passwords cannot be retrieved in cleartext.
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={downloadCredentialsCSV}
+                  className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Download Excel (.csv)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBulkCredentials([])}
+                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-medium text-xs transition cursor-pointer"
+                >
+                  Done & Close
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
