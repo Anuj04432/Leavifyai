@@ -243,8 +243,8 @@ export default function Dashboard() {
                 <h1 className="text-xl font-bold text-white tracking-tight">
                   {employeeProfile ? `${employeeProfile.first_name} ${employeeProfile.last_name}` : user?.email}
                 </h1>
-                <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[10px] font-mono uppercase font-semibold">
-                  {user?.role}
+                <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-xs capitalize font-medium">
+                  {user?.role?.replace("_", " ")}
                 </span>
               </div>
               <div className="flex items-center gap-4 text-xs text-slate-400 mt-1">
@@ -288,10 +288,10 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
               <div className="md:col-span-7 p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider">
+                  <span className="text-xs text-slate-400 font-medium">
                     Available Time-Off Pool
                   </span>
-                  <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                  <span className="text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 font-medium">
                     Active Entitlement
                   </span>
                 </div>
@@ -303,7 +303,7 @@ export default function Dashboard() {
                 </div>
                 <div className="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden flex gap-0.5 p-0.5 border border-slate-800/80">
                   <div
-                    className="bg-indigo-500 h-full rounded-full transition-all duration-500"
+                    className="bg-indigo-500 h-full rounded-full transition-[width] duration-500 ease-out motion-reduce:transition-none"
                     style={{ width: `${Math.min(100, Math.max(15, totalAvailableDays * 3))}%` }}
                   />
                 </div>
@@ -311,19 +311,19 @@ export default function Dashboard() {
 
               <div className="md:col-span-5 grid grid-cols-2 gap-3">
                 <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 flex flex-col justify-between">
-                  <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">In Review</span>
+                  <span className="text-xs text-slate-400 font-medium">In review</span>
                   <div className="text-2xl font-bold font-mono text-amber-400 my-1">
                     {requests.filter((r) => r.status === "pending").length}
                   </div>
-                  <span className="text-[10px] text-slate-500">Awaiting Manager</span>
+                  <span className="text-xs text-slate-500">Awaiting Manager</span>
                 </div>
 
                 <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 flex flex-col justify-between">
-                  <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">Approved</span>
+                  <span className="text-xs text-slate-400 font-medium">Approved</span>
                   <div className="text-2xl font-bold font-mono text-emerald-400 my-1">
                     {requests.filter((r) => r.status === "approved").length}
                   </div>
-                  <span className="text-[10px] text-slate-500">Current Year</span>
+                  <span className="text-xs text-slate-500">Current Year</span>
                 </div>
               </div>
             </div>
@@ -351,21 +351,21 @@ export default function Dashboard() {
               {loading ? (
                 <div className="p-10 flex flex-col items-center justify-center gap-2">
                   <Loader2 className="w-5 h-5 animate-spin text-indigo-500" />
-                  <span className="text-xs font-mono text-slate-400">Loading leave requests...</span>
+                  <span className="text-xs text-slate-400">Loading leave requests…</span>
                 </div>
               ) : requests.length === 0 ? (
                 <div className="p-8 text-center space-y-2">
                   <FileText className="w-8 h-8 text-slate-600 mx-auto" />
                   <div className="text-xs font-medium text-slate-300">No leave applications on file</div>
                   <p className="text-xs text-slate-500">
-                    Use the "Apply for Leave" button above to submit your first request.
+                    Use the “Apply for Leave” button above to submit your first request.
                   </p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
-                      <tr className="border-b border-slate-800 bg-slate-950/40 text-[11px] font-mono text-slate-400 uppercase tracking-wider">
+                      <tr className="border-b border-slate-800 bg-slate-950/40 text-xs text-slate-400 font-medium">
                         <th className="py-2.5 px-4">Request #</th>
                         <th className="py-2.5 px-4">Category</th>
                         <th className="py-2.5 px-4">Duration</th>
@@ -432,11 +432,11 @@ export default function Dashboard() {
             {/* Live Leave Balance Breakdown */}
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3.5">
               <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
                   <ShieldCheck className="w-4 h-4 text-indigo-400" />
                   Your Leave Balances
                 </span>
-                <span className="text-[10px] font-mono text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20">
+                <span className="text-xs font-mono text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20">
                   {new Date().getFullYear()} CY
                 </span>
               </div>
@@ -452,7 +452,7 @@ export default function Dashboard() {
                     return (
                       <div
                         key={b.id}
-                        className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-2 hover:border-slate-700/80 transition"
+                        className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-2 hover:border-slate-700/80 transition-colors motion-reduce:transition-none"
                       >
                         <div className="flex items-center justify-between text-xs">
                           <span className="font-semibold text-white">{b.policy_name || "Leave"}</span>
@@ -464,12 +464,12 @@ export default function Dashboard() {
                         {/* Progress Meter */}
                         <div className="w-full bg-slate-900 rounded-full h-1 overflow-hidden">
                           <div
-                            className="bg-indigo-500 h-full rounded-full transition-all duration-300"
+                            className="bg-indigo-500 h-full rounded-full transition-[width] duration-300 ease-out motion-reduce:transition-none"
                             style={{ width: `${pct}%` }}
                           />
                         </div>
 
-                        <div className="grid grid-cols-3 gap-1 text-[10px] font-mono text-slate-400 pt-1 border-t border-slate-900">
+                        <div className="grid grid-cols-3 gap-1 text-xs text-slate-400 pt-1 border-t border-slate-900">
                           <div>
                             Alloc: <span className="text-slate-200">{b.total_allocated}d</span>
                           </div>
@@ -489,7 +489,7 @@ export default function Dashboard() {
 
             {/* Compensation & PayPal Payout Footprint */}
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
-              <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+              <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
                 <CreditCard className="w-4 h-4 text-indigo-400" />
                 Disbursement & Payout Rail
               </span>
@@ -503,7 +503,7 @@ export default function Dashboard() {
                 </div>
                 <div className="flex items-center justify-between pt-1 border-t border-slate-900">
                   <span className="text-slate-400">Sandbox Settlement</span>
-                  <span className="inline-flex items-center gap-1 text-emerald-400 text-[11px] font-mono">
+                  <span className="inline-flex items-center gap-1 text-emerald-400 text-xs">
                     <CheckCircle2 className="w-3 h-3" /> Active
                   </span>
                 </div>
@@ -519,11 +519,11 @@ export default function Dashboard() {
             {/* Embedded Employee AI Leave Assistant */}
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
               <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                <span className="text-xs font-semibold text-white uppercase tracking-wider flex items-center gap-1.5">
+                <span className="text-xs font-semibold text-white flex items-center gap-1.5">
                   <Bot className="w-4 h-4 text-indigo-400" />
                   WorkforceAI Leave Copilot
                 </span>
-                <span className="text-[10px] font-mono text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20">
+                <span className="text-xs text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20">
                   Gemini 2.5
                 </span>
               </div>
@@ -537,21 +537,21 @@ export default function Dashboard() {
                 <button
                   type="button"
                   onClick={() => handleAiAsk("What is my current leave balance?")}
-                  className="px-2 py-1 rounded bg-slate-950 hover:bg-slate-800 border border-slate-800 text-[10px] text-slate-300 transition"
+                  className="px-2 py-1 rounded bg-slate-950 hover:bg-slate-800 border border-slate-800 text-[10px] text-slate-300 transition-colors motion-reduce:transition-none"
                 >
                   Check my balances
                 </button>
                 <button
                   type="button"
                   onClick={() => handleAiAsk("What is the notice requirement for casual leave?")}
-                  className="px-2 py-1 rounded bg-slate-950 hover:bg-slate-800 border border-slate-800 text-[10px] text-slate-300 transition"
+                  className="px-2 py-1 rounded bg-slate-950 hover:bg-slate-800 border border-slate-800 text-[10px] text-slate-300 transition-colors motion-reduce:transition-none"
                 >
                   Casual leave rules
                 </button>
                 <button
                   type="button"
                   onClick={() => handleAiAsk("Can I take 2 days sick leave?")}
-                  className="px-2 py-1 rounded bg-slate-950 hover:bg-slate-800 border border-slate-800 text-[10px] text-slate-300 transition"
+                  className="px-2 py-1 rounded bg-slate-950 hover:bg-slate-800 border border-slate-800 text-[10px] text-slate-300 transition-colors motion-reduce:transition-none"
                 >
                   Sick leave policy
                 </button>
@@ -561,7 +561,7 @@ export default function Dashboard() {
               <div className="flex gap-1.5 pt-1">
                 <input
                   type="text"
-                  placeholder="e.g. I need next Friday off..."
+                  placeholder="e.g. I need next Friday off…"
                   value={aiInput}
                   onChange={(e) => setAiInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleAiAsk()}
@@ -571,7 +571,7 @@ export default function Dashboard() {
                   type="button"
                   onClick={() => handleAiAsk()}
                   disabled={aiLoading || !aiInput.trim()}
-                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-lg text-xs font-semibold flex items-center justify-center transition cursor-pointer"
+                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-lg text-xs font-semibold flex items-center justify-center transition-colors motion-reduce:transition-none cursor-pointer"
                 >
                   {aiLoading ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -584,7 +584,7 @@ export default function Dashboard() {
               {/* AI Response Display */}
               {aiResponse && (
                 <div className="p-3 rounded-lg bg-slate-950 border border-indigo-500/20 text-xs text-slate-300 space-y-2 mt-2">
-                  <div className="text-[10px] font-mono text-indigo-400 flex items-center gap-1">
+                  <div className="text-xs text-indigo-400 flex items-center gap-1 font-medium">
                     <Sparkles className="w-3 h-3" />
                     Agent Response:
                   </div>
@@ -593,7 +593,7 @@ export default function Dashboard() {
                     <button
                       type="button"
                       onClick={handleApplyFromAi}
-                      className="w-full mt-2 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
+                      className="w-full mt-2 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition-colors motion-reduce:transition-none cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       Apply for Extracted Leave
@@ -608,8 +608,8 @@ export default function Dashboard() {
 
       {/* Apply Leave Modal */}
       {showApplyModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+        <div className="fixed inset-0 z-50 bg-slate-950/90 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-md w-full p-6 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <h2 className="text-base font-bold text-white flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-indigo-400" />
