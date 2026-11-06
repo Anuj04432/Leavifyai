@@ -53,8 +53,11 @@ class AuthService:
         if existing_company:
             slug = f"{base_slug}-{uuid.uuid4().hex[:4]}"
 
-        # Corporate workforce domain
-        domain = f"{slug}.workforce.io"
+        # Corporate organization domain (defaults to <slug>.com or user-provided domain)
+        if data.company_domain and data.company_domain.strip():
+            domain = data.company_domain.strip().lower().replace("@", "").strip()
+        else:
+            domain = f"{slug}.com"
 
         # 2. Derive unique corporate email
         clean_first = re.sub(r"[^a-z0-9]", "", data.ceo_first_name.lower()) or "ceo"
