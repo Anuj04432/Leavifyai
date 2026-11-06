@@ -427,7 +427,7 @@ export default function EmployeeDirectory() {
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-950/70 border-b border-slate-800 text-slate-400 uppercase font-mono text-[10px] tracking-wider">
+                    <thead className="bg-slate-950/70 border-b border-slate-800 text-slate-400 text-xs">
                       <tr>
                         <th className="py-2.5 px-4 font-semibold">Employee</th>
                         <th className="py-2.5 px-4 font-semibold">Code</th>
@@ -645,8 +645,8 @@ export default function EmployeeDirectory() {
 
       {/* Add Employee Modal (Solid Dark Theme, No Glassmorphism) */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-lg w-full p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
+        <div className="fixed inset-0 bg-slate-950/90 z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-lg w-full p-6 overflow-y-auto max-h-[90vh]">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <Plus className="w-4 h-4 text-indigo-400" />
@@ -863,8 +863,8 @@ export default function EmployeeDirectory() {
 
       {/* Edit Employee Modal */}
       {editingEmployee && (
-        <div className="fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-lg w-full p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
+        <div className="fixed inset-0 bg-slate-950/90 z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-lg w-full p-6 overflow-y-auto max-h-[90vh]">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <Pencil className="w-4 h-4 text-indigo-400" />
@@ -1071,8 +1071,8 @@ export default function EmployeeDirectory() {
 
       {/* AI Smart CSV/Excel Import Modal */}
       {showImportModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-slate-950/90 z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
@@ -1080,7 +1080,7 @@ export default function EmployeeDirectory() {
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-white">Smart Roster Ingestion & Column Harmonizer</h3>
-                  <p className="text-[11px] text-slate-400 font-mono mt-0.5">
+                  <p className="text-[11px] text-slate-400 mt-0.5">
                     Upload any CSV or Excel file. AI automatically structures columns and normalizes records.
                   </p>
                 </div>
@@ -1092,7 +1092,7 @@ export default function EmployeeDirectory() {
                   setAnalysisResult(null);
                   setImportResult(null);
                 }}
-                className="text-slate-400 hover:text-white cursor-pointer p-1 rounded-lg hover:bg-slate-800 transition"
+                className="text-slate-400 hover:text-white cursor-pointer p-1 rounded-lg hover:bg-slate-800 transition-colors motion-reduce:transition-none"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1111,7 +1111,7 @@ export default function EmployeeDirectory() {
                   }}
                   className="w-full text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500 cursor-pointer"
                 />
-                <span className="text-[11px] text-slate-500 block mt-2 font-mono">
+                <span className="text-[11px] text-slate-500 block mt-2">
                   Accepts standard or non-standard CSV / Excel rosters.
                 </span>
               </div>
@@ -1120,8 +1120,8 @@ export default function EmployeeDirectory() {
               {analyzing && (
                 <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center gap-2.5 text-indigo-400">
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span className="text-xs font-mono text-slate-300">
-                    AI is analyzing column headers and structure...
+                  <span className="text-xs text-slate-300">
+                    AI is analyzing column headers and structure…
                   </span>
                 </div>
               )}
@@ -1130,14 +1130,14 @@ export default function EmployeeDirectory() {
               {analysisResult && (
                 <div className="space-y-3">
                   {/* Found stats */}
-                  <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between text-xs font-mono">
+                  <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between text-xs">
                     <span className="text-slate-400">Total Records Discovered:</span>
-                    <span className="font-bold text-white">{analysisResult.total_rows} employees</span>
+                    <span className="font-bold text-white font-mono">{analysisResult.total_rows} employees</span>
                   </div>
 
                   {/* Column mappings */}
                   <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-2">
-                    <span className="text-[10px] uppercase font-mono text-slate-500 font-bold block">
+                    <span className="text-xs text-slate-400 font-semibold block">
                       Auto-Harmonized Column Mappings
                     </span>
                     <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
