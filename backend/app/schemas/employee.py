@@ -91,3 +91,12 @@ class EmployeeImportResult(BaseModel):
     successful_count: int
     failed_count: int
     errors: List[ImportErrorDetail]
+
+
+class AnalyzeImportResponse(BaseModel):
+    """AI analysis result of uploaded dataset columns, mappings, and missing fields."""
+    total_rows: int
+    detected_columns: List[str]
+    mapped_fields: Dict[str, str]
+    missing_fields: List[str]
+    sample_preview: List[Dict[str, Any]]
