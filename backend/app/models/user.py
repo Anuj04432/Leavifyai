@@ -11,7 +11,9 @@ from app.models.base import TimestampMixin, UUIDMixin
 
 
 class UserRole(str, enum.Enum):
+    SUPER_ADMIN = "super_admin"
     ADMIN = "admin"
+    IR_MANAGER = "ir_manager"
     HR = "hr"
     MANAGER = "manager"
     EMPLOYEE = "employee"
