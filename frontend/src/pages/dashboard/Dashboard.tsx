@@ -11,6 +11,9 @@ import {
   FileText,
   CalendarDays,
   ExternalLink,
+  Bot,
+  Sparkles,
+  Send,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { api } from "../../lib/api";
@@ -86,6 +89,51 @@ export default function Dashboard() {
     end_date: "",
     reason: "",
   });
+
+  // Embedded Employee AI Assistant State
+  const [aiInput, setAiInput] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiResponse, setAiResponse] = useState<string | null>(null);
+  const [aiExtracted, setAiExtracted] = useState<any | null>(null);
+
+  const handleAiAsk = async (promptText?: string) => {
+    const q = promptText || aiInput.trim();
+    if (!q || aiLoading) return;
+    try {
+      setAiLoading(true);
+      setAiResponse(null);
+      setAiExtracted(null);
+      const res = await api.post("/agents/chat", { message: q });
+      setAiResponse(res.data.reply);
+      if (res.data.extracted_leave?.is_leave_request) {
+        setAiExtracted(res.data.extracted_leave);
+      }
+      setAiInput("");
+    } catch (err: any) {
+      setAiResponse("AI assistant is currently updating context. Please try again shortly.");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleApplyFromAi = () => {
+    if (!aiExtracted) return;
+    let targetPolicyId = policies[0]?.id || "";
+    if (aiExtracted.leave_type) {
+      const matched = policies.find(
+        (p) => p.leave_type.toLowerCase() === aiExtracted.leave_type.toLowerCase()
+      );
+      if (matched) targetPolicyId = matched.id;
+    }
+    setFormData({
+      policy_id: targetPolicyId,
+      start_date: aiExtracted.start_date || "",
+      end_date: aiExtracted.end_date || "",
+      reason: aiExtracted.reason || "",
+    });
+    setApplyError(null);
+    setShowApplyModal(true);
+  };
 
   const fetchData = async () => {
     try {
@@ -466,6 +514,93 @@ export default function Dashboard() {
                   </span>
                 </div>
               </div>
+            </div>
+
+            {/* Embedded Employee AI Leave Assistant */}
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                <span className="text-xs font-semibold text-white uppercase tracking-wider flex items-center gap-1.5">
+                  <Bot className="w-4 h-4 text-indigo-400" />
+                  WorkforceAI Leave Copilot
+                </span>
+                <span className="text-[10px] font-mono text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20">
+                  Gemini 2.5
+                </span>
+              </div>
+
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                Ask about company leave rules, check entitlement, or draft leave requests in natural language.
+              </p>
+
+              {/* Quick Prompt Pills */}
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                <button
+                  type="button"
+                  onClick={() => handleAiAsk("What is my current leave balance?")}
+                  className="px-2 py-1 rounded bg-slate-950 hover:bg-slate-800 border border-slate-800 text-[10px] text-slate-300 transition"
+                >
+                  Check my balances
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleAiAsk("What is the notice requirement for casual leave?")}
+                  className="px-2 py-1 rounded bg-slate-950 hover:bg-slate-800 border border-slate-800 text-[10px] text-slate-300 transition"
+                >
+                  Casual leave rules
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleAiAsk("Can I take 2 days sick leave?")}
+                  className="px-2 py-1 rounded bg-slate-950 hover:bg-slate-800 border border-slate-800 text-[10px] text-slate-300 transition"
+                >
+                  Sick leave policy
+                </button>
+              </div>
+
+              {/* Chat Input */}
+              <div className="flex gap-1.5 pt-1">
+                <input
+                  type="text"
+                  placeholder="e.g. I need next Friday off..."
+                  value={aiInput}
+                  onChange={(e) => setAiInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleAiAsk()}
+                  className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 outline-none focus:border-indigo-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleAiAsk()}
+                  disabled={aiLoading || !aiInput.trim()}
+                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-lg text-xs font-semibold flex items-center justify-center transition cursor-pointer"
+                >
+                  {aiLoading ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Send className="w-3.5 h-3.5" />
+                  )}
+                </button>
+              </div>
+
+              {/* AI Response Display */}
+              {aiResponse && (
+                <div className="p-3 rounded-lg bg-slate-950 border border-indigo-500/20 text-xs text-slate-300 space-y-2 mt-2">
+                  <div className="text-[10px] font-mono text-indigo-400 flex items-center gap-1">
+                    <Sparkles className="w-3 h-3" />
+                    Agent Response:
+                  </div>
+                  <p className="text-[11px] leading-relaxed whitespace-pre-wrap">{aiResponse}</p>
+                  {aiExtracted && (
+                    <button
+                      type="button"
+                      onClick={handleApplyFromAi}
+                      className="w-full mt-2 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Apply for Extracted Leave
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
