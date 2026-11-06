@@ -75,7 +75,9 @@ class EmployeeService:
         else:
             company_query = select(Company).where(Company.id == self.company_id)
             company = (await self.db.execute(company_query)).scalar_one_or_none()
-            domain = (company.domain if company and company.domain else f"{company.slug if company else 'workforce'}.workforce.io")
+            domain = (company.domain if company and company.domain else f"{company.slug if company else 'company'}.com")
+            if domain.endswith(".workforce.io"):
+                domain = f"{domain[:-13]}.com"
             first_clean = re.sub(r"[^a-z0-9]", "", data.first_name.lower()) or "user"
             last_clean = re.sub(r"[^a-z0-9]", "", data.last_name.lower()) or "staff"
             base_email = f"{first_clean}.{last_clean}@{domain}"
@@ -164,6 +166,30 @@ class EmployeeService:
             if permissions:
                 user.permissions = permissions
 
+        # Resolve department (support on-the-fly department creation if department_name is given)
+        resolved_dept_id = data.department_id
+        if not resolved_dept_id and data.department_name and data.department_name.strip():
+            clean_dept_name = data.department_name.strip()
+            existing_dept = (
+                await self.db.execute(
+                    select(Department).where(
+                        Department.company_id == self.company_id,
+                        Department.name.ilike(clean_dept_name),
+                    )
+                )
+            ).scalar_one_or_none()
+            if existing_dept:
+                resolved_dept_id = existing_dept.id
+            else:
+                new_dept = Department(
+                    company_id=self.company_id,
+                    name=clean_dept_name,
+                    is_active=True,
+                )
+                self.db.add(new_dept)
+                await self.db.flush()
+                resolved_dept_id = new_dept.id
+
         # 5. Create Employee record
         employee = Employee(
             user_id=user.id,
@@ -174,7 +200,7 @@ class EmployeeService:
             email=email_clean,
             phone=data.phone.strip() if data.phone else None,
             designation=data.designation.strip() if data.designation else None,
-            department_id=data.department_id,
+            department_id=resolved_dept_id,
             reporting_manager_id=data.reporting_manager_id,
             date_of_joining=data.date_of_joining,
             employment_type=data.employment_type,
@@ -272,6 +298,29 @@ class EmployeeService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Employee not found")
 
         update_dict = data.model_dump(exclude_unset=True)
+        dept_name = update_dict.pop("department_name", None)
+        if dept_name and dept_name.strip() and not update_dict.get("department_id"):
+            clean_name = dept_name.strip()
+            existing_dept = (
+                await self.db.execute(
+                    select(Department).where(
+                        Department.company_id == self.company_id,
+                        Department.name.ilike(clean_name),
+                    )
+                )
+            ).scalar_one_or_none()
+            if existing_dept:
+                update_dict["department_id"] = existing_dept.id
+            else:
+                new_dept = Department(
+                    company_id=self.company_id,
+                    name=clean_name,
+                    is_active=True,
+                )
+                self.db.add(new_dept)
+                await self.db.flush()
+                update_dict["department_id"] = new_dept.id
+
         role = update_dict.pop("role", None)
         permissions = update_dict.pop("permissions", None)
         if (role or permissions is not None) and emp.user_id:
@@ -455,6 +504,12 @@ class EmployeeService:
         depts = (await self.db.execute(depts_query)).scalars().all()
         dept_map = {d.name.lower(): d.id for d in depts}
 
+        # Resolve organization corporate domain
+        company = (await self.db.execute(select(Company).where(Company.id == self.company_id))).scalar_one_or_none()
+        default_domain = (company.domain if company and company.domain else f"{company.slug if company else 'company'}.com")
+        if default_domain.endswith(".workforce.io"):
+            default_domain = f"{default_domain[:-13]}.com"
+
         successful_count = 0
         errors: List[ImportErrorDetail] = []
         seen_file_emails = set()
@@ -493,7 +548,7 @@ class EmployeeService:
             if not email_val or email_val == "nan" or "@" not in email_val:
                 clean_name = re.sub(r"[^a-zA-Z0-9]", "", first_name.lower()) or "emp"
                 clean_code = re.sub(r"[^a-zA-Z0-9]", "", str(emp_code).lower()) or str(row_num)
-                domain = "workforce.io" if auto_generate_missing else "company.local"
+                domain = default_domain if auto_generate_missing else "company.local"
                 email_val = f"{clean_name}.{clean_code}@{domain}"
                 cnt = 1
                 while email_val in existing_emails or email_val in seen_file_emails:
@@ -501,7 +556,7 @@ class EmployeeService:
                     cnt += 1
 
             if email_val in existing_emails or email_val in seen_file_emails:
-                domain = "workforce.io" if auto_generate_missing else "company.local"
+                domain = default_domain if auto_generate_missing else "company.local"
                 email_val = f"{email_val.split('@')[0]}.{uuid.uuid4().hex[:4]}@{domain}"
 
             # Parse Salary
