@@ -225,22 +225,33 @@ class EmployeeService:
         return await self.get_employee(employee_id)
 
     async def delete_employee(self, employee_id: uuid.UUID) -> None:
-        """Soft-deletes/deactivates an employee."""
+        """Deletes or soft-deactivates an employee record."""
         query = select(Employee).where(Employee.id == employee_id, Employee.company_id == self.company_id)
         emp = (await self.db.execute(query)).scalar_one_or_none()
         if not emp:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Employee not found")
 
-        emp.is_active = False
-        emp.date_of_exit = date.today()
-
-        # Deactivate user login as well
-        user_query = select(User).where(User.id == emp.user_id)
-        user = (await self.db.execute(user_query)).scalar_one_or_none()
-        if user:
-            user.is_active = False
-
-        await self.db.commit()
+        # Try clean removal if no dependent financial records exist
+        user_id = emp.user_id
+        try:
+            await self.db.delete(emp)
+            if user_id:
+                user = (await self.db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
+                if user:
+                    await self.db.delete(user)
+            await self.db.commit()
+        except Exception:
+            await self.db.rollback()
+            # If constrained by historical payroll or leaves, mark as inactive
+            refreshed_emp = (await self.db.execute(query)).scalar_one_or_none()
+            if refreshed_emp:
+                refreshed_emp.is_active = False
+                refreshed_emp.date_of_exit = date.today()
+                if user_id:
+                    user = (await self.db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
+                    if user:
+                        user.is_active = False
+                await self.db.commit()
 
     async def analyze_import_file(self, file: UploadFile) -> AnalyzeImportResponse:
         """Inspects uploaded CSV or Excel file, discovers columns, and checks for missing workforce fields."""
