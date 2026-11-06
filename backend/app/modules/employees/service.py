@@ -416,25 +416,18 @@ class EmployeeService:
             # Validate / Resolve Email
             email_val = str(row.get("email", "")).strip().lower()
             if not email_val or email_val == "nan" or "@" not in email_val:
-                if auto_generate_missing:
-                    clean_name = re.sub(r"[^a-zA-Z0-9]", "", first_name.lower()) or "emp"
-                    clean_code = re.sub(r"[^a-zA-Z0-9]", "", str(emp_code).lower()) or str(row_num)
-                    email_val = f"{clean_name}.{clean_code}@workforce.io"
-                    cnt = 1
-                    base_email = email_val
-                    while email_val in existing_emails or email_val in seen_file_emails:
-                        email_val = f"{clean_name}.{clean_code}.{cnt}@workforce.io"
-                        cnt += 1
-                else:
-                    errors.append(ImportErrorDetail(row=row_num, field="email", error="Invalid or missing email address"))
-                    continue
+                clean_name = re.sub(r"[^a-zA-Z0-9]", "", first_name.lower()) or "emp"
+                clean_code = re.sub(r"[^a-zA-Z0-9]", "", str(emp_code).lower()) or str(row_num)
+                domain = "workforce.io" if auto_generate_missing else "company.local"
+                email_val = f"{clean_name}.{clean_code}@{domain}"
+                cnt = 1
+                while email_val in existing_emails or email_val in seen_file_emails:
+                    email_val = f"{clean_name}.{clean_code}.{cnt}@{domain}"
+                    cnt += 1
 
             if email_val in existing_emails or email_val in seen_file_emails:
-                if auto_generate_missing:
-                    email_val = f"{email_val.split('@')[0]}.{uuid.uuid4().hex[:4]}@workforce.io"
-                else:
-                    errors.append(ImportErrorDetail(row=row_num, field="email", error=f"Email '{email_val}' already exists"))
-                    continue
+                domain = "workforce.io" if auto_generate_missing else "company.local"
+                email_val = f"{email_val.split('@')[0]}.{uuid.uuid4().hex[:4]}@{domain}"
 
             # Parse Salary
             raw_salary = row.get("salary_basic", 0)
