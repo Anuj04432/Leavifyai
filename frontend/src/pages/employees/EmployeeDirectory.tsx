@@ -117,6 +117,11 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, RolePermissions> = {
 
 const CAPABILITIES_LIST = [
   {
+    key: "can_manage_roster",
+    label: "Handle Employments (Add, Edit, and Remove Employees)",
+    description: "Authority to add new personnel, update profiles, and remove/deactivate employee records",
+  },
+  {
     key: "can_handle_paypal",
     label: "Authorize & Disburse PayPal Transactions",
     description: "Execute PayPal sandbox batch payouts (Finance / Senior Posts)",
@@ -130,11 +135,6 @@ const CAPABILITIES_LIST = [
     key: "can_approve_leaves",
     label: "Triage & Approve Leave Requests",
     description: "Review employee leave requests against OKF policy guidelines",
-  },
-  {
-    key: "can_manage_roster",
-    label: "Manage Personnel & Capabilities",
-    description: "Add, edit, or de-provision employees and assign capabilities",
   },
   {
     key: "can_manage_policies",
@@ -171,6 +171,7 @@ export default function EmployeeDirectory() {
     first_name: "",
     last_name: "",
     work_email: "",
+    initial_password: "",
     designation: "",
     employment_type: "full_time",
     base_salary: 75000,
@@ -368,6 +369,7 @@ export default function EmployeeDirectory() {
         first_name: formData.first_name,
         last_name: formData.last_name,
         email: formData.work_email || undefined,
+        initial_password: formData.initial_password.trim() || undefined,
         designation: formData.designation || undefined,
         employment_type: formData.employment_type,
         salary_basic: Number(formData.base_salary || 0),
@@ -379,12 +381,16 @@ export default function EmployeeDirectory() {
 
       const res = await api.post("/employees/", payload);
       const created = res.data;
+      const actualPassword =
+        created.initial_password ||
+        formData.initial_password.trim() ||
+        `Welcome@${(created.employee_code || "EMP").replace("-", "")}`;
       setCreatedCredentials({
         name: `${created.first_name} ${created.last_name}`,
         email: created.email,
         role: created.role,
         permissions: created.permissions || formData.permissions,
-        tempPassword: `Welcome@${created.id.slice(0, 4)}`,
+        tempPassword: actualPassword,
       });
       setShowAddModal(false);
       setFormData({
@@ -392,6 +398,7 @@ export default function EmployeeDirectory() {
         first_name: "",
         last_name: "",
         work_email: "",
+        initial_password: "",
         designation: "",
         employment_type: "full_time",
         base_salary: 75000,
@@ -653,6 +660,11 @@ export default function EmployeeDirectory() {
                               >
                                 {(emp.role || "employee").replace("_", " ")}
                               </span>
+                              {emp.permissions?.can_manage_roster && (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-medium">
+                                  Employment Manager
+                                </span>
+                              )}
                               {emp.permissions?.can_handle_paypal && (
                                 <span className="px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-medium">
                                   PayPal Auth
@@ -684,34 +696,38 @@ export default function EmployeeDirectory() {
                             </span>
                           </td>
                           <td className="py-3 px-4 text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              <button
-                                type="button"
-                                onClick={() => handleOpenEdit(emp)}
-                                title="Edit employee profile"
-                                className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-colors"
-                              >
-                                <Pencil className="w-4 h-4" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  handleDeleteEmployee(
-                                    emp.id,
-                                    `${emp.first_name} ${emp.last_name}`
-                                  )
-                                }
-                                disabled={deletingId === emp.id}
-                                title="Remove employee record"
-                                className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors disabled:opacity-50"
-                              >
-                                {deletingId === emp.id ? (
-                                  <Loader2 className="w-4 h-4 animate-spin text-rose-400" />
-                                ) : (
-                                  <Trash2 className="w-4 h-4" />
-                                )}
-                              </button>
-                            </div>
+                            {isHrOrAdmin ? (
+                              <div className="flex items-center justify-end gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenEdit(emp)}
+                                  title="Edit employee profile"
+                                  className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-colors cursor-pointer"
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleDeleteEmployee(
+                                      emp.id,
+                                      `${emp.first_name} ${emp.last_name}`
+                                    )
+                                  }
+                                  disabled={deletingId === emp.id}
+                                  title="Remove employee record"
+                                  className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors disabled:opacity-50 cursor-pointer"
+                                >
+                                  {deletingId === emp.id ? (
+                                    <Loader2 className="w-4 h-4 animate-spin text-rose-400" />
+                                  ) : (
+                                    <Trash2 className="w-4 h-4" />
+                                  )}
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-slate-600 text-xs italic">View Only</span>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -913,21 +929,40 @@ export default function EmployeeDirectory() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-slate-300 font-medium mb-1">
-                  Antigravity WorkforceAI Corporate Email
-                </label>
-                <input
-                  type="email"
-                  placeholder={autoCorporateEmail}
-                  value={formData.work_email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, work_email: e.target.value })
-                  }
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-slate-200 outline-none focus:border-indigo-500 font-mono text-xs"
-                />
-                <div className="text-[10px] text-slate-500 mt-1">
-                  Default: <span className="font-mono text-indigo-400">{autoCorporateEmail}</span> (Auto-derived from company domain for authentication)
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-medium mb-1">
+                    WorkforceAI Corporate Email
+                  </label>
+                  <input
+                    type="email"
+                    placeholder={autoCorporateEmail}
+                    value={formData.work_email}
+                    onChange={(e) =>
+                      setFormData({ ...formData, work_email: e.target.value })
+                    }
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-slate-200 outline-none focus:border-indigo-500 font-mono text-xs"
+                  />
+                  <div className="text-[10px] text-slate-500 mt-1">
+                    Auto-derived on @{companyDomain}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-medium mb-1">
+                    Initial Login Password
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Auto (Welcome@...)"
+                    value={formData.initial_password}
+                    onChange={(e) =>
+                      setFormData({ ...formData, initial_password: e.target.value })
+                    }
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-slate-200 outline-none focus:border-indigo-500 font-mono text-xs"
+                  />
+                  <div className="text-[10px] text-slate-500 mt-1">
+                    Min 8 chars, or leave empty for auto
+                  </div>
                 </div>
               </div>
 
