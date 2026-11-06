@@ -8,6 +8,7 @@ from app.dependencies import get_current_user, require_roles
 from app.models.user import User, UserRole
 from app.modules.employees.service import EmployeeService
 from app.schemas.employee import (
+    AnalyzeImportResponse,
     EmployeeCreateRequest,
     EmployeeImportResult,
     EmployeeListResponse,
@@ -102,14 +103,29 @@ async def delete_employee(
 
 
 @router.post(
+    "/analyze-import",
+    response_model=AnalyzeImportResponse,
+    summary="AI pre-flight analysis of employee dataset columns and missing fields",
+)
+async def analyze_import(
+    file: UploadFile = File(..., description="CSV or Excel (.xlsx) file to inspect"),
+    current_user: User = Depends(require_roles([UserRole.ADMIN.value, UserRole.HR.value])),
+    db: AsyncSession = Depends(get_db),
+):
+    service = EmployeeService(db, current_user.company_id)
+    return await service.analyze_import_file(file)
+
+
+@router.post(
     "/import",
     response_model=EmployeeImportResult,
     summary="Bulk import employees via CSV or Excel file",
 )
 async def import_employees(
     file: UploadFile = File(..., description="CSV or Excel (.xlsx) file with employee roster"),
+    auto_generate_missing: bool = Query(True, description="Auto-generate missing corporate email and designation"),
     current_user: User = Depends(require_roles([UserRole.ADMIN.value, UserRole.HR.value])),
     db: AsyncSession = Depends(get_db),
 ):
     service = EmployeeService(db, current_user.company_id)
-    return await service.import_from_file(file)
+    return await service.import_from_file(file, auto_generate_missing=auto_generate_missing)
