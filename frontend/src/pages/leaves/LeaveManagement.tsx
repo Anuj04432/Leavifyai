@@ -262,8 +262,8 @@ export default function LeaveManagement() {
             <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
               {loading ? (
                 <div className="p-12 flex flex-col items-center justify-center gap-3">
-                  <Loader2 className="w-6 h-6 animate-spin text-indigo-500" />
-                  <span className="text-xs text-slate-400 font-mono">Synchronizing leave ledger...</span>
+                  <Loader2 className="w-6 h-6 animate-spin text-indigo-500 motion-reduce:animate-none" />
+                  <span className="text-xs text-slate-400">Synchronizing leave ledger…</span>
                 </div>
               ) : filteredRequests.length === 0 ? (
                 <div className="p-12 text-center space-y-2">
@@ -277,7 +277,7 @@ export default function LeaveManagement() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="border-b border-slate-800 bg-slate-950/40 text-[11px] font-mono text-slate-400 uppercase tracking-wider">
+                      <tr className="border-b border-slate-800 bg-slate-950/40 text-xs text-slate-400 font-medium">
                         <th className="py-2.5 px-4">Request #</th>
                         <th className="py-2.5 px-4">Applicant</th>
                         <th className="py-2.5 px-4">Category</th>
@@ -288,8 +288,8 @@ export default function LeaveManagement() {
                     </thead>
                     <tbody className="divide-y divide-slate-800/60 text-xs">
                       {filteredRequests.map((req) => (
-                        <tr key={req.id} className="hover:bg-slate-800/30 transition">
-                          <td className="py-3 px-4 font-mono font-medium text-indigo-400 text-[11px]">
+                        <tr key={req.id} className="hover:bg-slate-800/30 transition-colors motion-reduce:transition-none">
+                          <td className="py-3 px-4 font-mono font-medium text-indigo-400 text-xs">
                             {req.request_number}
                           </td>
                           <td className="py-3 px-4">
@@ -297,11 +297,11 @@ export default function LeaveManagement() {
                               {req.employee_name || "Self Application"}
                             </div>
                             {req.employee_code && (
-                              <div className="text-[10px] font-mono text-slate-500">{req.employee_code}</div>
+                              <div className="text-xs font-mono text-slate-500">{req.employee_code}</div>
                             )}
                           </td>
                           <td className="py-3 px-4">
-                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-800 text-slate-200 text-[11px]">
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-800 text-slate-200 text-xs">
                               {req.policy_name || "Leave"}
                             </span>
                             <div className="text-[10px] text-slate-500 mt-0.5">
@@ -312,31 +312,31 @@ export default function LeaveManagement() {
                             <div className="text-slate-200 font-medium">
                               {req.total_days} day{Number(req.total_days) !== 1 ? "s" : ""}
                             </div>
-                            <div className="text-[10px] font-mono text-slate-500">
+                            <div className="text-xs font-mono text-slate-500">
                               {req.start_date} → {req.end_date}
                             </div>
                             {req.reason && (
-                              <p className="text-[11px] text-slate-400 truncate max-w-[180px] mt-0.5" title={req.reason}>
-                                "{req.reason}"
+                              <p className="text-xs text-slate-400 truncate max-w-[180px] mt-0.5" title={req.reason}>
+                                “{req.reason}”
                               </p>
                             )}
                           </td>
                           <td className="py-3 px-4">
                             {req.status === "approved" && (
-                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[11px] font-medium">
+                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-medium">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
                                 Approved
                               </span>
                             )}
                             {req.status === "rejected" && (
-                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20 text-[11px] font-medium">
+                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20 text-xs font-medium">
                                 <span className="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
                                 Rejected
                               </span>
                             )}
                             {req.status === "pending" && (
-                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[11px] font-medium">
-                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-medium">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse motion-reduce:animate-none"></span>
                                 Pending
                               </span>
                             )}
@@ -391,11 +391,11 @@ export default function LeaveManagement() {
             {/* Balance Ledger Card */}
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3.5">
               <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
                   <ShieldCheck className="w-4 h-4 text-indigo-400" />
                   Annual Balance Ledger
                 </span>
-                <span className="text-[10px] font-mono text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20">
+                <span className="text-xs font-mono text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20">
                   {new Date().getFullYear()} CY
                 </span>
               </div>
@@ -415,7 +415,7 @@ export default function LeaveManagement() {
                           {bal.available}d left
                         </span>
                       </div>
-                      <div className="grid grid-cols-3 gap-2 text-[10px] font-mono text-slate-400 pt-1 border-t border-slate-900">
+                      <div className="grid grid-cols-3 gap-2 text-xs text-slate-400 pt-1 border-t border-slate-900">
                         <div>
                           Alloc: <span className="text-slate-200">{bal.total_allocated}d</span>
                         </div>
@@ -434,7 +434,7 @@ export default function LeaveManagement() {
 
             {/* Policy Rules & Guardrails Card */}
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
-              <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+              <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
                 <Info className="w-4 h-4 text-indigo-400" />
                 Policy Guardrails
               </span>
@@ -467,8 +467,8 @@ export default function LeaveManagement() {
 
       {/* Apply Leave Modal */}
       {showApplyModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+        <div className="fixed inset-0 z-50 bg-slate-950/90 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-md w-full p-6 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <h2 className="text-base font-bold text-white flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-indigo-400" />
@@ -576,15 +576,15 @@ export default function LeaveManagement() {
 
       {/* Action Approval/Rejection Modal */}
       {activeActionModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-sm w-full p-5 space-y-4 shadow-2xl">
+        <div className="fixed inset-0 z-50 bg-slate-950/90 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-sm w-full p-5 space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-slate-800">
               <h3 className="text-sm font-bold text-white capitalize">
                 {activeActionModal.action} Leave Request
               </h3>
               <button
                 onClick={() => setActiveActionModal(null)}
-                className="text-slate-400 hover:text-white transition cursor-pointer"
+                className="text-slate-400 hover:text-white transition-colors motion-reduce:transition-none cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -602,7 +602,7 @@ export default function LeaveManagement() {
               <textarea
                 value={actionComment}
                 onChange={(e) => setActionComment(e.target.value)}
-                placeholder="Reason or conditions..."
+                placeholder="Reason or conditions…"
                 rows={2}
                 className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white focus:border-indigo-500 outline-none resize-none"
               />
