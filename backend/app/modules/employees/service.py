@@ -38,6 +38,7 @@ class EmployeeService:
             if emp.reporting_manager
             else None
         )
+        user_role = emp.user.role if emp.user else "employee"
         return EmployeeResponse(
             id=emp.id,
             user_id=emp.user_id,
@@ -48,6 +49,7 @@ class EmployeeService:
             email=emp.email,
             phone=emp.phone,
             designation=emp.designation,
+            role=user_role,
             department_id=emp.department_id,
             department_name=dept_name,
             reporting_manager_id=emp.reporting_manager_id,
@@ -102,17 +104,20 @@ class EmployeeService:
             await self.db.execute(select(User).where(User.email == email_clean))
         ).scalar_one_or_none()
 
+        target_role = data.role or UserRole.EMPLOYEE.value
         if not user:
             raw_password = data.initial_password or f"Welcome@{uuid.uuid4().hex[:4]}"
             user = User(
                 email=email_clean,
                 password_hash=get_password_hash(raw_password),
-                role=UserRole.EMPLOYEE.value,
+                role=target_role,
                 company_id=self.company_id,
                 is_active=True,
             )
             self.db.add(user)
             await self.db.flush()
+        elif data.role:
+            user.role = target_role
 
         # 4. Create Employee record
         employee = Employee(
@@ -145,6 +150,7 @@ class EmployeeService:
         query = (
             select(Employee)
             .options(
+                selectinload(Employee.user),
                 selectinload(Employee.department),
                 selectinload(Employee.reporting_manager),
             )
@@ -167,6 +173,7 @@ class EmployeeService:
         query = (
             select(Employee)
             .options(
+                selectinload(Employee.user),
                 selectinload(Employee.department),
                 selectinload(Employee.reporting_manager),
             )
@@ -218,6 +225,12 @@ class EmployeeService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Employee not found")
 
         update_dict = data.model_dump(exclude_unset=True)
+        role = update_dict.pop("role", None)
+        if role and emp.user_id:
+            user = (await self.db.execute(select(User).where(User.id == emp.user_id))).scalar_one_or_none()
+            if user:
+                user.role = role
+
         for field, value in update_dict.items():
             setattr(emp, field, value)
 
@@ -508,17 +521,24 @@ class EmployeeService:
                 await self.db.execute(select(User).where(User.email == email_val))
             ).scalar_one_or_none()
 
+            # Resolve System Role
+            raw_role = str(row.get("role") or row.get("system_role") or "").lower().strip()
+            valid_roles = ["super_admin", "admin", "hr", "hr_manager", "ir_manager", "manager", "employee"]
+            role_val = raw_role if raw_role in valid_roles else UserRole.EMPLOYEE.value
+
             if not user:
                 default_password = get_password_hash(f"Welcome@{uuid.uuid4().hex[:4]}")
                 user = User(
                     email=email_val,
                     password_hash=default_password,
-                    role=UserRole.EMPLOYEE.value,
+                    role=role_val,
                     company_id=self.company_id,
                     is_active=True,
                 )
                 self.db.add(user)
                 await self.db.flush()
+            elif raw_role in valid_roles:
+                user.role = role_val
 
             # Create Employee
             phone_val = str(row.get("phone", "")).strip()
