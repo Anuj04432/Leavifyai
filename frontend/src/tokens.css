@@ -1,0 +1,28 @@
+/* Hallmark · theme: modern-minimal · tokens */
+:root {
+  --surface-canvas: #020617;
+  --surface-panel: #0f172a;
+  --surface-card: #1e293b;
+  --surface-inset: #020617;
+  --surface-muted: #334155;
+
+  --border-dim: #1e293b;
+  --border-subtle: #334155;
+  --border-bright: #475569;
+
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+
+  --brand-primary: #6366f1;
+  --brand-hover: #4f46e5;
+  --brand-surface: rgba(99, 102, 241, 0.1);
+  --brand-border: rgba(99, 102, 241, 0.2);
+
+  --status-success: #10b981;
+  --status-success-bg: rgba(16, 185, 129, 0.1);
+  --status-warning: #f59e0b;
+  --status-warning-bg: rgba(245, 158, 11, 0.1);
+  --status-danger: #f43f5e;
+  --status-danger-bg: rgba(244, 63, 94, 0.1);
+}
