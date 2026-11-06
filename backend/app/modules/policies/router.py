@@ -1,9 +1,13 @@
 import logging
-from typing import Any, Dict, List
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Any, Dict, List, Optional
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.database import get_db
 from app.dependencies import get_current_user, require_roles
+from app.models.leave import LeavePolicy
 from app.models.user import User
 from app.modules.policies.okf_service import okf_service
 
@@ -58,7 +62,7 @@ async def get_policy(
 async def update_policy(
     policy_code: str,
     payload: PolicyUpdateRequest,
-    current_user: User = Depends(require_roles(["super_admin", "company_admin", "hr_manager"])),
+    current_user: User = Depends(require_roles(["super_admin", "admin", "hr", "hr_manager"])),
 ):
     """Update company policy markdown rules."""
     try:
@@ -71,4 +75,83 @@ async def update_policy(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to save policy: {str(e)}",
+        )
+
+
+@router.post(
+    "/knowledge/upload",
+    response_model=Dict[str, Any],
+    status_code=status.HTTP_201_CREATED,
+    summary="Upload new company leave policy document",
+)
+async def upload_policy(
+    file: UploadFile = File(..., description="Markdown (.md) or text (.txt) policy document"),
+    title: Optional[str] = Form(None),
+    leave_type: Optional[str] = Form(None),
+    annual_allowance: Optional[int] = Form(None),
+    notice_period_days: Optional[int] = Form(None),
+    max_consecutive_days: Optional[int] = Form(None),
+    is_paid: Optional[bool] = Form(None),
+    current_user: User = Depends(require_roles(["super_admin", "admin", "hr", "hr_manager"])),
+    db: AsyncSession = Depends(get_db),
+):
+    """Upload custom company leave policy document (OKF format) and link to company leave policies."""
+    try:
+        content_bytes = await file.read()
+        raw_text = content_bytes.decode("utf-8", errors="replace")
+
+        meta = {}
+        if title:
+            meta["title"] = title
+        if leave_type:
+            meta["leave_type"] = leave_type.lower()
+        if annual_allowance is not None:
+            meta["annual_allowance"] = annual_allowance
+        if notice_period_days is not None:
+            meta["notice_period_days"] = notice_period_days
+        if max_consecutive_days is not None:
+            meta["max_consecutive_days"] = max_consecutive_days
+        if is_paid is not None:
+            meta["is_paid"] = is_paid
+
+        saved_policy = okf_service.create_or_upload_policy(
+            filename=file.filename or "custom_policy.md",
+            content=raw_text,
+            metadata=meta,
+        )
+
+        pol_leave_type = saved_policy.get("leave_type", "casual").lower()
+        query = select(LeavePolicy).where(
+            LeavePolicy.company_id == current_user.company_id,
+            LeavePolicy.leave_type == pol_leave_type,
+        )
+        existing_pol = (await db.execute(query)).scalar_one_or_none()
+
+        if existing_pol:
+            existing_pol.name = saved_policy.get("title", existing_pol.name)
+            existing_pol.days_allowed = saved_policy.get("annual_allowance", existing_pol.days_allowed)
+            existing_pol.min_days_notice = saved_policy.get("notice_period_days", existing_pol.min_days_notice)
+            existing_pol.max_consecutive_days = saved_policy.get("max_consecutive_days", existing_pol.max_consecutive_days)
+            existing_pol.is_paid = saved_policy.get("is_paid", existing_pol.is_paid)
+            existing_pol.is_active = True
+        else:
+            new_pol = LeavePolicy(
+                company_id=current_user.company_id,
+                name=saved_policy.get("title", f"{pol_leave_type.capitalize()} Leave"),
+                leave_type=pol_leave_type,
+                days_allowed=saved_policy.get("annual_allowance", 12),
+                min_days_notice=saved_policy.get("notice_period_days", 1),
+                max_consecutive_days=saved_policy.get("max_consecutive_days", 5),
+                is_paid=saved_policy.get("is_paid", True),
+                is_active=True,
+            )
+            db.add(new_pol)
+
+        await db.commit()
+        return saved_policy
+    except Exception as e:
+        logger.error(f"Failed to upload policy file: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to process policy upload: {str(e)}",
         )
