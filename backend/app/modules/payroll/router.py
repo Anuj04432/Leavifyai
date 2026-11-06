@@ -18,6 +18,14 @@ from app.schemas.payroll import (
 router = APIRouter(prefix="/payroll", tags=["Payroll"])
 
 
+ALLOWED_PAYROLL_ROLES = [
+    UserRole.SUPER_ADMIN.value,
+    UserRole.IR_MANAGER.value,
+    UserRole.HR.value,
+    "hr_manager",
+]
+
+
 @router.post(
     "/batches",
     response_model=PayrollBatchResponse,
@@ -26,7 +34,7 @@ router = APIRouter(prefix="/payroll", tags=["Payroll"])
 )
 async def calculate_payroll_batch(
     payload: PayrollBatchCreate,
-    current_user: User = Depends(require_roles([UserRole.ADMIN.value, UserRole.HR.value])),
+    current_user: User = Depends(require_roles(ALLOWED_PAYROLL_ROLES)),
     db: AsyncSession = Depends(get_db),
 ):
     service = PayrollService(db, current_user.company_id)
@@ -43,7 +51,7 @@ async def calculate_payroll_batch(
     summary="List all historical payroll batches",
 )
 async def list_payroll_batches(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(ALLOWED_PAYROLL_ROLES)),
     db: AsyncSession = Depends(get_db),
 ):
     service = PayrollService(db, current_user.company_id)
@@ -57,7 +65,7 @@ async def list_payroll_batches(
 )
 async def get_payroll_batch_detail(
     batch_id: uuid.UUID,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(ALLOWED_PAYROLL_ROLES)),
     db: AsyncSession = Depends(get_db),
 ):
     service = PayrollService(db, current_user.company_id)
@@ -67,11 +75,11 @@ async def get_payroll_batch_detail(
 @router.patch(
     "/batches/{batch_id}/approve",
     response_model=PayrollBatchResponse,
-    summary="Approve and lock a calculated payroll batch (HR/Admin)",
+    summary="Approve and lock a calculated payroll batch (HR/IR Manager/Super Admin)",
 )
 async def approve_payroll_batch(
     batch_id: uuid.UUID,
-    current_user: User = Depends(require_roles([UserRole.ADMIN.value, UserRole.HR.value])),
+    current_user: User = Depends(require_roles(ALLOWED_PAYROLL_ROLES)),
     db: AsyncSession = Depends(get_db),
 ):
     service = PayrollService(db, current_user.company_id)
