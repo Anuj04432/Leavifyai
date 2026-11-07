@@ -53,7 +53,12 @@ async def chat_with_supervisor(
                 detail="No employee profile found in company.",
             )
 
-    workflow = LeaveSupervisorWorkflow(db, current_user.company_id, emp.id)
+    workflow = LeaveSupervisorWorkflow(
+        db=db,
+        company_id=current_user.company_id,
+        employee_id=emp.id,
+        user_role=current_user.role,
+    )
     result = await workflow.run(payload.message)
 
     extracted = result.get("extracted_data") or {}
