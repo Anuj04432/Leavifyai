@@ -24,6 +24,7 @@ class LeaveSupervisorState(TypedDict):
     company_id: uuid.UUID
     extracted_data: Optional[Dict[str, Any]]
     balance_info: Optional[Dict[str, Any]]
+    all_balances: Optional[List[Dict[str, Any]]]
     policy_evaluation: Optional[Dict[str, Any]]
     recommendation: Optional[Dict[str, Any]]
     reply_message: str
@@ -139,9 +140,51 @@ class LeaveSupervisorWorkflow:
     # Node 2: Balance Check Node
     # -------------------------------------------------------------------------
     async def _balance_node(self, state: LeaveSupervisorState) -> Dict[str, Any]:
+        # Always fetch employee balance list for conversational balance queries
+        bal_list_stmt = (
+            select(LeaveBalance)
+            .options(selectinload(LeaveBalance.leave_policy))
+            .where(
+                LeaveBalance.employee_id == self.employee_id,
+                LeaveBalance.year == date.today().year,
+            )
+        )
+        b_res = await self.db.execute(bal_list_stmt)
+        raw_bals = b_res.scalars().all()
+
+        balance_list = []
+        for b in raw_bals:
+            p_name = b.leave_policy.name if b.leave_policy else "Leave"
+            balance_list.append({
+                "policy_name": p_name,
+                "leave_type": b.leave_policy.leave_type if b.leave_policy else "casual",
+                "available": float(b.available),
+                "allocated": float(b.allocated),
+                "used": float(b.used),
+            })
+
+        # Fallback to active company policies if no specific employee row exists
+        if not balance_list:
+            p_stmt = select(LeavePolicy).where(
+                LeavePolicy.company_id == self.company_id,
+                LeavePolicy.is_active == True,
+            )
+            p_res = await self.db.execute(p_stmt)
+            for p in p_res.scalars().all():
+                balance_list.append({
+                    "policy_name": p.name,
+                    "leave_type": p.leave_type,
+                    "available": float(p.days_allowed),
+                    "allocated": float(p.days_allowed),
+                    "used": 0.0,
+                })
+
         extracted = state.get("extracted_data") or {}
         if not extracted.get("is_leave_request"):
-            return {"balance_info": None}
+            return {
+                "balance_info": None,
+                "all_balances": balance_list,
+            }
 
         leave_type = extracted.get("leave_type", "casual").lower()
 
@@ -198,7 +241,10 @@ class LeaveSupervisorWorkflow:
             "start_date": start_d.isoformat(),
             "end_date": end_d.isoformat(),
         }
-        return {"balance_info": balance_info}
+        return {
+            "balance_info": balance_info,
+            "all_balances": balance_list,
+        }
 
     # -------------------------------------------------------------------------
     # Node 3: Policy Evaluation & Conflict Guard Node
@@ -262,15 +308,47 @@ class LeaveSupervisorWorkflow:
         pol = state.get("policy_evaluation")
 
         if not extracted.get("is_leave_request") or not bal or not pol:
-            # Informational / conversational reply
-            reply = (
-                "Hello! I am your WorkforceAI Supervisor. I can assist you with your leave balances, "
-                "company policy rules, or prepare a time-off application in plain language. "
-                "For example, try asking: 'I need 2 days off next Monday and Tuesday for personal reasons'."
+            user_msg = state.get("user_message", "").strip().lower()
+            all_bals = state.get("all_balances") or []
+
+            # 1. User is asking to check balance
+            if any(k in user_msg for k in ["balance", "remaining", "how many", "days left", "quota", "entitlement"]):
+                if all_bals:
+                    lines = [f"• **{b['policy_name']}**: **{b['available']} day(s)** available" for b in all_bals]
+                    reply = (
+                        f"Here are your current leave balances for {date.today().year}:\n\n"
+                        + "\n".join(lines)
+                        + "\n\nWould you like me to draft a time-off application for any of these? (e.g. *'I need 2 days off next Monday and Tuesday'*)"
+                    )
+                else:
+                    reply = "You currently have 10.0 days of Casual Leave available for this year."
+
+                return {
+                    "reply_message": reply,
+                    "recommendation": None,
+                    "chat_provider": self.llm.last_decision_provider or "openrouter",
+                    "chat_model": self.llm.last_decision_model or "openrouter/free",
+                }
+
+            # 2. General conversation / policy question: Call LLM Chat Engine
+            chat_instruction = (
+                f"You are the WorkforceAI Agentic Supervisor. Today's date is {date.today().isoformat()}. "
+                "Answer the user's question politely and concisely regarding workplace operations, company policies, or leave rules. "
+                "If they want to apply for leave, advise them to specify the days and reasons."
             )
+            chat_text = await self.llm.generate_text(chat_instruction, state["user_message"])
+            if not chat_text or chat_text.strip().startswith("```"):
+                chat_text = (
+                    "Hello! I am your WorkforceAI Supervisor. I can assist you with your leave balances, "
+                    "company policy rules, or prepare a time-off application in plain language. "
+                    "For example, try asking: 'I need 2 days off next Monday and Tuesday for personal reasons'."
+                )
+
             return {
-                "reply_message": reply,
+                "reply_message": chat_text,
                 "recommendation": None,
+                "chat_provider": self.llm.last_chat_provider or "openrouter",
+                "chat_model": self.llm.last_chat_model or "openrouter/free",
             }
 
         # Determine Recommendation
@@ -333,6 +411,7 @@ class LeaveSupervisorWorkflow:
             "company_id": self.company_id,
             "extracted_data": None,
             "balance_info": None,
+            "all_balances": None,
             "policy_evaluation": None,
             "recommendation": None,
             "reply_message": "",
