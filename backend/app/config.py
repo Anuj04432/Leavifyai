@@ -59,6 +59,16 @@ class Settings(BaseSettings):
     OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
     OPENROUTER_MODEL: str = "meta-llama/llama-3.3-70b-instruct:free"
 
+    # Decoupled OpenRouter Decision Engine (Free Tier / Dedicated URL)
+    OPENROUTER_DECISION_API_KEY: str = ""
+    OPENROUTER_DECISION_BASE_URL: str = "https://openrouter.ai/api/v1"
+    OPENROUTER_DECISION_MODEL: str = "meta-llama/llama-3.3-70b-instruct:free"
+
+    # Decoupled OpenRouter Chat Engine (Dedicated URL)
+    OPENROUTER_CHAT_API_KEY: str = ""
+    OPENROUTER_CHAT_BASE_URL: str = "https://openrouter.ai/api/v1"
+    OPENROUTER_CHAT_MODEL: str = "meta-llama/llama-3.3-70b-instruct:free"
+
     # Google Gemini
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-2.5-flash"
