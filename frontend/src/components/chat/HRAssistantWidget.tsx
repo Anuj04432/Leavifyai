@@ -19,6 +19,10 @@ interface Message {
   timestamp: string;
   provider?: string;
   model?: string;
+  decision_provider?: string;
+  decision_model?: string;
+  chat_provider?: string;
+  chat_model?: string;
   extracted_leave?: {
     is_leave_request: boolean;
     leave_type?: string;
@@ -60,13 +64,13 @@ export default function HRAssistantWidget() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [submittingLeaveId, setSubmittingLeaveId] = useState<string | null>(null);
-  const [activeProvider, setActiveProvider] = useState<string | null>(null);
-  const [activeModel, setActiveModel] = useState<string | null>(null);
+  const [activeDecisionProvider, setActiveDecisionProvider] = useState<string | null>(null);
+  const [activeChatProvider, setActiveChatProvider] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "initial-msg",
       sender: "bot",
-      text: "Hi! I am your WorkforceAI Supervisor powered by our Multi-Provider Fallback Router (OmniRoute, OpenRouter, Gemini, Grok, Local, & In-House Engine). You can ask me about your leave balances, company policies, or type something like 'I need next Monday off for personal reasons' to draft a request.",
+      text: "Hi! I am your WorkforceAI Supervisor powered by our decoupled OpenRouter Free Decision Model & Multi-LLM Chat Engine. You can ask me about your leave balances, company policies, or type something like 'I need next Monday off for personal reasons' to draft a request.",
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     },
   ]);
@@ -96,9 +100,11 @@ export default function HRAssistantWidget() {
 
     try {
       const res = await api.post("/agents/chat", { message: textToSend });
-      if (res.data.provider) {
-        setActiveProvider(res.data.provider);
-        setActiveModel(res.data.model);
+      if (res.data.decision_provider || res.data.provider) {
+        setActiveDecisionProvider(res.data.decision_provider || res.data.provider);
+      }
+      if (res.data.chat_provider || res.data.provider) {
+        setActiveChatProvider(res.data.chat_provider || res.data.provider);
       }
       const botMsg: Message = {
         id: `bot-${Date.now()}`,
@@ -107,6 +113,10 @@ export default function HRAssistantWidget() {
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         provider: res.data.provider,
         model: res.data.model,
+        decision_provider: res.data.decision_provider,
+        decision_model: res.data.decision_model,
+        chat_provider: res.data.chat_provider,
+        chat_model: res.data.chat_model,
         extracted_leave: res.data.extracted_leave,
       };
       setMessages((prev) => [...prev, botMsg]);
@@ -191,9 +201,9 @@ export default function HRAssistantWidget() {
                 <h3 className="text-xs font-bold text-white leading-tight">WorkforceAI Copilot</h3>
                 <span className="text-[11px] text-emerald-400 flex items-center gap-1 font-medium">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                  {activeProvider
-                    ? `${getProviderBadge(activeProvider, activeModel)?.name || activeProvider} (${activeModel || 'Active'})`
-                    : "Multi-LLM Fallback Engine"}
+                  {activeDecisionProvider
+                    ? `Decision: ${getProviderBadge(activeDecisionProvider, null)?.name || activeDecisionProvider} · Chat: ${getProviderBadge(activeChatProvider, null)?.name || 'Active'}`
+                    : "OpenRouter Free Decision & Chat Engine"}
                 </span>
               </div>
             </div>
@@ -270,19 +280,36 @@ export default function HRAssistantWidget() {
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between text-[10px] opacity-70 pt-1 border-t border-slate-800/60 mt-1">
-                    {m.provider ? (
-                      (() => {
+                  <div className="flex items-center justify-between text-[10px] opacity-75 pt-1 border-t border-slate-800/60 mt-1 gap-1.5 flex-wrap">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {m.decision_provider && (() => {
+                        const b = getProviderBadge(m.decision_provider, m.decision_model);
+                        return b ? (
+                          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono border ${b.color}`}>
+                            <Zap className="w-2.5 h-2.5" />
+                            <span>Decision: {b.name}</span>
+                          </span>
+                        ) : null;
+                      })()}
+                      {m.chat_provider && (() => {
+                        const b = getProviderBadge(m.chat_provider, m.chat_model);
+                        return b ? (
+                          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono border ${b.color}`}>
+                            <span>Chat: {b.name}</span>
+                          </span>
+                        ) : null;
+                      })()}
+                      {!m.decision_provider && !m.chat_provider && m.provider && (() => {
                         const b = getProviderBadge(m.provider, m.model);
                         return b ? (
-                          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono border ${b.color}`}>
+                          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono border ${b.color}`}>
                             <Zap className="w-2.5 h-2.5" />
                             <span>{b.name}</span>
                           </span>
-                        ) : <span />;
-                      })()
-                    ) : <span />}
-                    <span>{m.timestamp}</span>
+                        ) : null;
+                      })()}
+                    </div>
+                    <span className="text-[10px] opacity-60 ml-auto">{m.timestamp}</span>
                   </div>
                 </div>
               </div>
