@@ -119,7 +119,90 @@ def test_agent_chat_response_telemetry():
         reply="Your request has been drafted.",
         provider="omniroute",
         model="gpt-4o-mini",
+        decision_provider="openrouter",
+        decision_model="meta-llama/llama-3.3-70b-instruct:free",
+        chat_provider="omniroute",
+        chat_model="gpt-4o-mini",
     )
     assert resp.provider == "omniroute"
     assert resp.model == "gpt-4o-mini"
+    assert resp.decision_provider == "openrouter"
+    assert resp.decision_model == "meta-llama/llama-3.3-70b-instruct:free"
+    assert resp.chat_provider == "omniroute"
+
+
+@pytest.mark.asyncio
+async def test_decoupled_decision_model_uses_separate_openrouter_url(monkeypatch):
+    from unittest.mock import MagicMock
+    from app.config import get_settings
+    settings = get_settings()
+
+    monkeypatch.setattr(settings, "OPENROUTER_DECISION_BASE_URL", "https://decision.openrouter.ai/v1")
+    monkeypatch.setattr(settings, "OPENROUTER_DECISION_API_KEY", "dec-key-test-999")
+    monkeypatch.setattr(settings, "OPENROUTER_DECISION_MODEL", "meta-llama/llama-3.3-70b-instruct:free")
+
+    import httpx
+
+    captured_url = None
+    captured_json = None
+
+    async def mock_post(self, url, *args, **kwargs):
+        nonlocal captured_url, captured_json
+        captured_url = str(url)
+        captured_json = kwargs.get("json")
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.json.return_value = {
+            "choices": [{"message": {"content": json.dumps({"is_leave_request": True, "leave_type": "annual"})}}]
+        }
+        return resp
+
+    monkeypatch.setattr(httpx.AsyncClient, "post", mock_post)
+
+    router = MultiProviderLLMRouter()
+    text, provider, model = await router.generate_decision("System", "Vacation next week")
+
+    assert "https://decision.openrouter.ai/v1/chat/completions" in captured_url
+    assert captured_json["temperature"] == 0.0
+    assert captured_json["model"] == "meta-llama/llama-3.3-70b-instruct:free"
+    assert provider == "openrouter"
+
+
+@pytest.mark.asyncio
+async def test_decoupled_chat_model_uses_separate_chat_url(monkeypatch):
+    from unittest.mock import MagicMock
+    from app.config import get_settings
+    settings = get_settings()
+
+    monkeypatch.setattr(settings, "LLM_ROUTING_ORDER", "openrouter")
+    monkeypatch.setattr(settings, "OPENROUTER_CHAT_BASE_URL", "https://chat.openrouter.ai/v1")
+    monkeypatch.setattr(settings, "OPENROUTER_CHAT_API_KEY", "chat-key-test-888")
+    monkeypatch.setattr(settings, "OPENROUTER_CHAT_MODEL", "meta-llama/llama-3.3-70b-instruct:free")
+
+    import httpx
+
+    captured_url = None
+    captured_json = None
+
+    async def mock_post(self, url, *args, **kwargs):
+        nonlocal captured_url, captured_json
+        captured_url = str(url)
+        captured_json = kwargs.get("json")
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.json.return_value = {
+            "choices": [{"message": {"content": "Hello, how can I help you today?"}}]
+        }
+        return resp
+
+    monkeypatch.setattr(httpx.AsyncClient, "post", mock_post)
+
+    router = MultiProviderLLMRouter()
+    text, provider, model = await router.generate_with_metadata("System", "Hello")
+
+    assert "https://chat.openrouter.ai/v1/chat/completions" in captured_url
+    assert captured_json["temperature"] == 0.4
+    assert captured_json["model"] == "meta-llama/llama-3.3-70b-instruct:free"
+    assert provider == "openrouter"
+
 
