@@ -13,6 +13,7 @@ from app.models.company import Department
 from app.models.employee import Employee
 from app.models.leave import LeaveBalance, LeavePolicy, LeaveRequest, LeaveRequestStatus
 from app.modules.agents.llm_client import GeminiClient
+from app.modules.agents.sql_analyst import ExecutiveSQLAnalyst
 from app.modules.leaves.service import calculate_working_days
 from app.modules.policies.okf_service import okf_service
 
@@ -458,7 +459,34 @@ class LeaveSupervisorWorkflow:
                     "chat_model": self.llm.last_decision_model or "openrouter/free",
                 }
 
-            # 4. Policy question or general conversation: Ground against OKF policies and Call LLM Chat Engine
+            # 4. Management Dynamic Workforce Intelligence (Safe Read-Only SQL Analyst)
+            if self.is_management:
+                sql_analyst = ExecutiveSQLAnalyst(self.db, self.company_id, self.llm)
+                if sql_analyst.is_analytical_query(user_msg):
+                    try:
+                        analyst_reply = await sql_analyst.answer_question(state["user_message"])
+                        if analyst_reply and not analyst_reply.strip().startswith("```"):
+                            return {
+                                "reply_message": analyst_reply,
+                                "recommendation": None,
+                                "chat_provider": self.llm.last_chat_provider or "openrouter",
+                                "chat_model": "executive-sql-analyst-v1",
+                            }
+                    except Exception as e:
+                        logger.warning(f"ExecutiveSQLAnalyst encountered error: {e}")
+            elif any(k in user_msg for k in ["similar name", "same name", "who joined", "list employee", "list staff", "colleague"]):
+                return {
+                    "reply_message": (
+                        "I'm sorry, but colleague personal records and directory searches are restricted "
+                        "to HR and company management. As an employee, you can view your personal leave balances, "
+                        "review company leave policies, or submit a time-off application."
+                    ),
+                    "recommendation": None,
+                    "chat_provider": "deterministic",
+                    "chat_model": "privacy-guardrail-v1",
+                }
+
+            # 5. Policy question or general conversation: Ground against OKF policies and Call LLM Chat Engine
             grounding_text = ""
             matched_type = None
             for lt in ["sick", "annual", "casual", "unpaid"]:
