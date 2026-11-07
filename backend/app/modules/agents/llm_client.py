@@ -51,19 +51,28 @@ class MultiProviderLLMRouter:
             or "meta-llama/llama-3.3-70b-instruct:free"
         )
 
-        async with httpx.AsyncClient(timeout=12.0) as client:
+        async with httpx.AsyncClient(timeout=15.0) as client:
             # 1. Primary: Dedicated OpenRouter Free Decision Model
             if self._is_valid_key(decision_key):
                 try:
-                    text = await self._call_openai_compatible(
-                        client=client,
-                        base_url=decision_base_url,
-                        api_key=decision_key,
-                        model=decision_model,
-                        system_instruction=system_instruction,
-                        prompt=prompt,
-                        temperature=0.0,
-                    )
+                    if "decisions" in decision_base_url or decision_model.startswith("parallel/"):
+                        text = await self._call_openrouter_decisions_alpha(
+                            client=client,
+                            base_url=decision_base_url,
+                            api_key=decision_key,
+                            model=decision_model,
+                            prompt=prompt,
+                        )
+                    else:
+                        text = await self._call_openai_compatible(
+                            client=client,
+                            base_url=decision_base_url,
+                            api_key=decision_key,
+                            model=decision_model,
+                            system_instruction=system_instruction,
+                            prompt=prompt,
+                            temperature=0.0,
+                        )
                     if text:
                         self.last_decision_provider = "openrouter"
                         self.last_decision_model = decision_model
@@ -313,6 +322,69 @@ class MultiProviderLLMRouter:
         else:
             fallback_text = self._fallback_chat_reply(prompt)
         return fallback_text, self.last_chat_provider, self.last_chat_model
+
+    async def _call_openrouter_decisions_alpha(
+        self,
+        client: httpx.AsyncClient,
+        base_url: str,
+        api_key: str,
+        model: str,
+        prompt: str,
+    ) -> Optional[str]:
+        """
+        Native caller for OpenRouter Decisions Alpha API (e.g. parallel/decisions-fast:free).
+        Uses state and structured question criteria rather than chat completions messages.
+        """
+        url = base_url.rstrip("/")
+        if not url.endswith("/decisions"):
+            url = f"{url}/decisions"
+
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "model": model,
+            "state": prompt,
+            "questions": {
+                "is_leave_request": {
+                    "type": "noul",
+                    "instructions": "Determine if the user is requesting leave or time off.",
+                    "criteria": {
+                        "true": "User is requesting time off, vacation, leave, or absence.",
+                        "false": "User is merely asking a question, policy inquiry, balance inquiry, or greeting.",
+                    },
+                },
+                "leave_type": {
+                    "type": "choice",
+                    "instructions": "Classify the leave type requested.",
+                    "criteria": {
+                        "annual": "Vacation, holiday, or personal recreation.",
+                        "sick": "Illness, health, hospital, doctor visit, medical emergency.",
+                        "casual": "Personal reasons, urgent personal errands, short personal time off.",
+                        "unpaid": "Loss of pay or leave without compensation.",
+                    },
+                },
+            },
+        }
+
+        res = await client.post(url, headers=headers, json=payload)
+        if res.status_code == 200:
+            data = res.json()
+            answers = data.get("answers", {})
+            noul_val = answers.get("is_leave_request", {}).get("noul", 0.0)
+            is_leave = noul_val >= 0.5
+            leave_type = answers.get("leave_type", {}).get("choice", "casual")
+            confidence = float(noul_val if is_leave else (1.0 - noul_val))
+            result = {
+                "is_leave_request": is_leave,
+                "leave_type": leave_type,
+                "confidence": round(confidence, 3),
+                "reason": prompt.strip(),
+            }
+            return json.dumps(result)
+        logger.warning(f"OpenRouter Decisions Alpha endpoint {url} returned status {res.status_code}: {res.text[:200]}")
+        return None
 
     async def _call_openai_compatible(
         self,
