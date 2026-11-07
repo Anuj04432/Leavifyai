@@ -103,7 +103,7 @@ class MultiProviderLLMRouter:
                             model=settings.GEMINI_MODEL or "gemini-flash-lite-latest",
                             system_instruction=system_instruction,
                             prompt=prompt,
-                            temperature=0.0,
+                            temperature=0.2,
                         )
                         if text:
                             self.last_decision_provider = "gemini"
