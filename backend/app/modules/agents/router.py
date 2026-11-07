@@ -90,8 +90,12 @@ async def chat_with_supervisor(
         reply=result.get("reply_message", "I am here to assist with workforce operations."),
         extracted_leave=extracted_leave,
         recommendation=recommendation,
-        provider=result.get("provider"),
-        model=result.get("model"),
+        provider=result.get("provider") or result.get("decision_provider"),
+        model=result.get("model") or result.get("decision_model"),
+        decision_provider=result.get("decision_provider"),
+        decision_model=result.get("decision_model"),
+        chat_provider=result.get("chat_provider"),
+        chat_model=result.get("chat_model"),
     )
 
 
