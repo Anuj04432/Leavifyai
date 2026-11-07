@@ -314,7 +314,7 @@ class LeaveSupervisorWorkflow:
             # 1. User is asking to check balance
             if any(k in user_msg for k in ["balance", "remaining", "how many", "days left", "quota", "entitlement"]):
                 if all_bals:
-                    lines = [f"• **{b['policy_name']}**: **{b['available']} day(s)** available" for b in all_bals]
+                    lines = [f"- **{b['policy_name']}**: **{b['available']} day(s)** available" for b in all_bals]
                     reply = (
                         f"Here are your current leave balances for {date.today().year}:\n\n"
                         + "\n".join(lines)
