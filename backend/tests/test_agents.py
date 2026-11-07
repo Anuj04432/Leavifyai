@@ -169,6 +169,50 @@ async def test_decoupled_decision_model_uses_separate_openrouter_url(monkeypatch
 
 
 @pytest.mark.asyncio
+async def test_decision_failover_from_openrouter_to_gemini(monkeypatch):
+    from unittest.mock import MagicMock
+    from app.config import get_settings
+    settings = get_settings()
+
+    monkeypatch.setattr(settings, "LLM_ROUTING_ORDER", "openrouter,gemini,grok,deterministic")
+    monkeypatch.setattr(settings, "OPENROUTER_DECISION_API_KEY", "openrouter-dead-key")
+    monkeypatch.setattr(settings, "GEMINI_API_KEY", "valid-gemini-live-key")
+
+    import httpx
+
+    captured_calls = []
+
+    async def mock_post(self, url, *args, **kwargs):
+        captured_calls.append(str(url))
+        resp = MagicMock()
+        if "openrouter" in str(url):
+            resp.status_code = 402  # credits exhausted on OpenRouter
+            resp.text = "Payment required"
+        elif "generativelanguage.googleapis.com" in str(url):
+            resp.status_code = 200
+            resp.json.return_value = {
+                "candidates": [{
+                    "content": {
+                        "parts": [{"text": json.dumps({"is_leave_request": True, "leave_type": "sick"})}]
+                    }
+                }]
+            }
+        return resp
+
+    monkeypatch.setattr(httpx.AsyncClient, "post", mock_post)
+
+    router = MultiProviderLLMRouter()
+    text, provider, model = await router.generate_decision("System", "Sick for 2 days")
+
+    assert len(captured_calls) >= 2
+    assert provider == "gemini"
+    assert model == "gemini-2.5-flash"
+    parsed = json.loads(text)
+    assert parsed["leave_type"] == "sick"
+
+
+
+@pytest.mark.asyncio
 async def test_decoupled_chat_model_uses_separate_chat_url(monkeypatch):
     from unittest.mock import MagicMock
     from app.config import get_settings
@@ -204,5 +248,7 @@ async def test_decoupled_chat_model_uses_separate_chat_url(monkeypatch):
     assert captured_json["temperature"] == 0.4
     assert captured_json["model"] == "meta-llama/llama-3.3-70b-instruct:free"
     assert provider == "openrouter"
+
+
 
 
