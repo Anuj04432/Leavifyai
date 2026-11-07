@@ -28,6 +28,8 @@ class AIRecommendation(BaseModel):
     reasoning: str
     policy_citations: List[str] = Field(default_factory=list)
     suggested_comment: Optional[str] = None
+    decision_provider: Optional[str] = None
+    decision_model: Optional[str] = None
 
 
 class AgentChatResponse(BaseModel):
@@ -36,6 +38,10 @@ class AgentChatResponse(BaseModel):
     recommendation: Optional[AIRecommendation] = None
     provider: Optional[str] = None
     model: Optional[str] = None
+    decision_provider: Optional[str] = None
+    decision_model: Optional[str] = None
+    chat_provider: Optional[str] = None
+    chat_model: Optional[str] = None
 
 
 class EvaluateRequestResponse(BaseModel):
