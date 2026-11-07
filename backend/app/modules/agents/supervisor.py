@@ -331,8 +331,8 @@ class LeaveSupervisorWorkflow:
             # 1. Non-Management / Employee Privacy Guardrails
             if not self.is_management:
                 is_headcount_query = any(k in user_msg for k in [
-                    "how many employee", "how many employees", "how many people",
-                    "how many staff", "total employees", "total staff", "headcount",
+                    "how many employe", "how many people",
+                    "how many staff", "total employe", "total staff", "headcount",
                     "company size", "organization size"
                 ])
                 if is_headcount_query:
@@ -406,7 +406,7 @@ class LeaveSupervisorWorkflow:
             if self.is_management:
                 # 3a. Pure, fast headcount summary (only if no analytical modifiers like leaves, salary, usage, or names)
                 is_pure_headcount = (
-                    any(k in user_msg for k in ["headcount", "how many employee", "how many employees", "how many people", "how many staff", "total employees", "total staff", "company size", "organization size"])
+                    any(k in user_msg for k in ["headcount", "how many employe", "how many people", "how many staff", "total employe", "total staff", "company size", "organization size"])
                     and not any(w in user_msg for w in [
                         "leave", "leaves", "absent", "absence", "salary", "used", "took", "taken",
                         "who", "most", "least", "less", "highest", "lowest", "similar", "name", "record"
@@ -497,8 +497,6 @@ class LeaveSupervisorWorkflow:
                         "chat_provider": "deterministic",
                         "chat_model": "workforce-intelligence-v1",
                     }
-                    "chat_model": "privacy-guardrail-v1",
-                }
 
             # 5. Policy question or general conversation: Ground against OKF policies and Call LLM Chat Engine
             grounding_text = ""
