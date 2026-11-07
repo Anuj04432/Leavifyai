@@ -57,27 +57,27 @@ class Settings(BaseSettings):
     # OpenRouter (Aggregator / Free tiers)
     OPENROUTER_API_KEY: str = ""
     OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
-    OPENROUTER_MODEL: str = "meta-llama/llama-3.3-70b-instruct:free"
+    OPENROUTER_MODEL: str = "openrouter/free"
 
     # Decoupled OpenRouter Decision Engine (Free Tier / Dedicated URL)
     OPENROUTER_DECISION_API_KEY: str = ""
     OPENROUTER_DECISION_BASE_URL: str = "https://openrouter.ai/api/v1"
-    OPENROUTER_DECISION_MODEL: str = "meta-llama/llama-3.3-70b-instruct:free"
+    OPENROUTER_DECISION_MODEL: str = "openrouter/free"
 
     # Decoupled OpenRouter Chat Engine (Dedicated URL)
     OPENROUTER_CHAT_API_KEY: str = ""
     OPENROUTER_CHAT_BASE_URL: str = "https://openrouter.ai/api/v1"
-    OPENROUTER_CHAT_MODEL: str = "meta-llama/llama-3.3-70b-instruct:free"
+    OPENROUTER_CHAT_MODEL: str = "openrouter/free"
 
     # Google Gemini
     GEMINI_API_KEY: str = ""
-    GEMINI_MODEL: str = "gemini-2.5-flash"
+    GEMINI_MODEL: str = "gemini-flash-lite-latest"
     EMBEDDING_MODEL: str = "text-embedding-004"
 
-    # Grok (xAI)
+    # Grok (xAI) / GroqCloud
     GROK_API_KEY: str = ""
-    GROK_BASE_URL: str = "https://api.x.ai/v1"
-    GROK_MODEL: str = "grok-beta"
+    GROK_BASE_URL: str = "https://api.groq.com/openai/v1"
+    GROK_MODEL: str = "openai/gpt-oss-120b"
 
     # Local / Near AI Models (Ollama, vLLM, Near)
     LOCAL_LLM_URL: str = "http://localhost:11434/v1"
