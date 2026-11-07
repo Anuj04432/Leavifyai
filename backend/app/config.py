@@ -51,7 +51,7 @@ class Settings(BaseSettings):
 
     # OmniRoute (Free Credits / Aggregator)
     OMNIROUTE_API_KEY: str = ""
-    OMNIROUTE_BASE_URL: str = "https://api.omniroute.ai/v1"
+    OMNIROUTE_BASE_URL: str = "http://localhost:20128/v1"
     OMNIROUTE_MODEL: str = "auto"
 
     # OpenRouter (Aggregator / Free tiers)
@@ -71,7 +71,7 @@ class Settings(BaseSettings):
 
     # Google Gemini
     GEMINI_API_KEY: str = ""
-    GEMINI_MODEL: str = "gemini-flash-lite-latest"
+    GEMINI_MODEL: str = "gemini-3.5-flash"
     EMBEDDING_MODEL: str = "text-embedding-004"
 
     # Grok (xAI) / GroqCloud
