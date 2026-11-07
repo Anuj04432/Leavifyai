@@ -83,7 +83,43 @@ class LeaveSupervisorWorkflow:
                 cleaned = cleaned.split("\n", 1)[1]
                 if cleaned.endswith("```"):
                     cleaned = cleaned.rsplit("```", 1)[0]
+                if cleaned.startswith("json"):
+                    cleaned = cleaned[4:].strip()
             extracted = json.loads(cleaned)
+
+            # Date and category normalization guardrails
+            if extracted.get("is_leave_request"):
+                try:
+                    date.fromisoformat(str(extracted.get("start_date")))
+                    date.fromisoformat(str(extracted.get("end_date")))
+                except Exception:
+                    today_dt = date.today()
+                    low = prompt.lower()
+                    days = 1
+                    m = re.search(r"(\d+)\s*(?:day|days)", low)
+                    if m:
+                        days = int(m.group(1))
+                    st = today_dt + timedelta(days=1)
+                    if "next monday" in low:
+                        ahead = (7 - today_dt.weekday()) % 7
+                        st = today_dt + timedelta(days=ahead if ahead != 0 else 7)
+                    elif "tomorrow" in low:
+                        st = today_dt + timedelta(days=1)
+                    elif "next week" in low:
+                        st = today_dt + timedelta(days=7)
+                    extracted["start_date"] = st.isoformat()
+                    extracted["end_date"] = (st + timedelta(days=days - 1)).isoformat()
+
+                if extracted.get("leave_type"):
+                    lt = str(extracted["leave_type"]).lower()
+                    if "sick" in lt or "doctor" in lt or "medical" in lt:
+                        extracted["leave_type"] = "sick"
+                    elif "annual" in lt or "vacation" in lt or "holiday" in lt:
+                        extracted["leave_type"] = "annual"
+                    elif "unpaid" in lt:
+                        extracted["leave_type"] = "unpaid"
+                    else:
+                        extracted["leave_type"] = "casual"
         except Exception:
             extracted = {
                 "is_leave_request": False,
