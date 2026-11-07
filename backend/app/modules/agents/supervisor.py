@@ -27,6 +27,10 @@ class LeaveSupervisorState(TypedDict):
     policy_evaluation: Optional[Dict[str, Any]]
     recommendation: Optional[Dict[str, Any]]
     reply_message: str
+    decision_provider: Optional[str]
+    decision_model: Optional[str]
+    chat_provider: Optional[str]
+    chat_model: Optional[str]
     provider: Optional[str]
     model: Optional[str]
 
@@ -71,7 +75,7 @@ class LeaveSupervisorWorkflow:
             "Return valid JSON only without markdown formatting."
         )
 
-        response_text, provider_name, model_name = await self.llm.generate_with_metadata(instruction, prompt)
+        response_text, provider_name, model_name = await self.llm.generate_decision(instruction, prompt)
         try:
             # Clean possible markdown fence
             cleaned = response_text.strip()
@@ -89,6 +93,8 @@ class LeaveSupervisorWorkflow:
 
         return {
             "extracted_data": extracted,
+            "decision_provider": provider_name,
+            "decision_model": model_name,
             "provider": provider_name,
             "model": model_name,
         }
@@ -263,17 +269,24 @@ class LeaveSupervisorWorkflow:
                 f"Your available balance is **{bal['available_days']} days**. Would you like me to submit this for manager review?"
             )
 
+        chat_prov = self.llm.last_chat_provider or "deterministic"
+        chat_mod = self.llm.last_chat_model or "workforceai-rule-engine-v1"
+
         recommendation = {
             "decision": decision,
             "confidence_score": confidence,
             "reasoning": reasoning,
             "policy_citations": citations,
             "suggested_comment": f"AI Recommendation: {decision} ({int(confidence * 100)}% confidence). {reasoning}",
+            "decision_provider": state.get("decision_provider"),
+            "decision_model": state.get("decision_model"),
         }
 
         return {
             "reply_message": reply,
             "recommendation": recommendation,
+            "chat_provider": chat_prov,
+            "chat_model": chat_mod,
         }
 
     async def run(self, user_message: str) -> Dict[str, Any]:
@@ -287,6 +300,10 @@ class LeaveSupervisorWorkflow:
             "policy_evaluation": None,
             "recommendation": None,
             "reply_message": "",
+            "decision_provider": None,
+            "decision_model": None,
+            "chat_provider": None,
+            "chat_model": None,
             "provider": None,
             "model": None,
         }
