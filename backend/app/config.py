@@ -61,8 +61,8 @@ class Settings(BaseSettings):
 
     # Decoupled OpenRouter Decision Engine (Free Tier / Dedicated URL)
     OPENROUTER_DECISION_API_KEY: str = ""
-    OPENROUTER_DECISION_BASE_URL: str = "https://openrouter.ai/api/v1"
-    OPENROUTER_DECISION_MODEL: str = "openrouter/free"
+    OPENROUTER_DECISION_BASE_URL: str = "https://openrouter.ai/api/alpha/decisions"
+    OPENROUTER_DECISION_MODEL: str = "parallel/decisions-fast:free"
 
     # Decoupled OpenRouter Chat Engine (Dedicated URL)
     OPENROUTER_CHAT_API_KEY: str = ""
