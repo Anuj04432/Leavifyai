@@ -414,6 +414,43 @@ async def test_employee_similar_names_privacy_guardrail():
     assert result["chat_model"] == "privacy-guardrail-v1"
 
 
+@pytest.mark.asyncio
+async def test_admin_analytical_queries_route_to_sql_analyst(monkeypatch):
+    import uuid
+    from unittest.mock import AsyncMock, patch
+    from app.modules.agents.supervisor import LeaveSupervisorWorkflow
+    from app.modules.agents.sql_analyst import ExecutiveSQLAnalyst
+
+    mock_db = AsyncMock()
+    wf = LeaveSupervisorWorkflow(
+        db=mock_db,
+        company_id=uuid.uuid4(),
+        employee_id=uuid.uuid4(),
+        user_role="admin",
+    )
+
+    analyst = ExecutiveSQLAnalyst(mock_db, wf.company_id, wf.llm)
+
+    # 1. Salary analytics
+    assert analyst.is_analytical_query("which employee has the highest salary") is True
+    assert analyst.is_analytical_query("which employe have less number of leaves") is True
+    assert analyst.is_analytical_query("which employee had took the sick leave recently") is True
+    assert analyst.is_analytical_query("total how many employees took the leaves") is True
+
+    # 2. Mock SQL analyst answering
+    with patch.object(ExecutiveSQLAnalyst, "answer_question", return_value="**Executive Summary**: John Doe has the highest basic salary of $120,000."):
+        result = await wf._recommendation_node({
+            "user_message": "which employee has the highest salary",
+            "extracted_data": {"is_leave_request": False},
+            "balance_info": None,
+            "policy_evaluation": None,
+            "all_balances": [],
+        })
+        assert "John Doe has the highest basic salary" in result["reply_message"]
+        assert result["chat_model"] == "executive-sql-analyst-v1"
+
+
+
 
 
 
