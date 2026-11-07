@@ -24,6 +24,7 @@ Database Schema (PostgreSQL):
    - date_of_joining: DATE
    - date_of_exit: DATE
    - employment_type: VARCHAR ('full_time', 'part_time', 'contract')
+   - salary_basic: NUMERIC (Monthly basic salary)
    - is_active: BOOLEAN
 
 2. departments:
@@ -89,7 +90,10 @@ class ExecutiveSQLAnalyst:
             "most leave", "most leaves", "who took", "who has taken", "department",
             "joined", "hire", "who is", "list employee", "list staff", "top leave",
             "frequent leave", "leave record", "balance", "breakdown", "average",
-            "active employee", "inactive", "designation", "role", "organization", "company"
+            "active employee", "inactive", "designation", "role", "organization", "company",
+            "salary", "compensation", "highest", "lowest", "least", "fewer", "less leaves",
+            "sick leave", "casual leave", "annual leave", "used leave", "all the leaves",
+            "took leave", "took leaves", "which employee", "which employe"
         ]
         return any(k in low for k in keywords)
 
