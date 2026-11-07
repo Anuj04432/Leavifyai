@@ -9,7 +9,7 @@ from sqlalchemy import and_, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.department import Department
+from app.models.company import Department
 from app.models.employee import Employee
 from app.models.leave import LeaveBalance, LeavePolicy, LeaveRequest, LeaveRequestStatus
 from app.modules.agents.llm_client import GeminiClient
