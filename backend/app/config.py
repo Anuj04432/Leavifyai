@@ -81,7 +81,7 @@ class Settings(BaseSettings):
 
     # Local / Near AI Models (Ollama, vLLM, Near)
     LOCAL_LLM_URL: str = "http://localhost:11434/v1"
-    LOCAL_LLM_MODEL: str = "llama3"
+    LOCAL_LLM_MODEL: str = "qwen2.5:3b-instruct"
 
     # PayPal Developer Sandbox
     PAYPAL_MODE: str = "sandbox"
