@@ -13,20 +13,132 @@ settings = get_settings()
 
 class MultiProviderLLMRouter:
     """
-    Intelligent Multi-Provider LLM Router with sequential fallback.
-    Supported providers: OmniRoute, OpenRouter, Gemini, Grok (xAI), Local LLM (Ollama/vLLM), Deterministic.
+    Intelligent Multi-Provider LLM Router with decoupled Decision & Chat models.
+    Decision Engine: Uses dedicated OpenRouter Decision URL and Model (free tier, e.g. Llama 3.3 70B Free) with temp=0.0.
+    Chat Engine: Uses dedicated OpenRouter Chat URL or Multi-LLM Routing (OmniRoute, Gemini, Grok, Local) with temp=0.4.
     Automatically handles quota exhaustion (402), rate limits (429), auth failures (401), and timeouts.
     """
 
     def __init__(self):
         self.last_provider: Optional[str] = None
         self.last_model: Optional[str] = None
+        self.last_decision_provider: Optional[str] = None
+        self.last_decision_model: Optional[str] = None
+        self.last_chat_provider: Optional[str] = None
+        self.last_chat_model: Optional[str] = None
 
     def _is_valid_key(self, key: Optional[str]) -> bool:
         if not key:
             return False
         clean = key.strip().lower()
         return bool(clean) and not clean.startswith("your-") and not clean.startswith("sk-placeholder")
+
+    async def generate_decision(self, system_instruction: str, prompt: str) -> Tuple[str, str, str]:
+        """
+        Executes decision-making (intent classification, leave parsing, approval recommendations)
+        using dedicated OpenRouter Decision URL and Model with temperature 0.0.
+        Falls back to remaining providers or deterministic rule engine if exhausted.
+        Returns: (json_text, provider_name, model_name)
+        """
+        decision_key = settings.OPENROUTER_DECISION_API_KEY or settings.OPENROUTER_API_KEY
+        decision_base_url = (
+            settings.OPENROUTER_DECISION_BASE_URL
+            or settings.OPENROUTER_BASE_URL
+            or "https://openrouter.ai/api/v1"
+        )
+        decision_model = (
+            settings.OPENROUTER_DECISION_MODEL
+            or "meta-llama/llama-3.3-70b-instruct:free"
+        )
+
+        async with httpx.AsyncClient(timeout=12.0) as client:
+            # 1. Primary: Dedicated OpenRouter Free Decision Model
+            if self._is_valid_key(decision_key):
+                try:
+                    text = await self._call_openai_compatible(
+                        client=client,
+                        base_url=decision_base_url,
+                        api_key=decision_key,
+                        model=decision_model,
+                        system_instruction=system_instruction,
+                        prompt=prompt,
+                        temperature=0.0,
+                    )
+                    if text:
+                        self.last_decision_provider = "openrouter"
+                        self.last_decision_model = decision_model
+                        self.last_provider = self.last_decision_provider
+                        self.last_model = self.last_decision_model
+                        return text, self.last_decision_provider, self.last_decision_model
+                except Exception as e:
+                    logger.warning(f"OpenRouter Decision endpoint error: {e}. Trying fallback chain...")
+
+            # 2. Sequential fallback through configured routing order
+            raw_order = settings.LLM_ROUTING_ORDER or "omniroute,openrouter,gemini,grok,local,deterministic"
+            providers = [p.strip().lower() for p in raw_order.split(",") if p.strip()]
+
+            for provider in providers:
+                try:
+                    if provider == "omniroute" and self._is_valid_key(settings.OMNIROUTE_API_KEY):
+                        text = await self._call_openai_compatible(
+                            client=client,
+                            base_url=settings.OMNIROUTE_BASE_URL or "https://api.omniroute.ai/v1",
+                            api_key=settings.OMNIROUTE_API_KEY,
+                            model=settings.OMNIROUTE_MODEL or "gpt-4o-mini",
+                            system_instruction=system_instruction,
+                            prompt=prompt,
+                            temperature=0.0,
+                        )
+                        if text:
+                            self.last_decision_provider = "omniroute"
+                            self.last_decision_model = settings.OMNIROUTE_MODEL or "gpt-4o-mini"
+                            self.last_provider = self.last_decision_provider
+                            self.last_model = self.last_decision_model
+                            return text, self.last_decision_provider, self.last_decision_model
+
+                    elif provider == "gemini" and self._is_valid_key(settings.GEMINI_API_KEY):
+                        text = await self._call_gemini(
+                            client=client,
+                            api_key=settings.GEMINI_API_KEY,
+                            model=settings.GEMINI_MODEL or "gemini-2.5-flash",
+                            system_instruction=system_instruction,
+                            prompt=prompt,
+                            temperature=0.0,
+                        )
+                        if text:
+                            self.last_decision_provider = "gemini"
+                            self.last_decision_model = settings.GEMINI_MODEL or "gemini-2.5-flash"
+                            self.last_provider = self.last_decision_provider
+                            self.last_model = self.last_decision_model
+                            return text, self.last_decision_provider, self.last_decision_model
+
+                    elif provider == "local":
+                        text = await self._call_openai_compatible(
+                            client=client,
+                            base_url=settings.LOCAL_LLM_URL or "http://localhost:11434/v1",
+                            api_key="ollama-local",
+                            model=settings.LOCAL_LLM_MODEL or "llama3",
+                            system_instruction=system_instruction,
+                            prompt=prompt,
+                            temperature=0.0,
+                        )
+                        if text:
+                            self.last_decision_provider = "local"
+                            self.last_decision_model = settings.LOCAL_LLM_MODEL or "llama3"
+                            self.last_provider = self.last_decision_provider
+                            self.last_model = self.last_decision_model
+                            return text, self.last_decision_provider, self.last_decision_model
+
+                except Exception as e:
+                    logger.warning(f"Decision fallback provider '{provider}' error: {e}")
+                    continue
+
+        # Zero-cost in-house deterministic fallback rule engine
+        self.last_decision_provider = "deterministic"
+        self.last_decision_model = "workforceai-rule-engine-v1"
+        self.last_provider = self.last_decision_provider
+        self.last_model = self.last_decision_model
+        return self._fallback_response(prompt), self.last_decision_provider, self.last_decision_model
 
     async def generate_text(self, system_instruction: str, prompt: str) -> str:
         """Standard generation method returning text while tracking last provider."""
@@ -35,11 +147,24 @@ class MultiProviderLLMRouter:
 
     async def generate_with_metadata(self, system_instruction: str, prompt: str) -> Tuple[str, str, str]:
         """
-        Executes prompt through the configured priority fallback chain.
+        Executes conversational prompt through the configured chat priority fallback chain.
+        Uses OPENROUTER_CHAT_BASE_URL and OPENROUTER_CHAT_MODEL for OpenRouter.
         Returns: (generated_text, provider_name, model_name)
         """
         raw_order = settings.LLM_ROUTING_ORDER or "omniroute,openrouter,gemini,grok,local,deterministic"
         providers = [p.strip().lower() for p in raw_order.split(",") if p.strip()]
+
+        chat_key = settings.OPENROUTER_CHAT_API_KEY or settings.OPENROUTER_API_KEY
+        chat_base_url = (
+            settings.OPENROUTER_CHAT_BASE_URL
+            or settings.OPENROUTER_BASE_URL
+            or "https://openrouter.ai/api/v1"
+        )
+        chat_model = (
+            settings.OPENROUTER_CHAT_MODEL
+            or settings.OPENROUTER_MODEL
+            or "meta-llama/llama-3.3-70b-instruct:free"
+        )
 
         async with httpx.AsyncClient(timeout=12.0) as client:
             for provider in providers:
@@ -54,27 +179,33 @@ class MultiProviderLLMRouter:
                             model=settings.OMNIROUTE_MODEL or "gpt-4o-mini",
                             system_instruction=system_instruction,
                             prompt=prompt,
+                            temperature=0.4,
                         )
                         if text:
-                            self.last_provider = "omniroute"
-                            self.last_model = settings.OMNIROUTE_MODEL or "gpt-4o-mini"
-                            return text, self.last_provider, self.last_model
+                            self.last_chat_provider = "omniroute"
+                            self.last_chat_model = settings.OMNIROUTE_MODEL or "gpt-4o-mini"
+                            self.last_provider = self.last_chat_provider
+                            self.last_model = self.last_chat_model
+                            return text, self.last_chat_provider, self.last_chat_model
 
                     elif provider == "openrouter":
-                        if not self._is_valid_key(settings.OPENROUTER_API_KEY):
+                        if not self._is_valid_key(chat_key):
                             continue
                         text = await self._call_openai_compatible(
                             client=client,
-                            base_url=settings.OPENROUTER_BASE_URL or "https://openrouter.ai/api/v1",
-                            api_key=settings.OPENROUTER_API_KEY,
-                            model=settings.OPENROUTER_MODEL or "meta-llama/llama-3.3-70b-instruct:free",
+                            base_url=chat_base_url,
+                            api_key=chat_key,
+                            model=chat_model,
                             system_instruction=system_instruction,
                             prompt=prompt,
+                            temperature=0.4,
                         )
                         if text:
-                            self.last_provider = "openrouter"
-                            self.last_model = settings.OPENROUTER_MODEL or "meta-llama/llama-3.3-70b-instruct:free"
-                            return text, self.last_provider, self.last_model
+                            self.last_chat_provider = "openrouter"
+                            self.last_chat_model = chat_model
+                            self.last_provider = self.last_chat_provider
+                            self.last_model = self.last_chat_model
+                            return text, self.last_chat_provider, self.last_chat_model
 
                     elif provider == "gemini":
                         if not self._is_valid_key(settings.GEMINI_API_KEY):
@@ -85,11 +216,14 @@ class MultiProviderLLMRouter:
                             model=settings.GEMINI_MODEL or "gemini-2.5-flash",
                             system_instruction=system_instruction,
                             prompt=prompt,
+                            temperature=0.4,
                         )
                         if text:
-                            self.last_provider = "gemini"
-                            self.last_model = settings.GEMINI_MODEL or "gemini-2.5-flash"
-                            return text, self.last_provider, self.last_model
+                            self.last_chat_provider = "gemini"
+                            self.last_chat_model = settings.GEMINI_MODEL or "gemini-2.5-flash"
+                            self.last_provider = self.last_chat_provider
+                            self.last_model = self.last_chat_model
+                            return text, self.last_chat_provider, self.last_chat_model
 
                     elif provider == "grok":
                         if not self._is_valid_key(settings.GROK_API_KEY):
@@ -101,14 +235,16 @@ class MultiProviderLLMRouter:
                             model=settings.GROK_MODEL or "grok-2-latest",
                             system_instruction=system_instruction,
                             prompt=prompt,
+                            temperature=0.4,
                         )
                         if text:
-                            self.last_provider = "grok"
-                            self.last_model = settings.GROK_MODEL or "grok-2-latest"
-                            return text, self.last_provider, self.last_model
+                            self.last_chat_provider = "grok"
+                            self.last_chat_model = settings.GROK_MODEL or "grok-2-latest"
+                            self.last_provider = self.last_chat_provider
+                            self.last_model = self.last_chat_model
+                            return text, self.last_chat_provider, self.last_chat_model
 
                     elif provider == "local":
-                        # Local endpoints (Ollama/vLLM) often run locally without an API key
                         text = await self._call_openai_compatible(
                             client=client,
                             base_url=settings.LOCAL_LLM_URL or "http://localhost:11434/v1",
@@ -116,24 +252,29 @@ class MultiProviderLLMRouter:
                             model=settings.LOCAL_LLM_MODEL or "llama3",
                             system_instruction=system_instruction,
                             prompt=prompt,
+                            temperature=0.4,
                         )
                         if text:
-                            self.last_provider = "local"
-                            self.last_model = settings.LOCAL_LLM_MODEL or "llama3"
-                            return text, self.last_provider, self.last_model
+                            self.last_chat_provider = "local"
+                            self.last_chat_model = settings.LOCAL_LLM_MODEL or "llama3"
+                            self.last_provider = self.last_chat_provider
+                            self.last_model = self.last_chat_model
+                            return text, self.last_chat_provider, self.last_chat_model
 
                     elif provider == "deterministic":
                         break
 
                 except Exception as e:
-                    logger.warning(f"LLM provider '{provider}' encountered error: {e}. Routing to fallback...")
+                    logger.warning(f"LLM chat provider '{provider}' encountered error: {e}. Routing to fallback...")
                     continue
 
         # Zero-cost in-house deterministic fallback guarantee
-        self.last_provider = "deterministic"
-        self.last_model = "workforceai-rule-engine-v1"
+        self.last_chat_provider = "deterministic"
+        self.last_chat_model = "workforceai-rule-engine-v1"
+        self.last_provider = self.last_chat_provider
+        self.last_model = self.last_chat_model
         logger.info("Utilizing deterministic fallback rule engine for leave supervisor.")
-        return self._fallback_response(prompt), self.last_provider, self.last_model
+        return self._fallback_response(prompt), self.last_chat_provider, self.last_chat_model
 
     async def _call_openai_compatible(
         self,
@@ -143,6 +284,7 @@ class MultiProviderLLMRouter:
         model: str,
         system_instruction: str,
         prompt: str,
+        temperature: float = 0.2,
     ) -> Optional[str]:
         url = f"{base_url.rstrip('/')}/chat/completions"
         headers = {
@@ -155,7 +297,7 @@ class MultiProviderLLMRouter:
                 {"role": "system", "content": system_instruction},
                 {"role": "user", "content": prompt},
             ],
-            "temperature": 0.2,
+            "temperature": temperature,
             "max_tokens": 1000,
         }
         res = await client.post(url, headers=headers, json=payload)
@@ -174,6 +316,7 @@ class MultiProviderLLMRouter:
         model: str,
         system_instruction: str,
         prompt: str,
+        temperature: float = 0.2,
     ) -> Optional[str]:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
         payload = {
@@ -185,7 +328,7 @@ class MultiProviderLLMRouter:
                 }
             ],
             "generationConfig": {
-                "temperature": 0.2,
+                "temperature": temperature,
                 "maxOutputTokens": 1000,
             },
         }
