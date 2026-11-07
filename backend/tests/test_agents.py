@@ -253,5 +253,123 @@ async def test_decoupled_chat_model_uses_separate_chat_url(monkeypatch):
     assert provider == "openrouter"
 
 
+@pytest.mark.asyncio
+async def test_employee_headcount_privacy_guardrail():
+    import uuid
+    from unittest.mock import AsyncMock
+    from app.modules.agents.supervisor import LeaveSupervisorWorkflow
+
+    mock_db = AsyncMock()
+    # Mock balance query returning empty
+    mock_res = AsyncMock()
+    mock_res.scalars.return_value.all.return_value = []
+    mock_db.execute.return_value = mock_res
+
+    wf = LeaveSupervisorWorkflow(
+        db=mock_db,
+        company_id=uuid.uuid4(),
+        employee_id=uuid.uuid4(),
+        user_role="employee",
+    )
+    result = await wf._recommendation_node({
+        "user_message": "how many employes are there in this organization",
+        "extracted_data": {"is_leave_request": False},
+        "balance_info": None,
+        "policy_evaluation": None,
+        "all_balances": [],
+    })
+    assert "access to organization-wide workforce metrics and headcount data is restricted" in result["reply_message"].lower()
+    assert result["chat_model"] == "privacy-guardrail-v1"
+
+
+@pytest.mark.asyncio
+async def test_employee_leave_analytics_privacy_guardrail():
+    import uuid
+    from unittest.mock import AsyncMock
+    from app.modules.agents.supervisor import LeaveSupervisorWorkflow
+
+    mock_db = AsyncMock()
+    wf = LeaveSupervisorWorkflow(
+        db=mock_db,
+        company_id=uuid.uuid4(),
+        employee_id=uuid.uuid4(),
+        user_role="employee",
+    )
+    result = await wf._recommendation_node({
+        "user_message": "from last 30 which employe has took most leaves",
+        "extracted_data": {"is_leave_request": False},
+        "balance_info": None,
+        "policy_evaluation": None,
+        "all_balances": [],
+    })
+    assert "colleague attendance records and company-wide leave histories are confidential" in result["reply_message"].lower()
+    assert result["chat_model"] == "privacy-guardrail-v1"
+
+
+@pytest.mark.asyncio
+async def test_admin_headcount_analytics():
+    import uuid
+    from unittest.mock import AsyncMock, MagicMock
+    from app.modules.agents.supervisor import LeaveSupervisorWorkflow
+
+    mock_db = AsyncMock()
+    scalar_mock = MagicMock()
+    scalar_mock.scalar.side_effect = [42, 5]
+    mock_db.execute.return_value = scalar_mock
+
+    wf = LeaveSupervisorWorkflow(
+        db=mock_db,
+        company_id=uuid.uuid4(),
+        employee_id=uuid.uuid4(),
+        user_role="admin",
+    )
+    result = await wf._recommendation_node({
+        "user_message": "how many employes are there in this organization",
+        "extracted_data": {"is_leave_request": False},
+        "balance_info": None,
+        "policy_evaluation": None,
+        "all_balances": [],
+    })
+    assert "**42 employee(s)** currently active" in result["reply_message"]
+    assert "**5 department(s)**" in result["reply_message"]
+    assert result["chat_model"] == "workforce-intelligence-v1"
+
+
+@pytest.mark.asyncio
+async def test_transparent_balance_deductions_in_draft():
+    import uuid
+    from unittest.mock import AsyncMock
+    from app.modules.agents.supervisor import LeaveSupervisorWorkflow
+
+    mock_db = AsyncMock()
+    wf = LeaveSupervisorWorkflow(
+        db=mock_db,
+        company_id=uuid.uuid4(),
+        employee_id=uuid.uuid4(),
+        user_role="employee",
+    )
+    result = await wf._recommendation_node({
+        "user_message": "I need 2 days off next Monday and Tuesday",
+        "extracted_data": {"is_leave_request": True},
+        "balance_info": {
+            "policy_name": "Casual Leave",
+            "available_days": 10.0,
+            "requested_days": 2.0,
+            "is_sufficient": True,
+            "start_date": "2026-11-09",
+            "end_date": "2026-11-10",
+        },
+        "policy_evaluation": {
+            "has_conflict": False,
+            "notice_days_provided": 2,
+            "citations": ["OKF Rule: Casual Leave"],
+        },
+    })
+    assert "**Current Available Balance**: **10.0 day(s)**" in result["reply_message"]
+    assert "**Requested Deductions**: **2.0 day(s)**" in result["reply_message"]
+    assert "**Remaining Balance (Upon Approval)**: **8.0 day(s)**" in result["reply_message"]
+
+
+
 
 
