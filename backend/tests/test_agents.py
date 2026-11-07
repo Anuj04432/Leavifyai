@@ -370,6 +370,51 @@ async def test_transparent_balance_deductions_in_draft():
     assert "**Remaining Balance (Upon Approval)**: **8.0 day(s)**" in result["reply_message"]
 
 
+def test_sql_analyst_validate_sql_security():
+    import uuid
+    from unittest.mock import MagicMock
+    from app.modules.agents.sql_analyst import ExecutiveSQLAnalyst
+
+    analyst = ExecutiveSQLAnalyst(MagicMock(), uuid.uuid4(), MagicMock())
+
+    # Valid read-only queries
+    assert analyst.validate_sql("SELECT first_name, last_name FROM employees WHERE company_id = :company_id") is True
+    assert analyst.validate_sql("WITH top_leaves AS (SELECT * FROM leave_requests) SELECT * FROM top_leaves") is True
+
+    # Dangerous mutating / destructive queries
+    assert analyst.validate_sql("DROP TABLE employees") is False
+    assert analyst.validate_sql("DELETE FROM employees WHERE id = 1") is False
+    assert analyst.validate_sql("UPDATE employees SET salary_basic = 1000") is False
+    assert analyst.validate_sql("INSERT INTO employees (first_name) VALUES ('Hacker')") is False
+    assert analyst.validate_sql("ALTER TABLE employees ADD COLUMN test VARCHAR") is False
+    assert analyst.validate_sql("TRUNCATE TABLE leave_requests") is False
+
+
+@pytest.mark.asyncio
+async def test_employee_similar_names_privacy_guardrail():
+    import uuid
+    from unittest.mock import AsyncMock
+    from app.modules.agents.supervisor import LeaveSupervisorWorkflow
+
+    mock_db = AsyncMock()
+    wf = LeaveSupervisorWorkflow(
+        db=mock_db,
+        company_id=uuid.uuid4(),
+        employee_id=uuid.uuid4(),
+        user_role="employee",
+    )
+    result = await wf._recommendation_node({
+        "user_message": "is there any similar named employees",
+        "extracted_data": {"is_leave_request": False},
+        "balance_info": None,
+        "policy_evaluation": None,
+        "all_balances": [],
+    })
+    assert "colleague personal records and directory searches are restricted" in result["reply_message"].lower()
+    assert result["chat_model"] == "privacy-guardrail-v1"
+
+
+
 
 
 
