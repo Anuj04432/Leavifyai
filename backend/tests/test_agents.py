@@ -206,7 +206,7 @@ async def test_decision_failover_from_openrouter_to_gemini(monkeypatch):
 
     assert len(captured_calls) >= 2
     assert provider == "gemini"
-    assert model == "gemini-2.5-flash"
+    assert model == (settings.GEMINI_MODEL or "gemini-2.5-flash")
     parsed = json.loads(text)
     assert parsed["leave_type"] == "sick"
 
