@@ -330,19 +330,38 @@ class LeaveSupervisorWorkflow:
                     "chat_model": self.llm.last_decision_model or "openrouter/free",
                 }
 
-            # 2. General conversation / policy question: Call LLM Chat Engine
+            # 2. Policy question or general conversation: Ground against OKF policies and Call LLM Chat Engine
+            grounding_text = ""
+            matched_type = None
+            for lt in ["sick", "annual", "casual", "unpaid"]:
+                if lt in user_msg:
+                    matched_type = lt
+                    grounding_text = okf_service.format_grounding_context(lt)
+                    break
+
             chat_instruction = (
-                f"You are the WorkforceAI Agentic Supervisor. Today's date is {date.today().isoformat()}. "
-                "Answer the user's question politely and concisely regarding workplace operations, company policies, or leave rules. "
-                "If they want to apply for leave, advise them to specify the days and reasons."
+                f"You are the WorkforceAI Agentic Supervisor. Today's date is {date.today().isoformat()}.\n"
+                "Answer the user's question politely and concisely regarding workplace operations, company policies, or leave rules.\n"
+                + (f"\nOfficial Company Policy Rules to cite:\n{grounding_text}\n" if grounding_text else "")
+                + "\nIf they want to apply for leave, advise them to specify the dates and reason."
             )
             chat_text = await self.llm.generate_text(chat_instruction, state["user_message"])
-            if not chat_text or chat_text.strip().startswith("```"):
-                chat_text = (
-                    "Hello! I am your WorkforceAI Supervisor. I can assist you with your leave balances, "
-                    "company policy rules, or prepare a time-off application in plain language. "
-                    "For example, try asking: 'I need 2 days off next Monday and Tuesday for personal reasons'."
-                )
+            if not chat_text or chat_text.strip().startswith("```") or chat_text.strip().startswith("{"):
+                if matched_type:
+                    pol_obj = okf_service.get_policy_by_type(matched_type)
+                    if pol_obj:
+                        chat_text = (
+                            f"**{pol_obj['title']}** [{pol_obj['policy_code']}]:\n\n"
+                            f"- **Entitlement**: {pol_obj['annual_allowance']} days per calendar year\n"
+                            f"- **Paid Status**: {'Fully Paid' if pol_obj['is_paid'] else 'Unpaid'}\n"
+                            f"- **Notice Requirement**: {pol_obj['notice_period_days']} business day(s) advance notice\n"
+                            f"- **Max Consecutive Days**: {pol_obj['max_consecutive_days']} days\n\n"
+                            "Would you like to draft a time-off request?"
+                        )
+                    else:
+                        chat_text = self.llm._fallback_chat_reply(state["user_message"])
+                else:
+                    chat_text = self.llm._fallback_chat_reply(state["user_message"])
 
             return {
                 "reply_message": chat_text,
