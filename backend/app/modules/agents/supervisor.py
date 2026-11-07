@@ -5,10 +5,11 @@ import logging
 from typing import Any, Dict, List, Optional, TypedDict
 import uuid
 from langgraph.graph import END, StateGraph
-from sqlalchemy import and_, select
+from sqlalchemy import and_, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.models.department import Department
 from app.models.employee import Employee
 from app.models.leave import LeaveBalance, LeavePolicy, LeaveRequest, LeaveRequestStatus
 from app.modules.agents.llm_client import GeminiClient
@@ -37,10 +38,25 @@ class LeaveSupervisorState(TypedDict):
 
 
 class LeaveSupervisorWorkflow:
-    def __init__(self, db: AsyncSession, company_id: uuid.UUID, employee_id: uuid.UUID):
+    def __init__(
+        self,
+        db: AsyncSession,
+        company_id: uuid.UUID,
+        employee_id: uuid.UUID,
+        user_role: str = "employee",
+    ):
         self.db = db
         self.company_id = company_id
         self.employee_id = employee_id
+        self.user_role = (user_role or "employee").lower()
+        self.is_management = self.user_role in {
+            "ceo",
+            "super_admin",
+            "admin",
+            "hr",
+            "hr_manager",
+            "manager",
+        }
         self.llm = GeminiClient()
         self.graph = self._build_graph()
 
@@ -311,10 +327,122 @@ class LeaveSupervisorWorkflow:
             user_msg = state.get("user_message", "").strip().lower()
             all_bals = state.get("all_balances") or []
 
-            # 1. User is asking to check balance
-            if any(k in user_msg for k in ["balance", "remaining", "how many", "days left", "quota", "entitlement"]):
+            # 1. Organization Headcount & Workforce Intelligence
+            is_headcount_query = any(k in user_msg for k in [
+                "how many employee", "how many employees", "how many people",
+                "how many staff", "total employees", "total staff", "headcount",
+                "company size", "organization size", "in this organization"
+            ])
+            if is_headcount_query:
+                if not self.is_management:
+                    return {
+                        "reply_message": (
+                            "I'm sorry, but access to organization-wide workforce metrics and headcount data is restricted "
+                            "to HR and company management. As an employee, you can view your personal leave balances, "
+                            "review company leave policies, or submit a time-off application."
+                        ),
+                        "recommendation": None,
+                        "chat_provider": "deterministic",
+                        "chat_model": "privacy-guardrail-v1",
+                    }
+                else:
+                    emp_cnt = (await self.db.execute(
+                        select(func.count(Employee.id)).where(
+                            Employee.company_id == self.company_id,
+                            Employee.is_active.is_(True),
+                        )
+                    )).scalar() or 0
+                    dept_cnt = (await self.db.execute(
+                        select(func.count(Department.id)).where(
+                            Department.company_id == self.company_id,
+                        )
+                    )).scalar() or 0
+                    return {
+                        "reply_message": (
+                            f"**Workforce Organization Summary**:\n\n"
+                            f"- **Active Headcount**: **{emp_cnt} employee(s)** currently active\n"
+                            f"- **Departments**: **{dept_cnt} department(s)** established\n\n"
+                            "Would you like a department breakdown or recent leave analytics?"
+                        ),
+                        "recommendation": None,
+                        "chat_provider": "deterministic",
+                        "chat_model": "workforce-intelligence-v1",
+                    }
+
+            # 2. Leave Analytics & Colleague Absence Intelligence
+            is_leave_analytics_query = any(k in user_msg for k in [
+                "most leave", "most leaves", "who took", "who has taken", "frequent leave",
+                "top leave", "leave taker", "colleague leave", "employee leave", "which employe"
+            ])
+            if is_leave_analytics_query:
+                if not self.is_management:
+                    return {
+                        "reply_message": (
+                            "Colleague attendance records and company-wide leave histories are confidential. "
+                            "I cannot disclose other employees' absence data. Would you like to check your personal "
+                            "leave balance or draft a time-off request for yourself?"
+                        ),
+                        "recommendation": None,
+                        "chat_provider": "deterministic",
+                        "chat_model": "privacy-guardrail-v1",
+                    }
+                else:
+                    days_window = 30
+                    cutoff = datetime.utcnow() - timedelta(days=days_window)
+                    stmt = (
+                        select(
+                            Employee.first_name,
+                            Employee.last_name,
+                            Department.name.label("department_name"),
+                            func.sum(LeaveRequest.total_days).label("days_taken"),
+                            func.count(LeaveRequest.id).label("requests_count"),
+                        )
+                        .join(LeaveRequest, LeaveRequest.employee_id == Employee.id)
+                        .outerjoin(Department, Department.id == Employee.department_id)
+                        .where(
+                            Employee.company_id == self.company_id,
+                            LeaveRequest.status.in_([LeaveRequestStatus.APPROVED.value, LeaveRequestStatus.PENDING.value]),
+                            LeaveRequest.created_at >= cutoff,
+                        )
+                        .group_by(Employee.id, Employee.first_name, Employee.last_name, Department.name)
+                        .order_by(desc("days_taken"))
+                        .limit(5)
+                    )
+                    res = await self.db.execute(stmt)
+                    rows = res.all()
+                    if rows:
+                        top_lines = [
+                            f"- **{r.first_name} {r.last_name}** ({r.department_name or 'General'}): **{float(r.days_taken)} day(s)** across {r.requests_count} request(s)"
+                            for r in rows
+                        ]
+                        reply_txt = (
+                            f"**Leave Analytics (Last {days_window} Days)**:\n\n"
+                            + "\n".join(top_lines)
+                            + f"\n\n*Top leave taker:* **{rows[0].first_name} {rows[0].last_name}** with **{float(rows[0].days_taken)} day(s)**."
+                        )
+                    else:
+                        reply_txt = (
+                            f"**Leave Analytics (Last {days_window} Days)**:\n\n"
+                            "No approved or pending leave requests were recorded across the organization in the last 30 days."
+                        )
+                    return {
+                        "reply_message": reply_txt,
+                        "recommendation": None,
+                        "chat_provider": "deterministic",
+                        "chat_model": "workforce-intelligence-v1",
+                    }
+
+            # 3. User is asking to check personal leave balance
+            is_balance_query = (
+                any(k in user_msg for k in ["balance", "remaining", "days left", "quota", "entitlement"])
+                or ("how many" in user_msg and any(w in user_msg for w in ["leave", "leaves", "day", "days", "vacation", "off", "have"]))
+            )
+            if is_balance_query:
                 if all_bals:
-                    lines = [f"- **{b['policy_name']}**: **{b['available']} day(s)** available" for b in all_bals]
+                    lines = [
+                        f"- **{b['policy_name']}**: **{b['available']} day(s)** available *(Allocated: {b['allocated']}d | Used: {b['used']}d)*"
+                        for b in all_bals
+                    ]
                     reply = (
                         f"Here are your current leave balances for {date.today().year}:\n\n"
                         + "\n".join(lines)
@@ -330,7 +458,7 @@ class LeaveSupervisorWorkflow:
                     "chat_model": self.llm.last_decision_model or "openrouter/free",
                 }
 
-            # 2. Policy question or general conversation: Ground against OKF policies and Call LLM Chat Engine
+            # 4. Policy question or general conversation: Ground against OKF policies and Call LLM Chat Engine
             grounding_text = ""
             matched_type = None
             for lt in ["sick", "annual", "casual", "unpaid"]:
@@ -396,10 +524,14 @@ class LeaveSupervisorWorkflow:
                 f"Request of {bal['requested_days']} business day(s) satisfies all balance ({bal['available_days']}d available), "
                 f"notice ({pol['notice_days_provided']}d in advance), and policy rules."
             )
+            remaining_bal = max(0.0, float(bal['available_days']) - float(bal['requested_days']))
             reply = (
                 f"I've drafted your request: **{bal['requested_days']} business day(s)** of **{bal['policy_name']}** "
-                f"from **{bal['start_date']}** to **{bal['end_date']}**. "
-                f"Your available balance is **{bal['available_days']} days**. Would you like me to submit this for manager review?"
+                f"from **{bal['start_date']}** to **{bal['end_date']}**.\n\n"
+                f"- **Current Available Balance**: **{bal['available_days']} day(s)**\n"
+                f"- **Requested Deductions**: **{bal['requested_days']} day(s)**\n"
+                f"- **Remaining Balance (Upon Approval)**: **{remaining_bal:.1f} day(s)**\n\n"
+                "Would you like me to submit this for manager review?"
             )
 
         chat_prov = self.llm.last_chat_provider or "deterministic"
