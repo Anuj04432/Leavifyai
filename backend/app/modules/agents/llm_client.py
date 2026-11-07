@@ -112,6 +112,40 @@ class MultiProviderLLMRouter:
                             self.last_model = self.last_decision_model
                             return text, self.last_decision_provider, self.last_decision_model
 
+                    elif provider == "grok" and self._is_valid_key(settings.GROK_API_KEY):
+                        text = await self._call_openai_compatible(
+                            client=client,
+                            base_url=settings.GROK_BASE_URL or "https://api.x.ai/v1",
+                            api_key=settings.GROK_API_KEY,
+                            model=settings.GROK_MODEL or "grok-beta",
+                            system_instruction=system_instruction,
+                            prompt=prompt,
+                            temperature=0.0,
+                        )
+                        if text:
+                            self.last_decision_provider = "grok"
+                            self.last_decision_model = settings.GROK_MODEL or "grok-beta"
+                            self.last_provider = self.last_decision_provider
+                            self.last_model = self.last_decision_model
+                            return text, self.last_decision_provider, self.last_decision_model
+
+                    elif provider == "openrouter" and self._is_valid_key(settings.OPENROUTER_API_KEY):
+                        text = await self._call_openai_compatible(
+                            client=client,
+                            base_url=settings.OPENROUTER_BASE_URL or "https://openrouter.ai/api/v1",
+                            api_key=settings.OPENROUTER_API_KEY,
+                            model=settings.OPENROUTER_MODEL or "meta-llama/llama-3.3-70b-instruct:free",
+                            system_instruction=system_instruction,
+                            prompt=prompt,
+                            temperature=0.0,
+                        )
+                        if text:
+                            self.last_decision_provider = "openrouter"
+                            self.last_decision_model = settings.OPENROUTER_MODEL or "meta-llama/llama-3.3-70b-instruct:free"
+                            self.last_provider = self.last_decision_provider
+                            self.last_model = self.last_decision_model
+                            return text, self.last_decision_provider, self.last_decision_model
+
                     elif provider == "local":
                         text = await self._call_openai_compatible(
                             client=client,
