@@ -100,14 +100,14 @@ class MultiProviderLLMRouter:
                         text = await self._call_gemini(
                             client=client,
                             api_key=settings.GEMINI_API_KEY,
-                            model=settings.GEMINI_MODEL or "gemini-2.5-flash",
+                            model=settings.GEMINI_MODEL or "gemini-flash-lite-latest",
                             system_instruction=system_instruction,
                             prompt=prompt,
                             temperature=0.0,
                         )
                         if text:
                             self.last_decision_provider = "gemini"
-                            self.last_decision_model = settings.GEMINI_MODEL or "gemini-2.5-flash"
+                            self.last_decision_model = settings.GEMINI_MODEL or "gemini-flash-lite-latest"
                             self.last_provider = self.last_decision_provider
                             self.last_model = self.last_decision_model
                             return text, self.last_decision_provider, self.last_decision_model
@@ -115,16 +115,16 @@ class MultiProviderLLMRouter:
                     elif provider == "grok" and self._is_valid_key(settings.GROK_API_KEY):
                         text = await self._call_openai_compatible(
                             client=client,
-                            base_url=settings.GROK_BASE_URL or "https://api.x.ai/v1",
+                            base_url=settings.GROK_BASE_URL or "https://api.groq.com/openai/v1",
                             api_key=settings.GROK_API_KEY,
-                            model=settings.GROK_MODEL or "grok-beta",
+                            model=settings.GROK_MODEL or "openai/gpt-oss-120b",
                             system_instruction=system_instruction,
                             prompt=prompt,
                             temperature=0.0,
                         )
                         if text:
                             self.last_decision_provider = "grok"
-                            self.last_decision_model = settings.GROK_MODEL or "grok-beta"
+                            self.last_decision_model = settings.GROK_MODEL or "openai/gpt-oss-120b"
                             self.last_provider = self.last_decision_provider
                             self.last_model = self.last_decision_model
                             return text, self.last_decision_provider, self.last_decision_model
@@ -134,14 +134,14 @@ class MultiProviderLLMRouter:
                             client=client,
                             base_url=settings.OPENROUTER_BASE_URL or "https://openrouter.ai/api/v1",
                             api_key=settings.OPENROUTER_API_KEY,
-                            model=settings.OPENROUTER_MODEL or "meta-llama/llama-3.3-70b-instruct:free",
+                            model=settings.OPENROUTER_MODEL or "openrouter/free",
                             system_instruction=system_instruction,
                             prompt=prompt,
                             temperature=0.0,
                         )
                         if text:
                             self.last_decision_provider = "openrouter"
-                            self.last_decision_model = settings.OPENROUTER_MODEL or "meta-llama/llama-3.3-70b-instruct:free"
+                            self.last_decision_model = settings.OPENROUTER_MODEL or "openrouter/free"
                             self.last_provider = self.last_decision_provider
                             self.last_model = self.last_decision_model
                             return text, self.last_decision_provider, self.last_decision_model
@@ -247,14 +247,14 @@ class MultiProviderLLMRouter:
                         text = await self._call_gemini(
                             client=client,
                             api_key=settings.GEMINI_API_KEY,
-                            model=settings.GEMINI_MODEL or "gemini-2.5-flash",
+                            model=settings.GEMINI_MODEL or "gemini-flash-lite-latest",
                             system_instruction=system_instruction,
                             prompt=prompt,
                             temperature=0.4,
                         )
                         if text:
                             self.last_chat_provider = "gemini"
-                            self.last_chat_model = settings.GEMINI_MODEL or "gemini-2.5-flash"
+                            self.last_chat_model = settings.GEMINI_MODEL or "gemini-flash-lite-latest"
                             self.last_provider = self.last_chat_provider
                             self.last_model = self.last_chat_model
                             return text, self.last_chat_provider, self.last_chat_model
@@ -264,16 +264,16 @@ class MultiProviderLLMRouter:
                             continue
                         text = await self._call_openai_compatible(
                             client=client,
-                            base_url=settings.GROK_BASE_URL or "https://api.x.ai/v1",
+                            base_url=settings.GROK_BASE_URL or "https://api.groq.com/openai/v1",
                             api_key=settings.GROK_API_KEY,
-                            model=settings.GROK_MODEL or "grok-2-latest",
+                            model=settings.GROK_MODEL or "openai/gpt-oss-120b",
                             system_instruction=system_instruction,
                             prompt=prompt,
                             temperature=0.4,
                         )
                         if text:
                             self.last_chat_provider = "grok"
-                            self.last_chat_model = settings.GROK_MODEL or "grok-2-latest"
+                            self.last_chat_model = settings.GROK_MODEL or "openai/gpt-oss-120b"
                             self.last_provider = self.last_chat_provider
                             self.last_model = self.last_chat_model
                             return text, self.last_chat_provider, self.last_chat_model
@@ -308,7 +308,7 @@ class MultiProviderLLMRouter:
         self.last_provider = self.last_chat_provider
         self.last_model = self.last_chat_model
         logger.info("Utilizing deterministic fallback rule engine for leave supervisor.")
-        return self._fallback_response(prompt), self.last_chat_provider, self.last_chat_model
+        return self._fallback_chat_reply(prompt), self.last_chat_provider, self.last_chat_model
 
     async def _call_openai_compatible(
         self,
@@ -377,10 +377,51 @@ class MultiProviderLLMRouter:
         logger.warning(f"Gemini API returned status {res.status_code}: {res.text[:200]}")
         return None
 
+    def _fallback_chat_reply(self, prompt: str) -> str:
+        """Deterministic conversational responses when remote LLM chat APIs fail or fall back."""
+        lower = prompt.lower()
+        if "sick" in lower:
+            return (
+                "**Company Sick Leave Policy**:\n\n"
+                "- **Entitlement**: 12 paid days per calendar year.\n"
+                "- **Notice Requirement**: Same-day notification permitted before business start.\n"
+                "- **Documentation**: Medical certificate required for consecutive absences > 2 days.\n\n"
+                "Would you like to draft a sick leave application or check your remaining balance?"
+            )
+        if "annual" in lower or "vacation" in lower:
+            return (
+                "**Company Annual Leave Policy**:\n\n"
+                "- **Entitlement**: 18 paid business days per year, accrued monthly.\n"
+                "- **Notice Requirement**: 5 business days advance notice for planned leaves.\n"
+                "- **Carryover**: Up to 5 unused days roll over to next calendar year.\n\n"
+                "Would you like me to draft an annual leave application for you?"
+            )
+        if "casual" in lower or "personal" in lower:
+            return (
+                "**Company Casual & Personal Leave Policy**:\n\n"
+                "- **Entitlement**: 10 paid days per year for personal matters and emergencies.\n"
+                "- **Notice Requirement**: 1 business day advance notice.\n\n"
+                "Would you like me to prepare a casual leave request?"
+            )
+        return (
+            "Hello! I am your WorkforceAI Supervisor. I can assist you with your leave balances, "
+            "company policy rules, or draft a time-off application for you. "
+            "For example, try asking: *'Check my balance'* or *'I need 2 days off next Monday and Tuesday for personal reasons'*."
+        )
+
     def _fallback_response(self, prompt: str) -> str:
         """Deterministic NLP extractor when remote LLM APIs are exhausted, offline, or unconfigured."""
         lower = prompt.lower()
         today = date.today()
+
+        # If user is asking a general policy or balance question, classify as not a leave request
+        is_query = any(k in lower for k in ["policy", "what is", "how many", "rules", "rule", "entitlement", "explain", "terms", "?"])
+        if is_query and not any(k in lower for k in ["need", "apply", "take", "request", "off", "want"]):
+            return json.dumps({
+                "is_leave_request": False,
+                "reason": prompt.strip(),
+                "confidence": 0.90,
+            })
 
         days = 1
         num_match = re.search(r"(\d+)\s*(?:day|days)", lower)
