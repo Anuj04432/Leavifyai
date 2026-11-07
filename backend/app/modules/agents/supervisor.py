@@ -159,7 +159,7 @@ class LeaveSupervisorWorkflow:
                 "policy_name": p_name,
                 "leave_type": b.leave_policy.leave_type if b.leave_policy else "casual",
                 "available": float(b.available),
-                "allocated": float(b.allocated),
+                "allocated": float(b.total_allocated),
                 "used": float(b.used),
             })
 
