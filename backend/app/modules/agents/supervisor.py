@@ -328,14 +328,14 @@ class LeaveSupervisorWorkflow:
             user_msg = state.get("user_message", "").strip().lower()
             all_bals = state.get("all_balances") or []
 
-            # 1. Organization Headcount & Workforce Intelligence
-            is_headcount_query = any(k in user_msg for k in [
-                "how many employee", "how many employees", "how many people",
-                "how many staff", "total employees", "total staff", "headcount",
-                "company size", "organization size", "in this organization"
-            ])
-            if is_headcount_query:
-                if not self.is_management:
+            # 1. Non-Management / Employee Privacy Guardrails
+            if not self.is_management:
+                is_headcount_query = any(k in user_msg for k in [
+                    "how many employee", "how many employees", "how many people",
+                    "how many staff", "total employees", "total staff", "headcount",
+                    "company size", "organization size"
+                ])
+                if is_headcount_query:
                     return {
                         "reply_message": (
                             "I'm sorry, but access to organization-wide workforce metrics and headcount data is restricted "
@@ -346,7 +346,73 @@ class LeaveSupervisorWorkflow:
                         "chat_provider": "deterministic",
                         "chat_model": "privacy-guardrail-v1",
                     }
+
+                is_leave_analytics_query = any(k in user_msg for k in [
+                    "most leave", "most leaves", "who took", "who has taken", "frequent leave",
+                    "top leave", "leave taker", "colleague leave", "employee leave", "colleague", "which employe"
+                ])
+                if is_leave_analytics_query:
+                    return {
+                        "reply_message": (
+                            "Colleague attendance records and company-wide leave histories are confidential. "
+                            "I cannot disclose other employees' absence data. Would you like to check your personal "
+                            "leave balance or draft a time-off request for yourself?"
+                        ),
+                        "recommendation": None,
+                        "chat_provider": "deterministic",
+                        "chat_model": "privacy-guardrail-v1",
+                    }
+
+                if any(k in user_msg for k in ["similar name", "same name", "who joined", "list employee", "list staff", "salary", "payroll", "compensation"]):
+                    return {
+                        "reply_message": (
+                            "I'm sorry, but colleague personal records and directory searches are restricted "
+                            "to HR and company management. As an employee, you can view your personal leave balances, "
+                            "review company leave policies, or submit a time-off application."
+                        ),
+                        "recommendation": None,
+                        "chat_provider": "deterministic",
+                        "chat_model": "privacy-guardrail-v1",
+                    }
+
+            # 2. User is asking to check personal leave balance
+            is_balance_query = (
+                any(k in user_msg for k in ["my balance", "check balance", "check my balance", "remaining leave", "days left", "my quota", "my entitlement"])
+                or (user_msg.strip() in ["balance", "check balance", "leave balance", "my balance"])
+                or ("how many" in user_msg and any(w in user_msg for w in ["i have", "my leave", "my leaves", "can i take"]))
+            )
+            if is_balance_query:
+                if all_bals:
+                    lines = [
+                        f"- **{b['policy_name']}**: **{b['available']} day(s)** available *(Allocated: {b['allocated']}d | Used: {b['used']}d)*"
+                        for b in all_bals
+                    ]
+                    reply = (
+                        f"Here are your current leave balances for {date.today().year}:\n\n"
+                        + "\n".join(lines)
+                        + "\n\nWould you like me to draft a time-off application for any of these? (e.g. *'I need 2 days off next Monday and Tuesday'*)"
+                    )
                 else:
+                    reply = "You currently have 10.0 days of Casual Leave available for this year."
+
+                return {
+                    "reply_message": reply,
+                    "recommendation": None,
+                    "chat_provider": self.llm.last_decision_provider or "openrouter",
+                    "chat_model": self.llm.last_decision_model or "openrouter/free",
+                }
+
+            # 3. Management Dynamic Workforce Intelligence
+            if self.is_management:
+                # 3a. Pure, fast headcount summary (only if no analytical modifiers like leaves, salary, usage, or names)
+                is_pure_headcount = (
+                    any(k in user_msg for k in ["headcount", "how many employee", "how many employees", "how many people", "how many staff", "total employees", "total staff", "company size", "organization size"])
+                    and not any(w in user_msg for w in [
+                        "leave", "leaves", "absent", "absence", "salary", "used", "took", "taken",
+                        "who", "most", "least", "less", "highest", "lowest", "similar", "name", "record"
+                    ])
+                )
+                if is_pure_headcount:
                     emp_cnt = (await self.db.execute(
                         select(func.count(Employee.id)).where(
                             Employee.company_id == self.company_id,
@@ -370,24 +436,23 @@ class LeaveSupervisorWorkflow:
                         "chat_model": "workforce-intelligence-v1",
                     }
 
-            # 2. Leave Analytics & Colleague Absence Intelligence
-            is_leave_analytics_query = any(k in user_msg for k in [
-                "most leave", "most leaves", "who took", "who has taken", "frequent leave",
-                "top leave", "leave taker", "colleague leave", "employee leave", "which employe"
-            ])
-            if is_leave_analytics_query:
-                if not self.is_management:
-                    return {
-                        "reply_message": (
-                            "Colleague attendance records and company-wide leave histories are confidential. "
-                            "I cannot disclose other employees' absence data. Would you like to check your personal "
-                            "leave balance or draft a time-off request for yourself?"
-                        ),
-                        "recommendation": None,
-                        "chat_provider": "deterministic",
-                        "chat_model": "privacy-guardrail-v1",
-                    }
-                else:
+                # 3b. Safe Read-Only SQL Analyst for dynamic leadership questions
+                sql_analyst = ExecutiveSQLAnalyst(self.db, self.company_id, self.llm)
+                if sql_analyst.is_analytical_query(user_msg):
+                    try:
+                        analyst_reply = await sql_analyst.answer_question(state["user_message"])
+                        if analyst_reply and not analyst_reply.strip().startswith("```"):
+                            return {
+                                "reply_message": analyst_reply,
+                                "recommendation": None,
+                                "chat_provider": self.llm.last_chat_provider or "openrouter",
+                                "chat_model": "executive-sql-analyst-v1",
+                            }
+                    except Exception as e:
+                        logger.warning(f"ExecutiveSQLAnalyst encountered error: {e}")
+
+                # 3c. Deterministic fallback for top leave takers if dynamic analysis did not fire
+                if any(k in user_msg for k in ["most leave", "most leaves", "top leave", "leave taker", "frequent leave"]):
                     days_window = 30
                     cutoff = datetime.utcnow() - timedelta(days=days_window)
                     stmt = (
@@ -432,57 +497,6 @@ class LeaveSupervisorWorkflow:
                         "chat_provider": "deterministic",
                         "chat_model": "workforce-intelligence-v1",
                     }
-
-            # 3. User is asking to check personal leave balance
-            is_balance_query = (
-                any(k in user_msg for k in ["balance", "remaining", "days left", "quota", "entitlement"])
-                or ("how many" in user_msg and any(w in user_msg for w in ["leave", "leaves", "day", "days", "vacation", "off", "have"]))
-            )
-            if is_balance_query:
-                if all_bals:
-                    lines = [
-                        f"- **{b['policy_name']}**: **{b['available']} day(s)** available *(Allocated: {b['allocated']}d | Used: {b['used']}d)*"
-                        for b in all_bals
-                    ]
-                    reply = (
-                        f"Here are your current leave balances for {date.today().year}:\n\n"
-                        + "\n".join(lines)
-                        + "\n\nWould you like me to draft a time-off application for any of these? (e.g. *'I need 2 days off next Monday and Tuesday'*)"
-                    )
-                else:
-                    reply = "You currently have 10.0 days of Casual Leave available for this year."
-
-                return {
-                    "reply_message": reply,
-                    "recommendation": None,
-                    "chat_provider": self.llm.last_decision_provider or "openrouter",
-                    "chat_model": self.llm.last_decision_model or "openrouter/free",
-                }
-
-            # 4. Management Dynamic Workforce Intelligence (Safe Read-Only SQL Analyst)
-            if self.is_management:
-                sql_analyst = ExecutiveSQLAnalyst(self.db, self.company_id, self.llm)
-                if sql_analyst.is_analytical_query(user_msg):
-                    try:
-                        analyst_reply = await sql_analyst.answer_question(state["user_message"])
-                        if analyst_reply and not analyst_reply.strip().startswith("```"):
-                            return {
-                                "reply_message": analyst_reply,
-                                "recommendation": None,
-                                "chat_provider": self.llm.last_chat_provider or "openrouter",
-                                "chat_model": "executive-sql-analyst-v1",
-                            }
-                    except Exception as e:
-                        logger.warning(f"ExecutiveSQLAnalyst encountered error: {e}")
-            elif any(k in user_msg for k in ["similar name", "same name", "who joined", "list employee", "list staff", "colleague"]):
-                return {
-                    "reply_message": (
-                        "I'm sorry, but colleague personal records and directory searches are restricted "
-                        "to HR and company management. As an employee, you can view your personal leave balances, "
-                        "review company leave policies, or submit a time-off application."
-                    ),
-                    "recommendation": None,
-                    "chat_provider": "deterministic",
                     "chat_model": "privacy-guardrail-v1",
                 }
 
