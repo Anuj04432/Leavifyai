@@ -60,10 +60,13 @@ def test_ai_recommendation_schema():
 
 
 @pytest.mark.asyncio
-async def test_multi_provider_router_fallback_to_deterministic():
+async def test_multi_provider_router_fallback_to_deterministic(monkeypatch):
+    from app.config import get_settings
+    settings = get_settings()
+    monkeypatch.setattr(settings, "LLM_ROUTING_ORDER", "deterministic")
     router = MultiProviderLLMRouter()
     text, provider, model = await router.generate_with_metadata(
-        "System directive",
+        "Return JSON with leave details",
         "I need 2 days off next Monday for medical checkup"
     )
     assert provider == "deterministic"
