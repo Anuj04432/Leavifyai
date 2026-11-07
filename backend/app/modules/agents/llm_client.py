@@ -308,7 +308,11 @@ class MultiProviderLLMRouter:
         self.last_provider = self.last_chat_provider
         self.last_model = self.last_chat_model
         logger.info("Utilizing deterministic fallback rule engine for leave supervisor.")
-        return self._fallback_chat_reply(prompt), self.last_chat_provider, self.last_chat_model
+        if "json" in system_instruction.lower() or any(w in prompt.lower() for w in ["vacation", "leave for", "days off", "day off"]):
+            fallback_text = self._fallback_response(prompt)
+        else:
+            fallback_text = self._fallback_chat_reply(prompt)
+        return fallback_text, self.last_chat_provider, self.last_chat_model
 
     async def _call_openai_compatible(
         self,
