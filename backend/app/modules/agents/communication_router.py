@@ -56,3 +56,26 @@ async def simulate_inbound_message(
         channel=payload.channel,
     )
     return result
+
+
+@router.get("/worker-status")
+async def get_worker_status(
+    current_user: User = Depends(get_current_user),
+) -> Dict[str, Any]:
+    """Returns background inbox polling worker status and statistics."""
+    from app.modules.agents.background_worker import inbox_worker
+    return inbox_worker.get_status()
+
+
+@router.post("/worker-poll")
+async def trigger_worker_poll(
+    current_user: User = Depends(get_current_user),
+) -> Dict[str, Any]:
+    """Manually triggers an immediate background polling iteration."""
+    from app.modules.agents.background_worker import inbox_worker
+    processed = await inbox_worker.poll_now()
+    return {
+        "status": "success",
+        "processed_count": len(processed),
+        "worker": inbox_worker.get_status(),
+    }
