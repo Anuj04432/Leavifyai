@@ -2,6 +2,7 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal
 import json
 import logging
+import re
 from typing import Any, Dict, List, Optional, TypedDict
 import uuid
 from langgraph.graph import END, StateGraph
@@ -78,6 +79,79 @@ class LeaveSupervisorWorkflow:
 
         return workflow.compile()
 
+    @staticmethod
+    def _extract_dates_from_text(text: str, today_dt: Optional[date] = None) -> tuple[str, str]:
+        if today_dt is None:
+            today_dt = date.today()
+        low = text.lower()
+        year = today_dt.year
+
+        # 1. ISO dates: YYYY-MM-DD
+        iso_matches = re.findall(r"\b(\d{4}-\d{2}-\d{2})\b", text)
+        if len(iso_matches) >= 2:
+            return iso_matches[0], iso_matches[1]
+        elif len(iso_matches) == 1:
+            st = date.fromisoformat(iso_matches[0])
+            m = re.search(r"(\d+)\s*(?:day|days|business day|working day)", low)
+            days = int(m.group(1)) if m else 1
+            return st.isoformat(), (st + timedelta(days=days - 1)).isoformat()
+
+        month_map = {
+            "jan": 1, "january": 1, "feb": 2, "february": 2, "mar": 3, "march": 3,
+            "apr": 4, "april": 4, "may": 5, "jun": 6, "june": 6, "jul": 7, "july": 7,
+            "aug": 8, "august": 8, "sep": 9, "september": 9, "oct": 10, "october": 10,
+            "nov": 11, "november": 11, "dec": 12, "december": 12,
+        }
+
+        # 2. Month Day to [Month] Day (e.g. "nov 9 to 11", "nov 9 to nov 11", "november 18 through november 20")
+        m_range = re.search(
+            r"\b([a-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?\s*(?:to|-|through|until)\s*(?:([a-z]+)\s+)?(\d{1,2})(?:st|nd|rd|th)?\b",
+            low,
+        )
+        if m_range:
+            m1_str, d1_str, m2_str, d2_str = m_range.groups()
+            if m1_str in month_map:
+                mo1 = month_map[m1_str]
+                mo2 = month_map[m2_str] if m2_str and m2_str in month_map else mo1
+                st = date(year, mo1, int(d1_str))
+                end = date(year, mo2, int(d2_str))
+                if end < st:
+                    end = date(year + 1, mo2, int(d2_str))
+                return st.isoformat(), end.isoformat()
+
+        # 3. Day Month to Day Month (e.g. "9 nov to 11 nov", "9 to 11 nov")
+        m_d_range = re.search(
+            r"\b(\d{1,2})(?:st|nd|rd|th)?\s*(?:([a-z]+)\s*)?(?:to|-|through|until)\s*(\d{1,2})(?:st|nd|rd|th)?\s+([a-z]+)\b",
+            low,
+        )
+        if m_d_range:
+            d1_str, m1_str, d2_str, m2_str = m_d_range.groups()
+            if m2_str in month_map:
+                mo2 = month_map[m2_str]
+                mo1 = month_map[m1_str] if m1_str and m1_str in month_map else mo2
+                st = date(year, mo1, int(d1_str))
+                end = date(year, mo2, int(d2_str))
+                return st.isoformat(), end.isoformat()
+
+        # 4. Relative counts
+        days = 1
+        m = re.search(r"(\d+)\s*(?:day|days|business day|working day)", low)
+        if m:
+            days = int(m.group(1))
+
+        st = today_dt + timedelta(days=1)
+        if "today" in low and ("from today" in low or "starting today" in low):
+            st = today_dt
+        elif "tomorrow" in low:
+            st = today_dt + timedelta(days=1)
+        elif "next monday" in low:
+            ahead = (7 - today_dt.weekday()) % 7
+            st = today_dt + timedelta(days=ahead if ahead != 0 else 7)
+        elif "next week" in low:
+            st = today_dt + timedelta(days=7)
+
+        return st.isoformat(), (st + timedelta(days=days - 1)).isoformat()
+
     # -------------------------------------------------------------------------
     # Node 1: Parser Node
     # -------------------------------------------------------------------------
@@ -124,26 +198,21 @@ class LeaveSupervisorWorkflow:
 
             # Date and category normalization guardrails
             if extracted.get("is_leave_request"):
+                needs_dates = False
                 try:
                     date.fromisoformat(str(extracted.get("start_date")))
                     date.fromisoformat(str(extracted.get("end_date")))
                 except Exception:
-                    today_dt = date.today()
-                    low = prompt.lower()
-                    days = 1
-                    m = re.search(r"(\d+)\s*(?:day|days)", low)
-                    if m:
-                        days = int(m.group(1))
-                    st = today_dt + timedelta(days=1)
-                    if "next monday" in low:
-                        ahead = (7 - today_dt.weekday()) % 7
-                        st = today_dt + timedelta(days=ahead if ahead != 0 else 7)
-                    elif "tomorrow" in low:
-                        st = today_dt + timedelta(days=1)
-                    elif "next week" in low:
-                        st = today_dt + timedelta(days=7)
-                    extracted["start_date"] = st.isoformat()
-                    extracted["end_date"] = (st + timedelta(days=days - 1)).isoformat()
+                    needs_dates = True
+
+                if needs_dates:
+                    full_context = prompt
+                    if chat_history:
+                        user_texts = [h.get("content", "") for h in chat_history if h.get("role") == "user"]
+                        full_context = " ".join(user_texts + [prompt])
+                    st_str, end_str = self._extract_dates_from_text(full_context)
+                    extracted["start_date"] = st_str
+                    extracted["end_date"] = end_str
 
                 if extracted.get("leave_type"):
                     lt = str(extracted["leave_type"]).lower()
@@ -155,7 +224,8 @@ class LeaveSupervisorWorkflow:
                         extracted["leave_type"] = "unpaid"
                     else:
                         extracted["leave_type"] = "casual"
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Leave supervisor parser node exception: {e}")
             extracted = {
                 "is_leave_request": False,
                 "reason": prompt,
