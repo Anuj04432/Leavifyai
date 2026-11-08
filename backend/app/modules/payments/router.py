@@ -2,11 +2,16 @@ import logging
 import uuid
 from typing import Any, Dict
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.database import get_db
 from app.dependencies import get_current_user, require_permission, require_roles
+from app.models.employee import Employee
+from app.models.payroll import PayrollBatch, PayrollItem
 from app.models.user import User
+from app.modules.payments.payslip_mailer import PayslipMailer
 from app.modules.payments.service import payment_service
 from app.schemas.payment import (
     DisbursePayrollRequest,
@@ -94,3 +99,43 @@ async def paypal_webhook(
     event_type = payload.get("event_type", "UNKNOWN")
     logger.info(f"Received PayPal Webhook: {event_type}")
     return {"status": "received", "event_type": event_type}
+
+
+@router.post(
+    "/payslip/{item_id}/send-email",
+    status_code=status.HTTP_200_OK,
+    summary="Dispatch or resend official payslip email to employee",
+)
+async def send_payslip_email_endpoint(
+    item_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate and dispatch an official HTML payslip email for a specific payroll line item."""
+    stmt = (
+        select(PayrollItem)
+        .options(
+            selectinload(PayrollItem.payroll_batch).selectinload(PayrollBatch.company),
+            selectinload(PayrollItem.employee).selectinload(Employee.department),
+            selectinload(PayrollItem.employee).selectinload(Employee.user),
+            selectinload(PayrollItem.payment),
+        )
+        .where(PayrollItem.id == item_id)
+    )
+    res = await db.execute(stmt)
+    item = res.scalars().first()
+
+    if not item or item.payroll_batch.company_id != current_user.company_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Payroll item not found")
+
+    mailer = PayslipMailer(db)
+    company_name = item.payroll_batch.company.name if item.payroll_batch.company else "WorkforceAI"
+    tx_id = item.payment.provider_transaction_id if item.payment else None
+
+    return await mailer.send_payslip_email(
+        employee=item.employee,
+        payroll_item=item,
+        batch=item.payroll_batch,
+        company_name=company_name,
+        payout_tx_id=tx_id,
+    )
