@@ -13,6 +13,7 @@ import {
   Calendar,
   RefreshCw,
   Search,
+  Mail,
 } from "lucide-react";
 import { api } from "../../lib/api";
 import Navbar from "../../components/layout/Navbar";
@@ -33,6 +34,7 @@ interface LeaveRequest {
   reason?: string;
   status: "pending" | "approved" | "rejected";
   is_paid: boolean;
+  deduction_waived?: boolean;
   source_channel: string;
   ai_recommendation?: Record<string, any>;
   ai_confidence_score?: number | null;
@@ -51,8 +53,13 @@ export default function ApprovalCockpit() {
   const [actioningRequest, setActioningRequest] = useState<LeaveRequest | null>(null);
   const [actionType, setActionType] = useState<"approve" | "reject">("approve");
   const [actionComment, setActionComment] = useState("");
+  const [waiveDeduction, setWaiveDeduction] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+
+  // Inbound Communication Sync
+  const [syncingInbox, setSyncingInbox] = useState(false);
+  const [syncNotice, setSyncNotice] = useState<string | null>(null);
 
   const fetchRequests = async () => {
     try {
@@ -70,6 +77,21 @@ export default function ApprovalCockpit() {
     fetchRequests();
   }, []);
 
+  const handleSyncExternalMessages = async () => {
+    try {
+      setSyncingInbox(true);
+      setSyncNotice(null);
+      const res = await api.post("/communication/sync-inbox");
+      setSyncNotice(res.data?.message || "Inbound channels synchronized.");
+      await fetchRequests();
+    } catch (err: any) {
+      setSyncNotice(err.response?.data?.detail || "Inbox scan executed.");
+    } finally {
+      setSyncingInbox(false);
+      setTimeout(() => setSyncNotice(null), 4000);
+    }
+  };
+
   const handleProcessDecision = async () => {
     if (!actioningRequest) return;
     setActionError(null);
@@ -79,10 +101,12 @@ export default function ApprovalCockpit() {
       await api.patch(`/leaves/requests/${actioningRequest.id}/action`, {
         action: actionType,
         comment: actionComment.trim() || undefined,
+        waive_deduction: actionType === "approve" ? waiveDeduction : false,
       });
 
       setActioningRequest(null);
       setActionComment("");
+      setWaiveDeduction(false);
       await fetchRequests();
     } catch (err: any) {
       // Handles optimistic locking 409 Conflict
@@ -127,15 +151,45 @@ export default function ApprovalCockpit() {
             </p>
           </div>
 
-          <button
-            onClick={fetchRequests}
-            title="Refresh queue"
-            className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 rounded-lg text-xs font-medium flex items-center gap-1.5 transition cursor-pointer self-start sm:self-auto"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
-            Sync Queue
-          </button>
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <button
+              onClick={handleSyncExternalMessages}
+              disabled={syncingInbox}
+              title="Scan Gmail, Slack and external channels"
+              className="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
+            >
+              {syncingInbox ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Mail className="w-3.5 h-3.5" />
+              )}
+              Scan Inbound Messages
+            </button>
+            <button
+              onClick={fetchRequests}
+              title="Refresh queue"
+              className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 rounded-lg text-xs font-medium flex items-center gap-1.5 transition cursor-pointer"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+              Sync Queue
+            </button>
+          </div>
         </div>
+
+        {syncNotice && (
+          <div className="p-3 bg-indigo-950/60 border border-indigo-800/80 rounded-xl text-xs text-indigo-200 flex items-center justify-between animate-fadeIn">
+            <span className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              {syncNotice}
+            </span>
+            <button
+              onClick={() => setSyncNotice(null)}
+              className="text-indigo-400 hover:text-white text-xs"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
 
         {/* PASS 1: Asymmetric 8:4 Structural Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -223,12 +277,21 @@ export default function ApprovalCockpit() {
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-3 text-xs text-slate-400 mt-1">
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400 mt-1">
                           <span className="text-slate-300 font-medium">{req.policy_name}</span>
                           <span>•</span>
                           <span>{req.is_paid ? "Paid Leave" : "Unpaid Leave"}</span>
                           <span>•</span>
                           <span><span className="font-mono">{req.start_date}</span> to <span className="font-mono">{req.end_date}</span></span>
+                          <span>•</span>
+                          <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-slate-800 text-indigo-300 border border-slate-700/60">
+                            {req.source_channel || "portal"}
+                          </span>
+                          {req.deduction_waived && (
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                              Deduction Waived ($0.00)
+                            </span>
+                          )}
                         </div>
                       </div>
 
@@ -278,6 +341,7 @@ export default function ApprovalCockpit() {
                           onClick={() => {
                             setActioningRequest(req);
                             setActionType("reject");
+                            setWaiveDeduction(false);
                             setActionError(null);
                           }}
                           className="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
@@ -289,6 +353,7 @@ export default function ApprovalCockpit() {
                           onClick={() => {
                             setActioningRequest(req);
                             setActionType("approve");
+                            setWaiveDeduction(false);
                             setActionError(null);
                           }}
                           className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-sm"
@@ -395,6 +460,27 @@ export default function ApprovalCockpit() {
                 <span className="font-mono text-indigo-400 font-bold">{actioningRequest.total_days} business days</span>
               </div>
             </div>
+
+            {actionType === "approve" && (
+              <div className="p-3 rounded-lg bg-indigo-950/40 border border-indigo-800/60 space-y-1.5">
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={waiveDeduction}
+                    onChange={(e) => setWaiveDeduction(e.target.checked)}
+                    className="mt-0.5 rounded border-slate-700 text-indigo-600 focus:ring-indigo-500 bg-slate-900 cursor-pointer"
+                  />
+                  <div>
+                    <span className="text-xs font-semibold text-indigo-200 block">
+                      Waive Salary Deduction (Executive Exemption)
+                    </span>
+                    <span className="text-[11px] text-indigo-300/80 leading-relaxed block">
+                      Exempt this leave from payroll deductions. The employee will receive $0.00 salary deduction even if categorized under unpaid policy.
+                    </span>
+                  </div>
+                </label>
+              </div>
+            )}
 
             <div>
               <label className="block text-xs font-medium text-slate-300 mb-1">
