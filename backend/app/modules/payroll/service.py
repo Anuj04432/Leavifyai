@@ -154,7 +154,7 @@ class PayrollService:
             paid_days = Decimal("0.0")
             unpaid_days = Decimal("0.0")
             for req in leaves:
-                if req.is_paid:
+                if req.is_paid or getattr(req, "deduction_waived", False):
                     paid_days += Decimal(str(req.total_days))
                 else:
                     unpaid_days += Decimal(str(req.total_days))
