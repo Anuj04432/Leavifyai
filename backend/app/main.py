@@ -22,8 +22,13 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup actions
+    if settings.INBOX_AUTO_POLL_ENABLED:
+        from app.modules.agents.background_worker import inbox_worker
+        inbox_worker.start()
     yield
     # Shutdown actions
+    from app.modules.agents.background_worker import inbox_worker
+    await inbox_worker.stop()
 
 
 app = FastAPI(
