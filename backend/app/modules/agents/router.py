@@ -66,8 +66,18 @@ async def chat_with_supervisor(
     balance_info = result.get("balance_info") or {}
     recommendation_data = result.get("recommendation")
 
+    has_conflict = False
+    if result.get("policy_evaluation"):
+        has_conflict = result["policy_evaluation"].get("has_conflict", False)
+
+    is_approved = (
+        recommendation_data.get("decision") == "APPROVE"
+        if recommendation_data
+        else not has_conflict
+    )
+
     extracted_leave = None
-    if extracted.get("is_leave_request") and balance_info:
+    if extracted.get("is_leave_request") and balance_info and not has_conflict:
         try:
             start_d = date.fromisoformat(balance_info["start_date"])
             end_d = date.fromisoformat(balance_info["end_date"])
@@ -85,7 +95,7 @@ async def chat_with_supervisor(
             total_days=int(balance_info.get("requested_days", 1)),
             reason=extracted.get("reason"),
             available_balance=balance_info.get("available_days"),
-            can_auto_submit=balance_info.get("is_sufficient", False),
+            can_auto_submit=bool(balance_info.get("is_sufficient", False) and is_approved),
         )
 
     recommendation = None
