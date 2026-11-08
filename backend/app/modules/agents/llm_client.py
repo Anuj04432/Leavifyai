@@ -499,23 +499,65 @@ class MultiProviderLLMRouter:
                 "confidence": 0.90,
             })
 
-        days = 1
-        num_match = re.search(r"(\d+)\s*(?:day|days)", lower)
-        if num_match:
-            days = int(num_match.group(1))
+        # Date extraction: ISO, Month range, or relative
+        iso_matches = re.findall(r"\b(\d{4}-\d{2}-\d{2})\b", prompt)
+        month_map = {
+            "jan": 1, "january": 1, "feb": 2, "february": 2, "mar": 3, "march": 3,
+            "apr": 4, "april": 4, "may": 5, "jun": 6, "june": 6, "jul": 7, "july": 7,
+            "aug": 8, "august": 8, "sep": 9, "september": 9, "oct": 10, "october": 10,
+            "nov": 11, "november": 11, "dec": 12, "december": 12,
+        }
+        m_range = re.search(
+            r"\b([a-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?\s*(?:to|-|through|until)\s*(?:([a-z]+)\s+)?(\d{1,2})(?:st|nd|rd|th)?\b",
+            lower,
+        )
+        m_d_range = re.search(
+            r"\b(\d{1,2})(?:st|nd|rd|th)?\s*(?:([a-z]+)\s*)?(?:to|-|through|until)\s*(\d{1,2})(?:st|nd|rd|th)?\s+([a-z]+)\b",
+            lower,
+        )
 
-        start = today + timedelta(days=1)
-        if "next monday" in lower:
-            days_ahead = (7 - today.weekday()) % 7
-            if days_ahead == 0:
-                days_ahead = 7
-            start = today + timedelta(days=days_ahead)
-        elif "tomorrow" in lower:
+        if len(iso_matches) >= 2:
+            start = date.fromisoformat(iso_matches[0])
+            end = date.fromisoformat(iso_matches[1])
+        elif len(iso_matches) == 1:
+            start = date.fromisoformat(iso_matches[0])
+            num_match = re.search(r"(\d+)\s*(?:day|days)", lower)
+            days = int(num_match.group(1)) if num_match else 1
+            end = start + timedelta(days=days - 1)
+        elif m_range and m_range.group(1) in month_map:
+            mo1 = month_map[m_range.group(1)]
+            mo2 = month_map[m_range.group(3)] if m_range.group(3) and m_range.group(3) in month_map else mo1
+            start = date(today.year, mo1, int(m_range.group(2)))
+            end = date(today.year, mo2, int(m_range.group(4)))
+            if end < start:
+                end = date(today.year + 1, mo2, int(m_range.group(4)))
+        elif m_d_range and m_d_range.group(4) in month_map:
+            mo2 = month_map[m_d_range.group(4)]
+            mo1 = month_map[m_d_range.group(2)] if m_d_range.group(2) and m_d_range.group(2) in month_map else mo2
+            start = date(today.year, mo1, int(m_d_range.group(1)))
+            end = date(today.year, mo2, int(m_d_range.group(3)))
+            if end < start:
+                end = date(today.year + 1, mo2, int(m_d_range.group(3)))
+        else:
+            days = 1
+            num_match = re.search(r"(\d+)\s*(?:day|days|business day|working day)", lower)
+            if num_match:
+                days = int(num_match.group(1))
+
             start = today + timedelta(days=1)
-        elif "next week" in lower:
-            start = today + timedelta(days=7)
+            if "today" in lower and ("from today" in lower or "starting today" in lower):
+                start = today
+            elif "next monday" in lower:
+                days_ahead = (7 - today.weekday()) % 7
+                if days_ahead == 0:
+                    days_ahead = 7
+                start = today + timedelta(days=days_ahead)
+            elif "tomorrow" in lower:
+                start = today + timedelta(days=1)
+            elif "next week" in lower:
+                start = today + timedelta(days=7)
 
-        end = start + timedelta(days=days - 1)
+            end = start + timedelta(days=days - 1)
 
         ltype = "casual"
         if "sick" in lower or "doctor" in lower or "fever" in lower or "medical" in lower:
