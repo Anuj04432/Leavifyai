@@ -4,9 +4,15 @@ import uuid
 from pydantic import BaseModel, Field
 
 
+class ChatMessageHistoryItem(BaseModel):
+    role: str = Field(..., description="'user' | 'assistant'")
+    content: str
+
+
 class AgentChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=2000)
     conversation_id: Optional[str] = None
+    history: List[ChatMessageHistoryItem] = Field(default_factory=list)
 
 
 class AgentExtractedLeave(BaseModel):
