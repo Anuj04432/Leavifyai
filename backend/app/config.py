@@ -46,6 +46,10 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
+    # Inbound Communication Autonomous Polling Worker
+    INBOX_AUTO_POLL_ENABLED: bool = True
+    INBOX_POLL_INTERVAL_SECONDS: int = 60
+
     # Multi-Provider AI & LLM Routing Configuration
     LLM_ROUTING_ORDER: str = "omniroute,openrouter,gemini,grok,local,deterministic"
 
