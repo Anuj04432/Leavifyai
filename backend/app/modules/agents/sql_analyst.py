@@ -93,7 +93,8 @@ class ExecutiveSQLAnalyst:
             "active employee", "inactive", "designation", "role", "organization", "company",
             "salary", "compensation", "highest", "lowest", "least", "fewer", "less leaves",
             "sick leave", "casual leave", "annual leave", "used leave", "all the leaves",
-            "took leave", "took leaves", "which employee", "which employe"
+            "took leave", "took leaves", "which employee", "which employe", "names of",
+            "names", "name", "who are", "those employee", "those employees", "employee name"
         ]
         return any(k in low for k in keywords)
 
@@ -106,8 +107,16 @@ class ExecutiveSQLAnalyst:
             return False
         return True
 
-    async def generate_sql(self, question: str) -> Optional[str]:
-        """Prompts LLM to convert question into a clean PostgreSQL SELECT query."""
+    async def generate_sql(self, question: str, chat_history: Optional[List[Dict[str, str]]] = None) -> Optional[str]:
+        """Prompts LLM to convert question into a clean PostgreSQL SELECT query with optional conversation context."""
+        history_context = ""
+        if chat_history:
+            recent_turns = [
+                f"{item.get('role', 'user').capitalize()}: {item.get('content', '')}"
+                for item in chat_history[-4:]
+            ]
+            history_context = "Recent Conversation Context:\n" + "\n".join(recent_turns) + "\n\n"
+
         system_instruction = (
             f"You are a PostgreSQL Database Expert for WorkforceAI.\n{WORKFORCE_SCHEMA}\n"
             "Rules for writing SQL:\n"
@@ -115,9 +124,11 @@ class ExecutiveSQLAnalyst:
             "2. ALWAYS scope to the current company by filtering with `company_id = :company_id` (or joining tables that have company_id).\n"
             "3. Use standard PostgreSQL functions (e.g. COUNT, SUM, AVG, ILIKE, LOWER, DATE_TRUNC).\n"
             "4. NEVER write INSERT, UPDATE, DELETE, or DDL statements.\n"
-            "5. Return ONLY the raw SQL query. Do not wrap in markdown or explanation."
+            "5. If the user refers to pronouns like 'those employees' or 'them', resolve them from the conversation context.\n"
+            "6. Return ONLY the raw SQL query. Do not wrap in markdown or explanation."
         )
-        raw_sql = await self.llm.generate_text(system_instruction, question)
+        content_prompt = f"{history_context}Current Question: {question}"
+        raw_sql = await self.llm.generate_text(system_instruction, content_prompt)
         if not raw_sql:
             return None
 
@@ -149,9 +160,9 @@ class ExecutiveSQLAnalyst:
             logger.warning(f"Error executing SQL analyst query: {e}")
             return []
 
-    async def answer_question(self, question: str) -> Optional[str]:
-        """Full pipeline: Question -> SQL -> Execution -> Natural Executive Summary."""
-        sql = await self.generate_sql(question)
+    async def answer_question(self, question: str, chat_history: Optional[List[Dict[str, str]]] = None) -> Optional[str]:
+        """Full pipeline: Question (+ Context) -> SQL -> Execution -> Natural Executive Summary."""
+        sql = await self.generate_sql(question, chat_history=chat_history)
         if not sql or not self.validate_sql(sql):
             return None
 
