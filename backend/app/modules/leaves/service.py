@@ -11,6 +11,7 @@ from app.models.communication import CommunicationEvent
 from app.models.employee import Employee
 from app.models.leave import Approval, LeaveBalance, LeavePolicy, LeaveRequest, LeaveRequestStatus
 from app.models.user import User
+from app.modules.agents.email_service import EmailNotificationDispatcher
 from app.schemas.leave import (
     LeaveActionRequest,
     LeaveBalanceResponse,
@@ -371,6 +372,8 @@ class LeaveService:
 
         if action_lower == "approve":
             req.status = LeaveRequestStatus.APPROVED.value
+            if action_data.waive_deduction:
+                req.deduction_waived = True
             if bal:
                 bal.pending = max(Decimal("0.0"), bal.pending - req.total_days)
                 bal.used = bal.used + req.total_days
@@ -407,11 +410,22 @@ class LeaveService:
                 "status": req.status,
                 "action_by": reviewer_user.email,
                 "comment": action_data.comment,
+                "deduction_waived": getattr(req, "deduction_waived", False),
             },
             ai_extracted_data={},
             processing_status="unread",
         )
         self.db.add(decision_notif)
+
+        # Dispatch transactional email with policy-driven salary deduction notice
+        email_dispatcher = EmailNotificationDispatcher(self.db)
+        policy_name = req.leave_policy.name if req.leave_policy else "Company Leave"
+        await email_dispatcher.send_leave_decision_email(
+            employee=req.employee,
+            leave_req=req,
+            policy_name=policy_name,
+            reviewer_comment=action_data.comment,
+        )
 
         await self.db.commit()
         await self.db.refresh(req)
@@ -431,6 +445,7 @@ class LeaveService:
             reason=req.reason,
             status=req.status,
             is_paid=req.is_paid,
+            deduction_waived=getattr(req, "deduction_waived", False),
             source_channel=req.source_channel,
             ai_recommendation=req.ai_recommendation or {},
             ai_confidence_score=req.ai_confidence_score,
