@@ -107,6 +107,7 @@ class LeaveRequest(Base, UUIDMixin, TimestampMixin):
     reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(20), default=LeaveRequestStatus.PENDING.value, nullable=False, index=True)
     is_paid: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    deduction_waived: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     source_channel: Mapped[str] = mapped_column(String(20), default="app", nullable=False)
 
     # AI Recommendation artifacts
