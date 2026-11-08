@@ -99,6 +99,22 @@ export default function PayrollExecution() {
   // Payslip modal state
   const [selectedPayslip, setSelectedPayslip] = useState<PayslipData | null>(null);
   const [showPayoutModal, setShowPayoutModal] = useState(false);
+  const [emailing, setEmailing] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+
+  const handleEmailPayslip = async (itemId: string) => {
+    setEmailing(true);
+    setEmailSent(false);
+    try {
+      await api.post(`/payments/payslip/${itemId}/send-email`);
+      setEmailSent(true);
+      setTimeout(() => setEmailSent(false), 3000);
+    } catch (err: any) {
+      alert(err.response?.data?.detail || "Failed to dispatch payslip email.");
+    } finally {
+      setEmailing(false);
+    }
+  };
 
   const isCeo = user?.role === "ceo" || user?.role === "super_admin";
   const canRunPayroll =
@@ -493,6 +509,26 @@ export default function PayrollExecution() {
                 <h3 className="text-sm font-bold text-white">Itemized Payslip</h3>
               </div>
               <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleEmailPayslip(selectedPayslip.payroll_item_id)}
+                  disabled={emailing}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/20 text-xs font-medium transition-colors motion-reduce:transition-none cursor-pointer disabled:opacity-50"
+                  title="Dispatch Payslip Email"
+                >
+                  {emailing ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : emailSent ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="text-emerald-400 font-semibold">Emailed</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-3.5 h-3.5" />
+                      <span>Email Slip</span>
+                    </>
+                  )}
+                </button>
                 <button
                   onClick={() => window.print()}
                   className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors motion-reduce:transition-none cursor-pointer"
