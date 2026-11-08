@@ -1,3 +1,4 @@
+import calendar
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 import json
@@ -133,7 +134,16 @@ class LeaveSupervisorWorkflow:
                 end = date(year, mo2, int(d2_str))
                 return st.isoformat(), end.isoformat()
 
-        # 4. Explicit relative time cues: "tomorrow", "from today", "next monday", etc.
+        # 4. Whole month or month reference: "month of december", "one month of december", "for december"
+        m_month = re.search(r"\b(?:whole\s+|entire\s+|one\s+|full\s+)?month\s+of\s+([a-z]+)\b", low)
+        if not m_month:
+            m_month = re.search(r"\bfor\s+(?:the\s+)?(?:month\s+of\s+)?([a-z]+)\b", low)
+        if m_month and m_month.group(1) in month_map:
+            mo = month_map[m_month.group(1)]
+            last_day = calendar.monthrange(year, mo)[1]
+            return date(year, mo, 1).isoformat(), date(year, mo, last_day).isoformat()
+
+        # 5. Explicit relative time cues: "tomorrow", "from today", "next monday", etc.
         has_relative = any(k in low for k in ["tomorrow", "today", "next monday", "next week", "days off", "days starting"])
         if has_relative:
             days = 1
@@ -205,8 +215,13 @@ class LeaveSupervisorWorkflow:
                 # Priority 1: Extract dates directly from the current user prompt
                 parsed_dates = self._extract_dates_from_text(prompt)
 
-                # Priority 2: Only look backwards into chat history if current prompt had no dates
-                if not parsed_dates and chat_history:
+                # Priority 2: Only look backwards into chat history if current prompt is a short follow-up without new request cues
+                has_new_intent_cues = any(k in prompt.lower() for k in [
+                    "i need", "i want", "apply for", "request", "marriage", "wedding",
+                    "travel", "vacation", "month of", "december", "january", "february",
+                    "march", "april", "may", "june", "july", "august", "september", "october", "november"
+                ])
+                if not parsed_dates and not has_new_intent_cues and chat_history:
                     for turn in reversed(chat_history[-6:]):
                         if turn.get("role") == "user":
                             hist_dates = self._extract_dates_from_text(turn.get("content", ""))
@@ -723,14 +738,37 @@ class LeaveSupervisorWorkflow:
                 f"notice ({pol['notice_days_provided']}d in advance), and policy rules."
             )
             remaining_bal = max(0.0, float(bal['available_days']) - float(bal['requested_days']))
-            reply = (
-                f"I've drafted your request: **{bal['requested_days']} business day(s)** of **{bal['policy_name']}** "
-                f"from **{bal['start_date']}** to **{bal['end_date']}**.\n\n"
+            structured_breakdown = (
                 f"- **Current Available Balance**: **{bal['available_days']} day(s)**\n"
                 f"- **Requested Deductions**: **{bal['requested_days']} day(s)**\n"
-                f"- **Remaining Balance (Upon Approval)**: **{remaining_bal:.1f} day(s)**\n\n"
+                f"- **Remaining Balance (Upon Approval)**: **{remaining_bal:.1f} day(s)**"
+            )
+            default_reply = (
+                f"I've drafted your request: **{bal['requested_days']} business day(s)** of **{bal['policy_name']}** "
+                f"from **{bal['start_date']}** to **{bal['end_date']}**.\n\n"
+                f"{structured_breakdown}\n\n"
                 "Would you like me to submit this for manager review?"
             )
+            chat_instruction = (
+                f"You are the WorkforceAI Agentic Supervisor. Today's date is {date.today().isoformat()}.\n"
+                f"Confirm the employee's request for {bal['requested_days']} business day(s) of {bal['policy_name']} from {bal['start_date']} to {bal['end_date']}.\n"
+                "Write a warm 1-sentence confirmation preamble acknowledging their occasion/reason."
+            )
+            try:
+                ai_preamble = await self.llm.generate_text(chat_instruction, state["user_message"])
+                if ai_preamble and not ai_preamble.strip().startswith("```") and not ai_preamble.strip().startswith("{") and len(ai_preamble.strip()) > 10:
+                    reply = (
+                        f"{ai_preamble.strip()}\n\n"
+                        f"I've drafted your request: **{bal['requested_days']} business day(s)** of **{bal['policy_name']}** "
+                        f"from **{bal['start_date']}** to **{bal['end_date']}**.\n\n"
+                        f"{structured_breakdown}\n\n"
+                        "Would you like me to submit this for manager review?"
+                    )
+                else:
+                    reply = default_reply
+            except Exception as e:
+                logger.warning(f"AI chat reply generation encountered error: {e}. Using deterministic fallback.")
+                reply = default_reply
 
         chat_prov = self.llm.last_chat_provider or "deterministic"
         chat_mod = self.llm.last_chat_model or "workforceai-rule-engine-v1"
