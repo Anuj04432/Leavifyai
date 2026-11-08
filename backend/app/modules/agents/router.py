@@ -59,7 +59,8 @@ async def chat_with_supervisor(
         employee_id=emp.id,
         user_role=current_user.role,
     )
-    result = await workflow.run(payload.message)
+    history_dicts = [item.model_dump() for item in payload.history] if payload.history else []
+    result = await workflow.run(payload.message, chat_history=history_dicts)
 
     extracted = result.get("extracted_data") or {}
     balance_info = result.get("balance_info") or {}
