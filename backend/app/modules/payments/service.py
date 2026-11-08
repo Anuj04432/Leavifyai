@@ -12,6 +12,7 @@ from app.models.payment import Payment, PaymentStatus
 from app.models.payroll import BatchStatus, PayrollBatch, PayrollItem
 from app.models.user import User
 from app.modules.notifications.service import NotificationService
+from app.modules.payments.payslip_mailer import PayslipMailer
 from app.modules.payments.paypal_client import paypal_client
 from app.schemas.payment import (
     DisbursePayrollResponse,
@@ -38,7 +39,13 @@ class PaymentService:
             select(PayrollBatch)
             .where(PayrollBatch.id == batch_id, PayrollBatch.company_id == company_id)
             .options(
-                selectinload(PayrollBatch.payroll_items).selectinload(PayrollItem.employee).selectinload(Employee.user)
+                selectinload(PayrollBatch.payroll_items)
+                .selectinload(PayrollItem.employee)
+                .selectinload(Employee.user),
+                selectinload(PayrollBatch.payroll_items)
+                .selectinload(PayrollItem.employee)
+                .selectinload(Employee.department),
+                selectinload(PayrollBatch.company),
             )
         )
         result = await db.execute(stmt)
@@ -180,6 +187,21 @@ class PaymentService:
         batch.status = BatchStatus.PAID.value
         await db.commit()
 
+        # 6. Automated Payslip Email Dispatch
+        payslips_dispatched = 0
+        try:
+            payout_details_map = {d.payroll_item_id: d for d in details}
+            company_name = batch.company.name if batch.company else "WorkforceAI"
+            mailer = PayslipMailer(db)
+            payslips_dispatched = await mailer.send_batch_payslips(
+                batch=batch,
+                payout_details=payout_details_map,
+                company_name=company_name,
+            )
+            logger.info(f"Dispatched {payslips_dispatched} payslip email(s) for batch {batch.id}")
+        except Exception as ex:
+            logger.error(f"Failed to complete payslip email dispatch for batch {batch.id}: {ex}")
+
         return DisbursePayrollResponse(
             batch_id=batch.id,
             status=BatchStatus.PAID.value,
@@ -190,6 +212,7 @@ class PaymentService:
             sender_batch_id=sender_batch_id,
             disbursed_at=now,
             items=details,
+            payslips_dispatched=payslips_dispatched,
         )
 
     async def get_batch_payment_status(
