@@ -22,6 +22,7 @@ logger = logging.getLogger("workforceai.agents.supervisor")
 
 class LeaveSupervisorState(TypedDict):
     user_message: str
+    chat_history: Optional[List[Dict[str, str]]]
     employee_id: uuid.UUID
     company_id: uuid.UUID
     extracted_data: Optional[Dict[str, Any]]
@@ -82,13 +83,29 @@ class LeaveSupervisorWorkflow:
     # -------------------------------------------------------------------------
     async def _parser_node(self, state: LeaveSupervisorState) -> Dict[str, Any]:
         prompt = state["user_message"]
+        chat_history = state.get("chat_history") or []
         today = date.today().isoformat()
+
+        history_context = ""
+        if chat_history:
+            recent_turns = [
+                f"{item.get('role', 'user').capitalize()}: {item.get('content', '')}"
+                for item in chat_history[-6:]
+            ]
+            history_context = (
+                "\nRecent Conversation History:\n"
+                + "\n".join(recent_turns)
+                + "\n(Use details from previous turns such as dates, leave type, or reasons if the user is answering a follow-up question.)\n\n"
+            )
+
         instruction = (
             f"You are the WorkforceAI Agentic Supervisor. Today's date is {today}. "
-            "Analyze the user message. If they are requesting leave or time off, return JSON with keys: "
+            f"{history_context}"
+            "Analyze the user message in context of any previous conversation turns. "
+            "If they are requesting leave or time off (or completing a previous leave request), return JSON with keys: "
             "`is_leave_request`: true, `leave_type`: 'annual'|'sick'|'casual'|'unpaid', "
             "`start_date`: 'YYYY-MM-DD', `end_date`: 'YYYY-MM-DD', `reason`: string, `confidence`: float. "
-            "If they are asking a question about balances, policies, or general conversation, return: "
+            "If they are asking a question about balances, personal leave history, policies, or general conversation, return: "
             "`is_leave_request`: false, `reason`: string, `confidence`: float. "
             "Return valid JSON only without markdown formatting."
         )
@@ -402,6 +419,48 @@ class LeaveSupervisorWorkflow:
                     "chat_model": self.llm.last_decision_model or "openrouter/free",
                 }
 
+            # 2b. User is asking to check their own personal leave application history
+            is_my_leaves_query = (
+                any(k in user_msg for k in ["which leave", "my leave", "applied recently", "recent leave", "my request", "my applications", "my recent", "leave i have applied", "leaves i have applied"])
+                and any(w in user_msg for w in ["i ", "my", "applied", "history", "recent", "submitted"])
+                and not any(w in user_msg for w in ["who ", "other", "colleague", "all "])
+            )
+            if is_my_leaves_query:
+                recent_stmt = (
+                    select(LeaveRequest)
+                    .options(selectinload(LeaveRequest.leave_policy))
+                    .where(LeaveRequest.employee_id == self.employee_id)
+                    .order_by(desc(LeaveRequest.created_at))
+                    .limit(5)
+                )
+                res = await self.db.execute(recent_stmt)
+                my_leaves = res.scalars().all()
+                if my_leaves:
+                    lines = []
+                    for req in my_leaves:
+                        p_name = req.leave_policy.name if req.leave_policy else "Leave"
+                        ded_info = "No salary deduction ($0.00)" if (req.is_paid or getattr(req, "deduction_waived", False)) else "Unpaid pro-rata deduction"
+                        lines.append(
+                            f"- **{req.request_number}** ({p_name}): **{req.total_days} day(s)** from {req.start_date} to {req.end_date} "
+                            f"| Status: **{req.status.upper()}** | Financial Impact: *{ded_info}*"
+                        )
+                    reply_txt = (
+                        "**Your Recent Leave Applications**:\n\n"
+                        + "\n".join(lines)
+                        + "\n\nWould you like to draft a new time-off request or check your remaining balance?"
+                    )
+                else:
+                    reply_txt = (
+                        "You have not submitted any leave applications recently. "
+                        "Would you like to check your available leave balances or draft a new request?"
+                    )
+                return {
+                    "reply_message": reply_txt,
+                    "recommendation": None,
+                    "chat_provider": "deterministic",
+                    "chat_model": "employee-history-v1",
+                }
+
             # 3. Management Dynamic Workforce Intelligence
             if self.is_management:
                 # 3a. Pure, fast headcount summary (only if no analytical modifiers like leaves, salary, usage, or names)
@@ -409,7 +468,8 @@ class LeaveSupervisorWorkflow:
                     any(k in user_msg for k in ["headcount", "how many employe", "how many people", "how many staff", "total employe", "total staff", "company size", "organization size"])
                     and not any(w in user_msg for w in [
                         "leave", "leaves", "absent", "absence", "salary", "used", "took", "taken",
-                        "who", "most", "least", "less", "highest", "lowest", "similar", "name", "record"
+                        "who", "most", "least", "less", "highest", "lowest", "similar", "name", "record",
+                        "names", "names of"
                     ])
                 )
                 if is_pure_headcount:
@@ -440,7 +500,10 @@ class LeaveSupervisorWorkflow:
                 sql_analyst = ExecutiveSQLAnalyst(self.db, self.company_id, self.llm)
                 if sql_analyst.is_analytical_query(user_msg):
                     try:
-                        analyst_reply = await sql_analyst.answer_question(state["user_message"])
+                        analyst_reply = await sql_analyst.answer_question(
+                            state["user_message"],
+                            chat_history=state.get("chat_history") or []
+                        )
                         if analyst_reply and not analyst_reply.strip().startswith("```"):
                             return {
                                 "reply_message": analyst_reply,
@@ -594,10 +657,11 @@ class LeaveSupervisorWorkflow:
             "chat_model": chat_mod,
         }
 
-    async def run(self, user_message: str) -> Dict[str, Any]:
+    async def run(self, user_message: str, chat_history: Optional[List[Dict[str, str]]] = None) -> Dict[str, Any]:
         """Execute the LangGraph workflow."""
         initial_state: LeaveSupervisorState = {
             "user_message": user_message,
+            "chat_history": chat_history or [],
             "employee_id": self.employee_id,
             "company_id": self.company_id,
             "extracted_data": None,
