@@ -79,8 +79,8 @@ class LeaveSupervisorWorkflow:
 
         return workflow.compile()
 
-    @staticmethod
-    def _extract_dates_from_text(text: str, today_dt: Optional[date] = None) -> tuple[str, str]:
+    @classmethod
+    def _extract_dates_from_text(cls, text: str, today_dt: Optional[date] = None) -> Optional[tuple[str, str]]:
         if today_dt is None:
             today_dt = date.today()
         low = text.lower()
@@ -133,24 +133,28 @@ class LeaveSupervisorWorkflow:
                 end = date(year, mo2, int(d2_str))
                 return st.isoformat(), end.isoformat()
 
-        # 4. Relative counts
-        days = 1
-        m = re.search(r"(\d+)\s*(?:day|days|business day|working day)", low)
-        if m:
-            days = int(m.group(1))
+        # 4. Explicit relative time cues: "tomorrow", "from today", "next monday", etc.
+        has_relative = any(k in low for k in ["tomorrow", "today", "next monday", "next week", "days off", "days starting"])
+        if has_relative:
+            days = 1
+            m = re.search(r"(\d+)\s*(?:day|days|business day|working day)", low)
+            if m:
+                days = int(m.group(1))
 
-        st = today_dt + timedelta(days=1)
-        if "today" in low and ("from today" in low or "starting today" in low):
-            st = today_dt
-        elif "tomorrow" in low:
             st = today_dt + timedelta(days=1)
-        elif "next monday" in low:
-            ahead = (7 - today_dt.weekday()) % 7
-            st = today_dt + timedelta(days=ahead if ahead != 0 else 7)
-        elif "next week" in low:
-            st = today_dt + timedelta(days=7)
+            if "today" in low and ("from today" in low or "starting today" in low):
+                st = today_dt
+            elif "tomorrow" in low:
+                st = today_dt + timedelta(days=1)
+            elif "next monday" in low:
+                ahead = (7 - today_dt.weekday()) % 7
+                st = today_dt + timedelta(days=ahead if ahead != 0 else 7)
+            elif "next week" in low:
+                st = today_dt + timedelta(days=7)
 
-        return st.isoformat(), (st + timedelta(days=days - 1)).isoformat()
+            return st.isoformat(), (st + timedelta(days=days - 1)).isoformat()
+
+        return None
 
     # -------------------------------------------------------------------------
     # Node 1: Parser Node
@@ -198,32 +202,53 @@ class LeaveSupervisorWorkflow:
 
             # Date and category normalization guardrails
             if extracted.get("is_leave_request"):
-                needs_dates = False
-                try:
-                    date.fromisoformat(str(extracted.get("start_date")))
-                    date.fromisoformat(str(extracted.get("end_date")))
-                except Exception:
-                    needs_dates = True
+                # Priority 1: Extract dates directly from the current user prompt
+                parsed_dates = self._extract_dates_from_text(prompt)
 
-                if needs_dates:
-                    full_context = prompt
-                    if chat_history:
-                        user_texts = [h.get("content", "") for h in chat_history if h.get("role") == "user"]
-                        full_context = " ".join(user_texts + [prompt])
-                    st_str, end_str = self._extract_dates_from_text(full_context)
-                    extracted["start_date"] = st_str
-                    extracted["end_date"] = end_str
+                # Priority 2: Only look backwards into chat history if current prompt had no dates
+                if not parsed_dates and chat_history:
+                    for turn in reversed(chat_history[-6:]):
+                        if turn.get("role") == "user":
+                            hist_dates = self._extract_dates_from_text(turn.get("content", ""))
+                            if hist_dates:
+                                parsed_dates = hist_dates
+                                break
 
-                if extracted.get("leave_type"):
+                # Fallback: tomorrow (1 day)
+                if not parsed_dates:
+                    try:
+                        date.fromisoformat(str(extracted.get("start_date")))
+                        date.fromisoformat(str(extracted.get("end_date")))
+                        parsed_dates = (str(extracted.get("start_date")), str(extracted.get("end_date")))
+                    except Exception:
+                        tomorrow = date.today() + timedelta(days=1)
+                        parsed_dates = (tomorrow.isoformat(), tomorrow.isoformat())
+
+                extracted["start_date"] = parsed_dates[0]
+                extracted["end_date"] = parsed_dates[1]
+
+                # Priority for leave category: check current prompt explicitly first
+                low_p = prompt.lower()
+                if any(k in low_p for k in ["sick", "doctor", "medical", "health", "fever", "hospital"]):
+                    extracted["leave_type"] = "sick"
+                elif any(k in low_p for k in ["casual", "personal", "marriage", "wedding", "errand", "family"]):
+                    extracted["leave_type"] = "casual"
+                elif any(k in low_p for k in ["annual", "vacation", "holiday"]):
+                    extracted["leave_type"] = "annual"
+                elif "unpaid" in low_p:
+                    extracted["leave_type"] = "unpaid"
+                elif extracted.get("leave_type"):
                     lt = str(extracted["leave_type"]).lower()
-                    if "sick" in lt or "doctor" in lt or "medical" in lt:
+                    if "sick" in lt:
                         extracted["leave_type"] = "sick"
-                    elif "annual" in lt or "vacation" in lt or "holiday" in lt:
+                    elif "annual" in lt or "vacation" in lt:
                         extracted["leave_type"] = "annual"
                     elif "unpaid" in lt:
                         extracted["leave_type"] = "unpaid"
                     else:
                         extracted["leave_type"] = "casual"
+                else:
+                    extracted["leave_type"] = "casual"
         except Exception as e:
             logger.warning(f"Leave supervisor parser node exception: {e}")
             extracted = {
