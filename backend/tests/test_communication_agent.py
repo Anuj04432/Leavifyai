@@ -210,3 +210,40 @@ async def test_payroll_calculation_exempts_waived_unpaid_leave():
     # The 2 days with waiver should count as paid/exempt, only 3 days as unpaid
     assert paid_days == Decimal("2.0")
     assert unpaid_days == Decimal("3.0")
+
+
+@pytest.mark.asyncio
+async def test_inbox_polling_worker_lifecycle():
+    from app.modules.agents.background_worker import InboxPollingWorker
+    import asyncio
+
+    worker = InboxPollingWorker()
+    assert worker.is_running is False
+
+    status_before = worker.get_status()
+    assert status_before["is_running"] is False
+    assert status_before["total_runs"] == 0
+
+    # Test single poll with mock DB
+    with patch("app.modules.agents.background_worker.AsyncSessionLocal") as mock_session_local:
+        mock_session = AsyncMock()
+        mock_result = MagicMock()
+        mock_result.scalars.return_value.all.return_value = [uuid.uuid4()]
+        mock_session.execute.return_value = mock_result
+        mock_session_local.return_value.__aenter__.return_value = mock_session
+
+        with patch("app.modules.agents.background_worker.CommunicationIngestionAgent") as mock_agent_cls:
+            mock_agent = MagicMock()
+            mock_agent.is_imap_configured = True
+            mock_agent.scan_gmail_inbox = AsyncMock(return_value=[{"processed": True, "id": str(uuid.uuid4())}])
+            mock_agent_cls.return_value = mock_agent
+
+            processed = await worker.poll_now()
+            assert len(processed) == 1
+            assert worker.total_runs == 1
+            assert worker.total_processed == 1
+
+    status_after = worker.get_status()
+    assert status_after["total_runs"] == 1
+    assert status_after["total_processed"] == 1
+    assert "completed_last_poll" in status_after["last_status"]
