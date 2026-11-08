@@ -34,6 +34,7 @@ class DisbursePayrollResponse(BaseModel):
     sender_batch_id: str
     disbursed_at: datetime
     items: List[PayoutItemDetail] = []
+    payslips_dispatched: int = 0
 
 
 class PaymentStatusResponse(BaseModel):
