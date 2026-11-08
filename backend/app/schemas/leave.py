@@ -79,6 +79,7 @@ class LeaveRequestCreate(BaseModel):
 class LeaveActionRequest(BaseModel):
     action: str = Field(..., description="approve or reject")
     comment: Optional[str] = Field(None, max_length=500)
+    waive_deduction: Optional[bool] = Field(default=False, description="Exempt unpaid leave from salary deduction (management override)")
 
 
 class LeaveRequestResponse(BaseModel):
@@ -96,6 +97,7 @@ class LeaveRequestResponse(BaseModel):
     reason: Optional[str]
     status: str
     is_paid: bool
+    deduction_waived: bool = False
     source_channel: str
     ai_recommendation: Dict[str, Any] = Field(default_factory=dict)
     ai_confidence_score: Optional[Decimal] = None
