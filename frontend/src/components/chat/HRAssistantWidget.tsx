@@ -99,7 +99,15 @@ export default function HRAssistantWidget() {
     setLoading(true);
 
     try {
-      const res = await api.post("/agents/chat", { message: textToSend });
+      const historyPayload = messages.slice(-6).map((m) => ({
+        role: m.sender === "user" ? "user" : "assistant",
+        content: m.text,
+      }));
+
+      const res = await api.post("/agents/chat", {
+        message: textToSend,
+        history: historyPayload,
+      });
       if (res.data.decision_provider || res.data.provider) {
         setActiveDecisionProvider(res.data.decision_provider || res.data.provider);
       }
