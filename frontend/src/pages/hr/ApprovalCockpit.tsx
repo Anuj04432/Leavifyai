@@ -57,9 +57,10 @@ export default function ApprovalCockpit() {
   const [processing, setProcessing] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  // Inbound Communication Sync
+  // Inbound Communication Sync & Background Worker
   const [syncingInbox, setSyncingInbox] = useState(false);
   const [syncNotice, setSyncNotice] = useState<string | null>(null);
+  const [workerStatus, setWorkerStatus] = useState<any | null>(null);
 
   const fetchRequests = async () => {
     try {
@@ -73,17 +74,37 @@ export default function ApprovalCockpit() {
     }
   };
 
+  const fetchWorkerStatus = async () => {
+    try {
+      const res = await api.get("/communication/worker-status");
+      setWorkerStatus(res.data);
+    } catch {
+      // Non-blocking telemetry
+    }
+  };
+
   useEffect(() => {
     fetchRequests();
+    fetchWorkerStatus();
+    const interval = setInterval(() => {
+      fetchRequests();
+      fetchWorkerStatus();
+    }, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleSyncExternalMessages = async () => {
     try {
       setSyncingInbox(true);
       setSyncNotice(null);
-      const res = await api.post("/communication/sync-inbox");
-      setSyncNotice(res.data?.message || "Inbound channels synchronized.");
+      const res = await api.post("/communication/worker-poll");
+      setSyncNotice(
+        res.data?.processed_count > 0
+          ? `Auto-ingested ${res.data.processed_count} new leave application(s).`
+          : "Mailbox scan complete. No new pending leave applications."
+      );
       await fetchRequests();
+      fetchWorkerStatus();
     } catch (err: any) {
       setSyncNotice(err.response?.data?.detail || "Inbox scan executed.");
     } finally {
@@ -151,11 +172,34 @@ export default function ApprovalCockpit() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2 self-start sm:self-auto">
+          <div className="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
+            <div
+              title={
+                workerStatus?.last_poll_at
+                  ? `Last background poll: ${new Date(workerStatus.last_poll_at).toLocaleTimeString()}`
+                  : "Background ingestion worker active"
+              }
+              className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px] text-slate-300 font-mono"
+            >
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  workerStatus?.is_running
+                    ? "bg-emerald-400 animate-pulse"
+                    : "bg-slate-500"
+                }`}
+              />
+              <span>
+                Agent Worker:{" "}
+                <span className="text-white font-semibold">
+                  {workerStatus?.is_running ? "Active (60s)" : "Standby"}
+                </span>
+              </span>
+            </div>
+
             <button
               onClick={handleSyncExternalMessages}
               disabled={syncingInbox}
-              title="Scan Gmail, Slack and external channels"
+              title="Trigger instant inbox sweep"
               className="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
             >
               {syncingInbox ? (
@@ -163,7 +207,7 @@ export default function ApprovalCockpit() {
               ) : (
                 <Mail className="w-3.5 h-3.5" />
               )}
-              Scan Inbound Messages
+              Instant Scan
             </button>
             <button
               onClick={fetchRequests}
