@@ -450,6 +450,129 @@ async def test_admin_analytical_queries_route_to_sql_analyst(monkeypatch):
         assert result["chat_model"] == "executive-sql-analyst-v1"
 
 
+@pytest.mark.asyncio
+async def test_employee_personal_leave_history_query():
+    import uuid
+    from datetime import date
+    from decimal import Decimal
+    from unittest.mock import AsyncMock, MagicMock
+    from app.models.leave import LeavePolicy, LeaveRequest
+    from app.modules.agents.supervisor import LeaveSupervisorWorkflow
+
+    mock_db = AsyncMock()
+    company_id = uuid.uuid4()
+    emp_id = uuid.uuid4()
+
+    mock_pol = LeavePolicy(name="Sick Leave", leave_type="sick", is_paid=True)
+    req1 = LeaveRequest(
+        request_number="LRQ-2026-001",
+        employee_id=emp_id,
+        leave_policy=mock_pol,
+        start_date=date(2026, 11, 8),
+        end_date=date(2026, 11, 10),
+        total_days=Decimal("3.0"),
+        status="approved",
+        is_paid=True,
+        deduction_waived=False,
+    )
+
+    res_mock = MagicMock()
+    res_mock.scalars.return_value.all.return_value = [req1]
+    mock_db.execute.return_value = res_mock
+
+    wf = LeaveSupervisorWorkflow(
+        db=mock_db,
+        company_id=company_id,
+        employee_id=emp_id,
+        user_role="employee",
+    )
+
+    result = await wf._recommendation_node({
+        "user_message": "which leave i have applied recently",
+        "extracted_data": {"is_leave_request": False},
+        "balance_info": None,
+        "policy_evaluation": None,
+        "all_balances": [],
+    })
+
+    assert "Your Recent Leave Applications" in result["reply_message"]
+    assert "LRQ-2026-001" in result["reply_message"]
+    assert "Sick Leave" in result["reply_message"]
+    assert result["chat_model"] == "employee-history-v1"
+
+
+@pytest.mark.asyncio
+async def test_multi_turn_leave_parsing_with_chat_history():
+    import uuid
+    from unittest.mock import AsyncMock, MagicMock
+    from app.modules.agents.supervisor import LeaveSupervisorWorkflow
+
+    mock_db = AsyncMock()
+    wf = LeaveSupervisorWorkflow(
+        db=mock_db,
+        company_id=uuid.uuid4(),
+        employee_id=uuid.uuid4(),
+        user_role="employee",
+    )
+
+    # Mock decision LLM receiving history context
+    wf.llm.generate_decision = AsyncMock(
+        return_value=(
+            json.dumps({
+                "is_leave_request": True,
+                "leave_type": "sick",
+                "start_date": "2026-11-08",
+                "end_date": "2026-11-10",
+                "reason": "health issue",
+                "confidence": 0.98,
+            }),
+            "openrouter",
+            "free-model",
+        )
+    )
+
+    history = [
+        {"role": "user", "content": "apply for 3 days sick leave from 8 nov 2026"},
+        {"role": "assistant", "content": "Please specify the reason for your leave."},
+    ]
+
+    res = await wf._parser_node({
+        "user_message": "health issue",
+        "chat_history": history,
+    })
+
+    extracted = res["extracted_data"]
+    assert extracted["is_leave_request"] is True
+    assert extracted["leave_type"] == "sick"
+    assert extracted["start_date"] == "2026-11-08"
+    assert extracted["reason"] == "health issue"
+
+
+@pytest.mark.asyncio
+async def test_leadership_pronoun_resolution_with_chat_history():
+    import uuid
+    from unittest.mock import AsyncMock, MagicMock
+    from app.modules.agents.sql_analyst import ExecutiveSQLAnalyst
+
+    mock_db = AsyncMock()
+    mock_llm = MagicMock()
+    mock_llm.generate_text = AsyncMock(
+        return_value="SELECT first_name, last_name FROM employees WHERE company_id = :company_id AND is_active = true"
+    )
+
+    analyst = ExecutiveSQLAnalyst(mock_db, uuid.uuid4(), mock_llm)
+
+    history = [
+        {"role": "user", "content": "how many employees are there in the company"},
+        {"role": "assistant", "content": "Active Headcount: 3 employee(s) currently active."},
+    ]
+
+    sql = await analyst.generate_sql("names of those employees", chat_history=history)
+    assert "SELECT first_name, last_name FROM employees" in sql
+    assert ":company_id" in sql
+
+
+
 
 
 
