@@ -7,6 +7,7 @@ import {
   Loader2,
   CheckCircle2,
   AlertCircle,
+  Mail,
 } from "lucide-react";
 import { api } from "../../lib/api";
 
@@ -149,6 +150,15 @@ export default function ExecutePayoutModal({
                   <span>Disbursed Timestamp:</span>
                   <span className="font-mono text-slate-300 text-[11px]">
                     {new Date(disbursementResult.disbursed_at).toLocaleString()}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-slate-400 pt-1.5 border-t border-slate-900">
+                  <span className="text-[11px] text-emerald-400 flex items-center gap-1.5 font-medium">
+                    <Mail className="w-3.5 h-3.5" />
+                    Automated Payslip Dispatch:
+                  </span>
+                  <span className="font-mono text-emerald-300 text-xs font-semibold">
+                    {disbursementResult.payslips_dispatched ?? disbursementResult.item_count} Delivered
                   </span>
                 </div>
               </div>
