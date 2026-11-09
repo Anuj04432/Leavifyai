@@ -53,3 +53,24 @@ def test_jwt_refresh_token():
 def test_invalid_jwt_token_raises_error():
     with pytest.raises(ValueError):
         decode_token("invalid.token.string")
+
+
+def test_auth_schemas_validation():
+    from app.schemas.auth import CompanyCeoRegisterRequest, SendOtpRequest, VerifyOtpRequest
+
+    send_req = SendOtpRequest(email="org.admin@gmail.com")
+    assert send_req.email == "org.admin@gmail.com"
+
+    verify_req = VerifyOtpRequest(email="org.admin@gmail.com", otp="123456")
+    assert verify_req.otp == "123456"
+
+    ceo_req = CompanyCeoRegisterRequest(
+        company_name="Acme Corp",
+        organization_email="acme.admin@gmail.com",
+        otp="654321",
+        ceo_first_name="Alice",
+        ceo_last_name="Smith",
+        password="Password@123",
+    )
+    assert ceo_req.organization_email == "acme.admin@gmail.com"
+    assert ceo_req.otp == "654321"
