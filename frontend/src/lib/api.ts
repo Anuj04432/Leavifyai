@@ -10,12 +10,16 @@ export const api = axios.create({
   },
 });
 
-// Request Interceptor: Attach JWT Access Token
+// Request Interceptor: Attach JWT Access Token and handle FormData boundaries
 api.interceptors.request.use(
   (config) => {
     const token = useAuthStore.getState().token;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    // Let browser generate multipart/form-data boundary with correct header for FormData
+    if (config.data instanceof FormData) {
+      delete config.headers["Content-Type"];
     }
     return config;
   },
