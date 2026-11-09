@@ -4,9 +4,11 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import logging
 import os
+import re
 import smtplib
 from typing import Any, Dict, Optional
 import uuid
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
@@ -182,6 +184,22 @@ class EmailNotificationDispatcher:
         financial_info = self.calculate_projected_deduction(employee, leave_req)
         employee_name = f"{employee.first_name} {employee.last_name}"
         recipient_email = employee.email or employee.paypal_email
+
+        # If leave was ingested via email, reply directly to the inbound sender's address
+        if leave_req.source_channel in ("gmail", "email") and self.db:
+            try:
+                inbound_stmt = select(CommunicationEvent).where(
+                    CommunicationEvent.leave_request_id == leave_req.id,
+                    CommunicationEvent.direction == "inbound",
+                )
+                inbound_ev = (await self.db.execute(inbound_stmt)).scalars().first()
+                if inbound_ev and inbound_ev.sender_identifier:
+                    match = re.search(r"[\w\.-]+@[\w\.-]+\.\w+", inbound_ev.sender_identifier)
+                    if match:
+                        recipient_email = match.group(0)
+                        logger.info(f"Targeting inbound reply recipient: {recipient_email}")
+            except Exception as ex:
+                logger.debug(f"Could not resolve inbound email sender: {ex}")
 
         if not recipient_email or "@" not in recipient_email:
             logger.warning(f"No valid email found for employee {employee_name} ({employee.id})")
