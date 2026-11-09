@@ -93,6 +93,10 @@ class Settings(BaseSettings):
     PAYPAL_CLIENT_SECRET: str = ""
     PAYPAL_WEBHOOK_ID: str = ""
 
+    # Outbound Slack Webhook Integration
+    SLACK_WEBHOOK_URL: str = ""
+    SLACK_NOTIFICATIONS_ENABLED: bool = True
+
     model_config = SettingsConfigDict(
         env_file=("../.env", ".env"),
         env_file_encoding="utf-8",
