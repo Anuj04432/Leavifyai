@@ -72,6 +72,18 @@ export default function PolicyKnowledge() {
     fetchPolicies();
   }, []);
 
+  const extractErrorMessage = (err: any, fallback: string): string => {
+    const detail = err?.response?.data?.detail;
+    if (typeof detail === "string") return detail;
+    if (Array.isArray(detail)) {
+      return detail.map((d: any) => d.msg || JSON.stringify(d)).join(", ");
+    }
+    if (typeof detail === "object" && detail !== null) {
+      return JSON.stringify(detail);
+    }
+    return err?.message || fallback;
+  };
+
   const fetchPolicies = async () => {
     try {
       setLoading(true);
@@ -82,7 +94,7 @@ export default function PolicyKnowledge() {
         setEditedContent(res.data[0].markdown_content);
       }
     } catch (err: any) {
-      setError(err.response?.data?.detail || "Failed to load policy knowledge base.");
+      setError(extractErrorMessage(err, "Failed to load policy knowledge base."));
     } finally {
       setLoading(false);
     }
@@ -116,7 +128,7 @@ export default function PolicyKnowledge() {
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err: any) {
-      setError(err.response?.data?.detail || "Failed to update policy.");
+      setError(extractErrorMessage(err, "Failed to update policy."));
     } finally {
       setSaving(false);
     }
@@ -125,7 +137,7 @@ export default function PolicyKnowledge() {
   const handleUploadPolicy = async (e: FormEvent) => {
     e.preventDefault();
     if (!uploadFile) {
-      setUploadError("Please select a policy document file (.md or .txt).");
+      setUploadError("Please select a policy document file (.pdf, .md, or .txt).");
       return;
     }
     try {
@@ -140,7 +152,9 @@ export default function PolicyKnowledge() {
       fd.append("max_consecutive_days", String(uploadForm.max_consecutive_days));
       fd.append("is_paid", String(uploadForm.is_paid));
 
-      const res = await api.post("/policies/knowledge/upload", fd);
+      const res = await api.post("/policies/knowledge/upload", fd, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
       setShowUploadModal(false);
       setUploadFile(null);
       setUploadForm({
@@ -157,7 +171,7 @@ export default function PolicyKnowledge() {
         setEditedContent(res.data.markdown_content || "");
       }
     } catch (err: any) {
-      setUploadError(err.response?.data?.detail || "Failed to upload policy document.");
+      setUploadError(extractErrorMessage(err, "Failed to upload policy document."));
     } finally {
       setUploading(false);
     }
