@@ -18,6 +18,7 @@ from app.modules.agents.llm_client import GeminiClient
 from app.modules.agents.sql_analyst import ExecutiveSQLAnalyst
 from app.modules.leaves.service import calculate_working_days
 from app.modules.policies.okf_service import okf_service
+from app.modules.policies.rag_service import rag_service
 
 logger = logging.getLogger("workforceai.agents.supervisor")
 
@@ -671,24 +672,50 @@ class LeaveSupervisorWorkflow:
                         "chat_model": "workforce-intelligence-v1",
                     }
 
-            # 5. Policy question or general conversation: Ground against OKF policies and Call LLM Chat Engine
-            grounding_text = ""
+            # 5. Policy question or general conversation: Ground against Hybrid OKF + RAG semantic engine
+            okf_grounding = ""
             matched_type = None
             for lt in ["sick", "annual", "casual", "unpaid"]:
                 if lt in user_msg:
                     matched_type = lt
-                    grounding_text = okf_service.format_grounding_context(lt)
+                    okf_grounding = okf_service.format_grounding_context(lt)
                     break
+
+            # Retrieve top semantic excerpts from multi-page documents via RAG
+            rag_context = ""
+            rag_chunks = []
+            try:
+                rag_chunks = await rag_service.search_knowledge(
+                    db=self.db,
+                    company_id=self.company_id,
+                    query=state["user_message"],
+                    top_k=4,
+                )
+                if rag_chunks:
+                    rag_context = rag_service.format_rag_grounding_context(rag_chunks)
+            except Exception as rag_ex:
+                logger.debug(f"RAG semantic retrieval skipped: {rag_ex}")
+
+            combined_grounding = f"{okf_grounding}\n\n{rag_context}".strip()
 
             chat_instruction = (
                 f"You are the WorkforceAI Agentic Supervisor. Today's date is {date.today().isoformat()}.\n"
-                "Answer the user's question politely and concisely regarding workplace operations, company policies, or leave rules.\n"
-                + (f"\nOfficial Company Policy Rules to cite:\n{grounding_text}\n" if grounding_text else "")
+                "Answer the user's question politely, concisely, and accurately regarding workplace operations, company policies, and employee handbooks.\n"
+                "Ground your answers strictly on the official rules and document excerpts provided below. Cite exact document titles and sections when referencing policy rules.\n"
+                + (f"\n{combined_grounding}\n" if combined_grounding else "")
                 + "\nIf they want to apply for leave, advise them to specify the dates and reason."
             )
             chat_text = await self.llm.generate_text(chat_instruction, state["user_message"])
             if not chat_text or chat_text.strip().startswith("```") or chat_text.strip().startswith("{"):
-                if matched_type:
+                if rag_chunks:
+                    top_c = rag_chunks[0]
+                    sec_desc = f" ({top_c['section_header']})" if top_c.get("section_header") else ""
+                    chat_text = (
+                        f"**{top_c['document_title']}{sec_desc}**:\n\n"
+                        f"{top_c['content'][:450]}...\n\n"
+                        "Does this answer your question, or would you like to submit a request?"
+                    )
+                elif matched_type:
                     pol_obj = okf_service.get_policy_by_type(matched_type)
                     if pol_obj:
                         chat_text = (
