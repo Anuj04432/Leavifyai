@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, FormEvent } from "react";
+import { Link } from "react-router-dom";
 import {
   Calendar,
   Clock,
@@ -11,6 +12,8 @@ import {
   Check,
   CalendarDays,
   Info,
+  BookOpen,
+  Upload,
 } from "lucide-react";
 import { api } from "../../lib/api";
 import { useAuthStore } from "../../store/authStore";
@@ -64,6 +67,14 @@ interface LeaveRequest {
 
 export default function LeaveManagement() {
   const { user } = useAuthStore();
+  const isCeoOrHr =
+    user?.role === "ceo" ||
+    user?.role === "admin" ||
+    user?.role === "super_admin" ||
+    user?.role === "hr" ||
+    user?.role === "hr_manager" ||
+    user?.role === "content_manager" ||
+    !!user?.permissions?.can_manage_policies;
 
   const [policies, setPolicies] = useState<LeavePolicy[]>([]);
   const [balances, setBalances] = useState<LeaveBalance[]>([]);
@@ -214,16 +225,27 @@ export default function LeaveManagement() {
             </p>
           </div>
 
-          <button
-            onClick={() => {
-              setApplyError(null);
-              setShowApplyModal(true);
-            }}
-            className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer self-start sm:self-auto"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            Apply for Leave
-          </button>
+          <div className="flex items-center gap-2">
+            {isCeoOrHr && (
+              <Link
+                to="/policies"
+                className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+              >
+                <BookOpen className="w-3.5 h-3.5 text-indigo-400" />
+                Upload / View Policies (PDF)
+              </Link>
+            )}
+            <button
+              onClick={() => {
+                setApplyError(null);
+                setShowApplyModal(true);
+              }}
+              className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer self-start sm:self-auto"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Apply for Leave
+            </button>
+          </div>
         </div>
 
         {/* Asymmetric 8:4 Structural Layout */}
@@ -459,6 +481,16 @@ export default function LeaveManagement() {
                     </p>
                   </div>
                 </div>
+
+                {isCeoOrHr && (
+                  <Link
+                    to="/policies"
+                    className="mt-3 w-full py-2 px-3 rounded-lg bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 font-medium text-xs flex items-center justify-center gap-1.5 transition"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    Upload / Deploy Policy (PDF / MD)
+                  </Link>
+                )}
               </div>
             </div>
           </div>
