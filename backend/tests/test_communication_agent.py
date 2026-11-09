@@ -9,6 +9,7 @@ from app.models.employee import Employee
 from app.models.leave import LeavePolicy, LeaveRequest, LeaveRequestStatus
 from app.modules.agents.communication_agent import CommunicationIngestionAgent
 from app.modules.agents.email_service import EmailNotificationDispatcher
+from app.modules.agents.slack_service import SlackNotificationDispatcher
 
 
 def test_financial_deduction_calculation():
@@ -247,3 +248,142 @@ async def test_inbox_polling_worker_lifecycle():
     assert status_after["total_runs"] == 1
     assert status_after["total_processed"] == 1
     assert "completed_last_poll" in status_after["last_status"]
+
+
+def test_slack_block_kit_payload_formatting():
+    dispatcher = SlackNotificationDispatcher()
+
+    leave_req = LeaveRequest(
+        id=uuid.uuid4(),
+        request_number="LRQ-SLACK-001",
+        start_date=date(2026, 11, 18),
+        end_date=date(2026, 11, 20),
+        total_days=Decimal("3.0"),
+        status="approved",
+        is_paid=True,
+        deduction_waived=False,
+        source_channel="slack",
+    )
+
+    financial_info = {
+        "deduction_str": "$0.00",
+        "policy_explanation": "Covered under Paid Leave Policy.",
+    }
+
+    payload = dispatcher.format_leave_decision_blocks(
+        employee_name="Jordan Bell",
+        leave_req=leave_req,
+        policy_name="Annual Leave",
+        financial_info=financial_info,
+        reviewer_comment="Have a great vacation!",
+    )
+
+    assert "blocks" in payload
+    blocks = payload["blocks"]
+    assert len(blocks) >= 4
+
+    header_block = blocks[0]
+    assert "✅ Leave Request Approved" in header_block["text"]["text"]
+
+    section_block = blocks[1]
+    field_texts = [f["text"] for f in section_block["fields"]]
+    assert any("Jordan Bell" in txt for txt in field_texts)
+    assert any("LRQ-SLACK-001" in txt for txt in field_texts)
+    assert any("Annual Leave" in txt for txt in field_texts)
+    assert any("APPROVED" in txt for txt in field_texts)
+    assert any("$0.00" in txt for txt in field_texts)
+
+    context_block = [b for b in blocks if b.get("type") == "context" and "Reviewer Note" in str(b)]
+    assert len(context_block) == 1
+    assert "Have a great vacation!" in str(context_block[0])
+
+
+@pytest.mark.asyncio
+async def test_slack_webhook_dispatch_and_logging():
+    mock_db = AsyncMock()
+    mock_db.add = MagicMock()
+    dispatcher = SlackNotificationDispatcher(db=mock_db)
+
+    emp = Employee(
+        id=uuid.uuid4(),
+        company_id=uuid.uuid4(),
+        first_name="Priya",
+        last_name="Sharma",
+        email="priya@company.com",
+        salary_basic=Decimal("4000.00"),
+    )
+
+    leave_req = LeaveRequest(
+        id=uuid.uuid4(),
+        request_number="LRQ-SLACK-002",
+        start_date=date(2026, 11, 25),
+        end_date=date(2026, 11, 26),
+        total_days=Decimal("2.0"),
+        status="approved",
+        is_paid=True,
+        deduction_waived=False,
+        source_channel="portal",
+    )
+
+    res = await dispatcher.send_leave_decision_webhook(
+        employee=emp,
+        leave_req=leave_req,
+        policy_name="Medical Leave",
+        reviewer_comment="Approved with medical certificate.",
+    )
+
+    assert res["dispatched"] is True
+    assert res["channel"] == "slack"
+    assert res["request_number"] == "LRQ-SLACK-002"
+    assert mock_db.add.called
+    assert mock_db.commit.called
+
+
+@pytest.mark.asyncio
+async def test_slack_live_http_post():
+    mock_db = AsyncMock()
+    mock_db.add = MagicMock()
+    dispatcher = SlackNotificationDispatcher(db=mock_db)
+
+    emp = Employee(
+        id=uuid.uuid4(),
+        company_id=uuid.uuid4(),
+        first_name="Test",
+        last_name="User",
+        email="test@company.com",
+        salary_basic=Decimal("3000.00"),
+    )
+
+    leave_req = LeaveRequest(
+        id=uuid.uuid4(),
+        request_number="LRQ-SLACK-LIVE",
+        start_date=date(2026, 12, 1),
+        end_date=date(2026, 12, 2),
+        total_days=Decimal("2.0"),
+        status="rejected",
+        is_paid=False,
+        deduction_waived=False,
+        source_channel="slack",
+    )
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.raise_for_status = MagicMock()
+
+    with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
+        mock_post.return_value = mock_resp
+
+        res = await dispatcher.send_leave_decision_webhook(
+            employee=emp,
+            leave_req=leave_req,
+            policy_name="Unpaid Leave",
+            reviewer_comment="Critical release week.",
+            override_webhook_url="https://hooks.slack.com/services/T000/B000/XXXX",
+        )
+
+        assert res["dispatched"] is True
+        assert res["dispatched_live"] is True
+        assert mock_post.called
+        call_url = mock_post.call_args[0][0]
+        assert "hooks.slack.com" in call_url
+
