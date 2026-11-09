@@ -11,6 +11,7 @@ class EmployeeCreateRequest(BaseModel):
     first_name: str = Field(..., min_length=1, max_length=100)
     last_name: str = Field(..., min_length=1, max_length=100)
     email: Optional[EmailStr] = Field(None, description="Employee corporate email. If omitted, auto-generated from company domain")
+    personal_email: Optional[EmailStr] = Field(None, description="Employee personal Gmail address used as inbound sender identifier")
     phone: Optional[str] = Field(None, max_length=20)
     designation: Optional[str] = Field(None, max_length=100)
     department_id: Optional[uuid.UUID] = None
@@ -32,6 +33,7 @@ class EmployeeUpdateRequest(BaseModel):
     first_name: Optional[str] = Field(None, min_length=1, max_length=100)
     last_name: Optional[str] = Field(None, min_length=1, max_length=100)
     phone: Optional[str] = None
+    personal_email: Optional[EmailStr] = None
     designation: Optional[str] = None
     department_id: Optional[uuid.UUID] = None
     department_name: Optional[str] = Field(None, max_length=100, description="Name of new or existing department if department_id is omitted")
@@ -60,6 +62,7 @@ class EmployeeResponse(BaseModel):
     last_name: str
     email: str
     phone: Optional[str] = None
+    personal_email: Optional[EmailStr] = None
     designation: Optional[str] = None
     role: Optional[str] = "employee"
     permissions: Optional[Dict[str, bool]] = Field(default_factory=dict)
