@@ -7,21 +7,47 @@ from app.models.user import User
 from app.modules.auth.service import AuthService
 from app.schemas.auth import (
     CompanyCeoRegisterRequest,
+    SendOtpRequest,
     TokenRefreshRequest,
     TokenResponse,
     UserLoginRequest,
     UserRegisterRequest,
     UserResponse,
+    VerifyOtpRequest,
 )
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
 @router.post(
+    "/send-org-otp",
+    summary="Dispatch 6-digit OTP verification code to organization Gmail address",
+)
+async def send_organization_otp(
+    data: SendOtpRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    service = AuthService(db)
+    return await service.send_organization_otp(data.email)
+
+
+@router.post(
+    "/verify-org-otp",
+    summary="Verify 6-digit OTP code for organization Gmail address",
+)
+async def verify_organization_otp(
+    data: VerifyOtpRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    service = AuthService(db)
+    return await service.verify_organization_otp(data.email, data.otp)
+
+
+@router.post(
     "/register-company",
     response_model=TokenResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Register a new company and CEO account with auto-provisioned WorkforceAI email",
+    summary="Register a new company and CEO account with verified organization email",
 )
 async def register_company(
     data: CompanyCeoRegisterRequest,
@@ -90,5 +116,7 @@ async def get_me(
         permissions=current_user.permissions or {},
         company_name=current_user.company.name if current_user.company else None,
         company_domain=current_user.company.domain if current_user.company else None,
+        organization_email=current_user.company.organization_email if current_user.company else None,
+        personal_email=current_user.employee.personal_email if current_user.employee else None,
         created_at=current_user.created_at,
     )
