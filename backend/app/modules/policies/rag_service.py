@@ -73,21 +73,21 @@ class HybridOKFRAGService:
         return self._local_vectorize(clean_text)
 
     def _local_vectorize(self, text: str, dim: int = 128) -> List[float]:
-        """Lightweight high-speed semantic dense vector representation using numpy hashing."""
+        """Lightweight high-speed semantic dense vector representation using deterministic crc32 hashing."""
+        import zlib
         vec = np.zeros(dim, dtype=np.float32)
         words = re.findall(r"\b\w{3,}\b", text.lower())
         if not words:
             return vec.tolist()
 
         for w in words:
-            # Hash word into bucket
-            h = hash(w) % dim
+            h = zlib.crc32(w.encode("utf-8")) % dim
             vec[h] += 1.0
 
         # Also hash bigrams for sequence awareness
         for i in range(len(words) - 1):
             bigram = f"{words[i]}_{words[i+1]}"
-            h2 = hash(bigram) % dim
+            h2 = zlib.crc32(bigram.encode("utf-8")) % dim
             vec[h2] += 1.5
 
         # L2 Normalize
