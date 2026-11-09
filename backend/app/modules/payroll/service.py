@@ -257,6 +257,7 @@ class PayrollService:
         # Dispatch In-App Notification
         notif_service = NotificationService(self.db)
         await notif_service.create_notification(
+            company_id=batch.company_id,
             employee_id=None,
             subject=f"Payroll Batch Approved: {batch.period_year}-{batch.period_month:02d}",
             body=f"Monthly payroll of ${batch.total_net:,.2f} USD for {batch.employee_count} employees has been verified and approved.",
