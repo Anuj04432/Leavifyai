@@ -32,7 +32,11 @@ async def list_notifications(
 ):
     emp_id = await _get_current_employee_id(current_user, db)
     service = NotificationService(db)
-    return await service.list_notifications(employee_id=emp_id, limit=limit)
+    return await service.list_notifications(
+        company_id=current_user.company_id,
+        employee_id=emp_id,
+        limit=limit,
+    )
 
 
 @router.patch(
@@ -45,7 +49,10 @@ async def mark_notification_read(
     db: AsyncSession = Depends(get_db),
 ):
     service = NotificationService(db)
-    success = await service.mark_as_read(notification_id)
+    success = await service.mark_as_read(
+        notification_id=notification_id,
+        company_id=current_user.company_id,
+    )
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -64,5 +71,8 @@ async def mark_all_notifications_read(
 ):
     emp_id = await _get_current_employee_id(current_user, db)
     service = NotificationService(db)
-    count = await service.mark_all_as_read(employee_id=emp_id)
+    count = await service.mark_all_as_read(
+        company_id=current_user.company_id,
+        employee_id=emp_id,
+    )
     return {"status": "success", "marked_read": count}
