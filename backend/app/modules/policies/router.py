@@ -1,3 +1,4 @@
+import io
 import logging
 from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
@@ -91,7 +92,7 @@ async def update_policy(
     summary="Upload new company leave policy document",
 )
 async def upload_policy(
-    file: UploadFile = File(..., description="Markdown (.md) or text (.txt) policy document"),
+    file: UploadFile = File(..., description="PDF (.pdf), Markdown (.md), or text (.txt) policy document"),
     title: Optional[str] = Form(None),
     leave_type: Optional[str] = Form(None),
     annual_allowance: Optional[int] = Form(None),
@@ -106,10 +107,36 @@ async def upload_policy(
     ),
     db: AsyncSession = Depends(get_db),
 ):
-    """Upload custom company leave policy document (OKF format) and link to company leave policies."""
+    """Upload custom company leave policy document (PDF/OKF format) and link to company leave policies."""
     try:
         content_bytes = await file.read()
-        raw_text = content_bytes.decode("utf-8", errors="replace")
+        filename_lower = (file.filename or "").lower()
+
+        if filename_lower.endswith(".pdf"):
+            try:
+                from pypdf import PdfReader
+                reader = PdfReader(io.BytesIO(content_bytes))
+                page_texts = []
+                for p_idx, page in enumerate(reader.pages, start=1):
+                    txt = page.extract_text() or ""
+                    if txt.strip():
+                        page_texts.append(f"## Page {p_idx}\n{txt.strip()}")
+                raw_text = "\n\n".join(page_texts)
+                if not raw_text.strip():
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="The uploaded PDF contains no extractable text.",
+                    )
+            except HTTPException:
+                raise
+            except Exception as pdf_err:
+                logger.error(f"Failed to extract text from PDF: {pdf_err}")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Failed to parse PDF document: {str(pdf_err)}",
+                )
+        else:
+            raw_text = content_bytes.decode("utf-8", errors="replace")
 
         meta = {}
         if title:
