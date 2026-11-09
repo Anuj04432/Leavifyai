@@ -217,6 +217,20 @@ class EmployeeService:
         self.db.add(employee)
         await self.db.commit()
 
+        # Dispatch onboarding credentials to employee's personal Gmail
+        if employee.personal_email:
+            company_obj = (
+                await self.db.execute(select(Company).where(Company.id == self.company_id))
+            ).scalar_one_or_none()
+            onboarding_agent.dispatch_credentials(
+                employee_name=f"{employee.first_name} {employee.last_name}",
+                corporate_email=employee.email,
+                initial_password=raw_password,
+                personal_email=employee.personal_email,
+                company_name=company_obj.name if company_obj else "Workforce Organization",
+                organization_email=company_obj.organization_email if company_obj else None,
+            )
+
         # Re-query with eager loads
         res = await self.get_employee(employee.id)
         res.initial_password = raw_password
@@ -675,6 +689,7 @@ class EmployeeService:
                 initial_password=raw_password,
                 personal_email=raw_personal_email if "@" in raw_personal_email else None,
                 company_name=company.name if company else "Workforce Organization",
+                organization_email=company.organization_email if company else None,
             )
 
             cred_item = ImportedCredentialItem(
