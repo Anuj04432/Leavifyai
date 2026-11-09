@@ -12,6 +12,7 @@ from app.models.employee import Employee
 from app.models.leave import Approval, LeaveBalance, LeavePolicy, LeaveRequest, LeaveRequestStatus
 from app.models.user import User
 from app.modules.agents.email_service import EmailNotificationDispatcher
+from app.modules.agents.slack_service import SlackNotificationDispatcher
 from app.schemas.leave import (
     LeaveActionRequest,
     LeaveBalanceResponse,
@@ -421,6 +422,15 @@ class LeaveService:
         email_dispatcher = EmailNotificationDispatcher(self.db)
         policy_name = req.leave_policy.name if req.leave_policy else "Company Leave"
         await email_dispatcher.send_leave_decision_email(
+            employee=req.employee,
+            leave_req=req,
+            policy_name=policy_name,
+            reviewer_comment=action_data.comment,
+        )
+
+        # Dispatch outbound Slack Block Kit decision card
+        slack_dispatcher = SlackNotificationDispatcher(self.db)
+        await slack_dispatcher.send_leave_decision_webhook(
             employee=req.employee,
             leave_req=req,
             policy_name=policy_name,
