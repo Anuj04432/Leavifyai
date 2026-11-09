@@ -6,9 +6,22 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from app.models.user import UserRole
 
 
+class SendOtpRequest(BaseModel):
+    """Payload to request an email verification OTP code."""
+    email: EmailStr = Field(..., description="Organization Gmail address to verify")
+
+
+class VerifyOtpRequest(BaseModel):
+    """Payload to verify an email OTP code."""
+    email: EmailStr = Field(..., description="Organization Gmail address")
+    otp: str = Field(..., min_length=6, max_length=6, description="6-digit verification code")
+
+
 class CompanyCeoRegisterRequest(BaseModel):
-    """Payload for registering a new company with CEO account."""
+    """Payload for registering a new company with CEO account and verified organization email."""
     company_name: str = Field(..., min_length=2, max_length=255, description="Official company / organization name")
+    organization_email: EmailStr = Field(..., description="Verified official organization Gmail for inbound ingestion")
+    otp: str = Field(..., min_length=6, max_length=6, description="6-digit verification code sent to organization_email")
     company_domain: Optional[str] = Field(None, max_length=100, description="Optional custom corporate domain (defaults to <slug>.com)")
     ceo_first_name: str = Field(..., min_length=1, max_length=100, description="CEO given name")
     ceo_last_name: str = Field(..., min_length=1, max_length=100, description="CEO family name")
@@ -45,6 +58,8 @@ class UserResponse(BaseModel):
     permissions: dict = Field(default_factory=dict)
     company_name: Optional[str] = None
     company_domain: Optional[str] = None
+    organization_email: Optional[str] = None
+    personal_email: Optional[str] = None
     created_at: datetime
 
 
