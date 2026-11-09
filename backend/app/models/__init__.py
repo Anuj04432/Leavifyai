@@ -8,6 +8,7 @@ from app.models.payroll import PayrollBatch, PayrollItem, PayrollAdjustment, Bat
 from app.models.payment import Payment, Integration, PaymentStatus
 from app.models.communication import CommunicationEvent
 from app.models.audit import AuditLog
+from app.models.verification import EmailVerificationCode
 
 __all__ = [
     "Base",
@@ -33,4 +34,5 @@ __all__ = [
     "PaymentStatus",
     "CommunicationEvent",
     "AuditLog",
+    "EmailVerificationCode",
 ]
