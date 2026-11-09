@@ -13,6 +13,7 @@ class NotificationService:
 
     async def create_notification(
         self,
+        company_id: Optional[uuid.UUID],
         employee_id: Optional[uuid.UUID],
         subject: str,
         body: str,
@@ -23,6 +24,7 @@ class NotificationService:
         event = CommunicationEvent(
             channel="in_app",
             direction="outbound",
+            company_id=company_id,
             employee_id=employee_id,
             leave_request_id=leave_request_id,
             sender_identifier="system",
@@ -39,11 +41,14 @@ class NotificationService:
 
     async def list_notifications(
         self,
+        company_id: Optional[uuid.UUID] = None,
         employee_id: Optional[uuid.UUID] = None,
         limit: int = 30,
     ) -> List[NotificationResponse]:
-        """Fetch latest in-app notifications for an employee or all notifications if unassigned."""
+        """Fetch latest in-app notifications strictly scoped to company and employee."""
         stmt = select(CommunicationEvent).where(CommunicationEvent.channel == "in_app")
+        if company_id:
+            stmt = stmt.where(CommunicationEvent.company_id == company_id)
         if employee_id:
             # Deliver employee's notifications or broadcasts (where employee_id is None)
             stmt = stmt.where(
@@ -56,18 +61,28 @@ class NotificationService:
         events = result.scalars().all()
         return [NotificationResponse.model_validate(e) for e in events]
 
-    async def mark_as_read(self, notification_id: uuid.UUID) -> bool:
+    async def mark_as_read(
+        self,
+        notification_id: uuid.UUID,
+        company_id: Optional[uuid.UUID] = None,
+    ) -> bool:
         """Mark a specific notification as read."""
         stmt = (
             update(CommunicationEvent)
             .where(CommunicationEvent.id == notification_id)
-            .values(processing_status="read")
         )
+        if company_id:
+            stmt = stmt.where(CommunicationEvent.company_id == company_id)
+        stmt = stmt.values(processing_status="read")
         res = await self.db.execute(stmt)
         await self.db.commit()
         return res.rowcount > 0
 
-    async def mark_all_as_read(self, employee_id: Optional[uuid.UUID] = None) -> int:
+    async def mark_all_as_read(
+        self,
+        company_id: Optional[uuid.UUID] = None,
+        employee_id: Optional[uuid.UUID] = None,
+    ) -> int:
         """Mark all unread notifications as read."""
         stmt = (
             update(CommunicationEvent)
@@ -76,6 +91,8 @@ class NotificationService:
                 CommunicationEvent.processing_status == "unread",
             )
         )
+        if company_id:
+            stmt = stmt.where(CommunicationEvent.company_id == company_id)
         if employee_id:
             stmt = stmt.where(
                 (CommunicationEvent.employee_id == employee_id)
