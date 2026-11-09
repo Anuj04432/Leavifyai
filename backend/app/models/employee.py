@@ -31,6 +31,7 @@ class Employee(Base, UUIDMixin, TimestampMixin):
     first_name: Mapped[str] = mapped_column(String(100), nullable=False)
     last_name: Mapped[str] = mapped_column(String(100), nullable=False)
     email: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    personal_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, index=True)
     phone: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     designation: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
 
