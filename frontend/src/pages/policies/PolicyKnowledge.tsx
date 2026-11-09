@@ -63,7 +63,10 @@ export default function PolicyKnowledge() {
     user?.role === "admin" ||
     user?.role === "hr" ||
     user?.role === "hr_manager" ||
-    user?.role === "super_admin";
+    user?.role === "super_admin" ||
+    user?.role === "ceo" ||
+    user?.role === "content_manager" ||
+    !!user?.permissions?.can_manage_policies;
 
   useEffect(() => {
     fetchPolicies();
@@ -408,17 +411,17 @@ export default function PolicyKnowledge() {
             <form onSubmit={handleUploadPolicy} className="space-y-3.5 text-xs">
               <div>
                 <label className="block text-slate-300 font-medium mb-1">
-                  Policy Document File (.md or .txt) *
+                  Policy Document File (.pdf, .md, or .txt) *
                 </label>
                 <input
                   type="file"
                   required
-                  accept=".md,.txt"
+                  accept=".pdf,.md,.txt"
                   onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-300 text-xs file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500 file:cursor-pointer"
                 />
                 <p className="text-[11px] text-slate-500 mt-1">
-                  Accepts OKF Markdown files with YAML frontmatter or plain policy text documents.
+                  Upload PDF handbooks, OKF Markdown with YAML headers, or plain text. Multi-page PDFs will be extracted, chunked, and embedded into RAG automatically.
                 </p>
               </div>
 
