@@ -15,6 +15,12 @@ class CommunicationEvent(Base, UUIDMixin, TimestampMixin):
     channel: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
     direction: Mapped[str] = mapped_column(String(10), nullable=False)
 
+    company_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("companies.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
     employee_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("employees.id", ondelete="SET NULL"),
