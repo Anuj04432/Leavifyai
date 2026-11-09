@@ -31,7 +31,7 @@ def test_rag_fallback_vectorizer():
     vec2 = np.array(rag_service._local_vectorize("Sick doctor medical prescription certificate"))
     vec3 = np.array(rag_service._local_vectorize("Stock option equity compensation grant"))
 
-    assert len(vec1) == 128
+    assert len(vec1) == 512
     sim_1_2 = float(np.dot(vec1, vec2))
     sim_1_3 = float(np.dot(vec1, vec3))
     assert sim_1_2 > sim_1_3
@@ -51,6 +51,12 @@ def test_rag_format_grounding_context():
     assert "Maternity Benefits" in context
     assert "POL-MAT-01" in context
     assert "26 weeks of paid maternity leave" in context
+
+
+def test_pypdf_reader_availability():
+    import pypdf
+    assert hasattr(pypdf, "PdfReader")
+    assert hasattr(pypdf, "PdfWriter")
 
 
 def test_onboarding_agent_email_formatting():
