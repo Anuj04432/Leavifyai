@@ -39,6 +39,7 @@ interface Employee {
   first_name: string;
   last_name: string;
   email: string;
+  personal_email?: string | null;
   designation?: string | null;
   employment_type?: string | null;
   is_active: boolean;
@@ -185,6 +186,7 @@ export default function EmployeeDirectory() {
     employee_code: "",
     first_name: "",
     last_name: "",
+    personal_email: "",
     work_email: "",
     initial_password: "",
     designation: "",
@@ -404,6 +406,7 @@ export default function EmployeeDirectory() {
         first_name: formData.first_name,
         last_name: formData.last_name,
         email: formData.work_email || undefined,
+        personal_email: formData.personal_email.trim() || undefined,
         initial_password: formData.initial_password.trim() || undefined,
         designation: formData.designation || undefined,
         employment_type: formData.employment_type,
@@ -433,6 +436,7 @@ export default function EmployeeDirectory() {
         employee_code: "",
         first_name: "",
         last_name: "",
+        personal_email: "",
         work_email: "",
         initial_password: "",
         designation: "",
@@ -716,6 +720,14 @@ export default function EmployeeDirectory() {
                               <Mail className="w-3 h-3 text-slate-500 shrink-0" />
                               {emp.email}
                             </div>
+                            {emp.personal_email && (
+                              <div className="text-[10px] text-indigo-400 font-mono flex items-center gap-1 mt-0.5">
+                                <span className="text-[9px] px-1 py-0.2 rounded bg-indigo-950 text-indigo-300 border border-indigo-800/60 font-sans uppercase">
+                                  Gmail
+                                </span>
+                                {emp.personal_email}
+                              </div>
+                            )}
                           </td>
                           <td className="py-3 px-4 font-mono text-indigo-400 font-semibold text-[11px]">
                             {emp.employee_code}
@@ -1056,6 +1068,23 @@ export default function EmployeeDirectory() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-slate-300 font-medium mb-1">
+                    Employee Personal Gmail (Inbound Sender ID)
+                  </label>
+                  <input
+                    type="email"
+                    placeholder="e.g. therageyou87@gmail.com"
+                    value={formData.personal_email}
+                    onChange={(e) =>
+                      setFormData({ ...formData, personal_email: e.target.value })
+                    }
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-slate-200 outline-none focus:border-indigo-500 font-mono text-xs"
+                  />
+                  <div className="text-[10px] text-slate-500 mt-1">
+                    The Gmail used to email leave requests
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-medium mb-1">
                     Organization Corporate Email
                   </label>
                   <input
@@ -1068,25 +1097,26 @@ export default function EmployeeDirectory() {
                     className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-slate-200 outline-none focus:border-indigo-500 font-mono text-xs"
                   />
                   <div className="text-[10px] text-slate-500 mt-1">
-                    Auto-derived on @{companyDomain}
+                    Portal login (@{companyDomain})
                   </div>
                 </div>
-                <div>
-                  <label className="block text-slate-300 font-medium mb-1">
-                    Initial Login Password
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Auto (Welcome@...)"
-                    value={formData.initial_password}
-                    onChange={(e) =>
-                      setFormData({ ...formData, initial_password: e.target.value })
-                    }
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-slate-200 outline-none focus:border-indigo-500 font-mono text-xs"
-                  />
-                  <div className="text-[10px] text-slate-500 mt-1">
-                    Min 8 chars, or leave empty for auto
-                  </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-medium mb-1">
+                  Initial Login Password
+                </label>
+                <input
+                  type="text"
+                  placeholder="Auto (Welcome@...)"
+                  value={formData.initial_password}
+                  onChange={(e) =>
+                    setFormData({ ...formData, initial_password: e.target.value })
+                  }
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-slate-200 outline-none focus:border-indigo-500 font-mono text-xs"
+                />
+                <div className="text-[10px] text-slate-500 mt-1">
+                  Min 8 chars, or leave empty to auto-generate from employee code
                 </div>
               </div>
 
