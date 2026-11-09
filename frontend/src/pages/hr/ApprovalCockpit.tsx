@@ -543,6 +543,17 @@ export default function ApprovalCockpit() {
               />
             </div>
 
+            {/* Outbound Channel Dispatch Notice */}
+            <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/80 text-[11px] text-slate-400 flex items-center justify-between">
+              <span className="flex items-center gap-1.5 text-slate-300">
+                <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                Multichannel Dispatch
+              </span>
+              <span className="text-slate-400">
+                Delivered via <span className="text-indigo-400 font-medium">Email</span> & <span className="text-indigo-400 font-medium">Slack Webhook</span>
+              </span>
+            </div>
+
             <div className="flex justify-end gap-2 pt-2">
               <button
                 type="button"
