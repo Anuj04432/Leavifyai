@@ -1,4 +1,4 @@
-import { useState, FormEvent } from "react";
+import { useState, useEffect, FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ShieldCheck,
@@ -28,14 +28,72 @@ export default function LoginPage() {
   const [regData, setRegData] = useState({
     company_name: "",
     company_domain: "",
+    organization_email: "",
+    otp: "",
     ceo_first_name: "",
     ceo_last_name: "",
     password: "",
   });
 
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
+  const [otpCooldown, setOtpCooldown] = useState(0);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // OTP resend cooldown timer
+  useEffect(() => {
+    if (otpCooldown > 0) {
+      const timer = setTimeout(() => setOtpCooldown((prev) => prev - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [otpCooldown]);
+
+  const handleSendOtp = async () => {
+    if (!regData.organization_email || !regData.organization_email.includes("@")) {
+      setError("Please enter a valid organization Gmail address first.");
+      return;
+    }
+    setError(null);
+    setSendingOtp(true);
+    try {
+      await api.post("/auth/send-org-otp", { email: regData.organization_email.trim() });
+      setOtpSent(true);
+      setOtpCooldown(45);
+      setSuccessMsg(`Verification code sent to ${regData.organization_email}! Please check your Gmail.`);
+    } catch (err: any) {
+      const detail = err.response?.data?.detail;
+      setError(typeof detail === "string" ? detail : "Failed to send verification code.");
+    } finally {
+      setSendingOtp(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!regData.otp || regData.otp.trim().length !== 6) {
+      setError("Please enter the 6-digit code received in your Gmail.");
+      return;
+    }
+    setError(null);
+    setVerifyingOtp(true);
+    try {
+      await api.post("/auth/verify-org-otp", {
+        email: regData.organization_email.trim(),
+        otp: regData.otp.trim(),
+      });
+      setOtpVerified(true);
+      setSuccessMsg("Organization email verified successfully!");
+    } catch (err: any) {
+      const detail = err.response?.data?.detail;
+      setError(typeof detail === "string" ? detail : "Invalid or expired verification code.");
+    } finally {
+      setVerifyingOtp(false);
+    }
+  };
 
   // Live corporate email preview computation based on organization name
   const rawOrgSlug =
@@ -84,9 +142,17 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // Register company & CEO account with auto-provisioned organization corporate email
+      if (!regData.organization_email || !regData.otp) {
+        setError("Please provide and verify your organization Gmail address with the 6-digit code.");
+        setLoading(false);
+        return;
+      }
+
+      // Register company & CEO account with verified organization email & auto-provisioned corporate email
       const res = await api.post("/auth/register-company", {
         company_name: regData.company_name.trim(),
+        organization_email: regData.organization_email.trim(),
+        otp: regData.otp.trim(),
         company_domain: previewDomain,
         ceo_first_name: regData.ceo_first_name.trim(),
         ceo_last_name: regData.ceo_last_name.trim(),
@@ -112,7 +178,7 @@ export default function LoginPage() {
       setError(
         typeof detail === "string"
           ? detail
-          : "Company registration failed. Please try again."
+          : "Company registration failed. Please check your verification code and try again."
       );
     } finally {
       setLoading(false);
@@ -278,7 +344,7 @@ export default function LoginPage() {
             <form onSubmit={handleLoginSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                  Work Email
+                  Organization Gmail or Premise Corporate Email
                 </label>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
@@ -287,7 +353,7 @@ export default function LoginPage() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="admin@workforce.io"
+                    placeholder="e.g. anujwagmore835@gmail.com or alice@acme.com"
                     className="w-full bg-slate-900 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-100 placeholder-slate-600 outline-none transition"
                   />
                 </div>
@@ -329,7 +395,7 @@ export default function LoginPage() {
               </button>
             </form>
           ) : (
-            /* REGISTER AS COMPANY CEO FORM */
+            /* REGISTER AS COMPANY CEO FORM WITH GMAIL OTP VERIFICATION */
             <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
               <div>
                 <label className="block text-xs font-medium text-slate-300 mb-1">
@@ -349,6 +415,98 @@ export default function LoginPage() {
                   />
                 </div>
               </div>
+
+              {/* Organization Inbound Gmail Address with OTP Dispatch */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-medium text-slate-300">
+                    Organization Official Gmail (Inbound Mailbox) *
+                  </label>
+                  {otpVerified && (
+                    <span className="flex items-center gap-1 text-[11px] text-emerald-400 font-semibold">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                      Gmail Verified
+                    </span>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-2.5" />
+                    <input
+                      type="email"
+                      required
+                      value={regData.organization_email}
+                      disabled={otpVerified}
+                      onChange={(e) =>
+                        setRegData({ ...regData, organization_email: e.target.value })
+                      }
+                      placeholder="e.g. anujwagmore835@gmail.com"
+                      className="w-full bg-slate-900 border border-slate-800 focus:border-indigo-500 disabled:opacity-75 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-100 placeholder-slate-600 outline-none transition"
+                    />
+                  </div>
+                  {!otpVerified && (
+                    <button
+                      type="button"
+                      onClick={handleSendOtp}
+                      disabled={sendingOtp || otpCooldown > 0}
+                      className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 disabled:text-slate-500 text-white rounded-xl text-xs font-semibold cursor-pointer transition flex items-center gap-1.5 shrink-0"
+                    >
+                      {sendingOtp ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Sending...</span>
+                        </>
+                      ) : otpCooldown > 0 ? (
+                        <span>Resend in {otpCooldown}s</span>
+                      ) : (
+                        <span>{otpSent ? "Resend Code" : "Send Code"}</span>
+                      )}
+                    </button>
+                  )}
+                </div>
+                <p className="text-[10px] text-slate-500 mt-1">
+                  We'll send a 6-digit verification code to confirm ownership of this Gmail address.
+                </p>
+              </div>
+
+              {/* 6-Digit OTP Verification Field (Shown once code is sent or during input) */}
+              {(otpSent || regData.otp) && !otpVerified && (
+                <div className="p-3 bg-slate-900/90 border border-indigo-500/40 rounded-xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-indigo-300">
+                      Enter 6-Digit Verification Code
+                    </label>
+                    <span className="text-[10px] text-slate-400">Valid for 10 minutes</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      maxLength={6}
+                      value={regData.otp}
+                      onChange={(e) =>
+                        setRegData({
+                          ...regData,
+                          otp: e.target.value.replace(/[^0-9]/g, ""),
+                        })
+                      }
+                      placeholder="123456"
+                      className="flex-1 bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-lg px-3 py-1.5 text-center font-mono text-base tracking-[6px] text-white outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleVerifyOtp}
+                      disabled={verifyingOtp || regData.otp.length !== 6}
+                      className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-lg text-xs font-semibold cursor-pointer transition flex items-center gap-1"
+                    >
+                      {verifyingOtp ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        "Verify"
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -387,13 +545,13 @@ export default function LoginPage() {
               <div className="p-3 bg-slate-900 rounded-xl border border-indigo-500/30 text-xs space-y-1.5">
                 <div className="flex items-center gap-1.5 text-indigo-400 font-semibold text-[11px]">
                   <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>Provisioned Organization Corporate Email</span>
+                  <span>Provisioned On-Premise Corporate Email</span>
                 </div>
                 <div className="font-mono text-white text-xs bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-800 break-all select-all">
                   {previewEmail}
                 </div>
                 <div className="text-[10px] text-slate-400 leading-tight">
-                  No personal email required. As CEO and for each team member, a dedicated corporate login on @{previewDomain} is issued.
+                  You can sign in using either your verified Organization Gmail or this on-premise email with your master password.
                 </div>
               </div>
 
@@ -429,7 +587,7 @@ export default function LoginPage() {
                   </>
                 ) : (
                   <>
-                    <span>Register Company & Launch as CEO</span>
+                    <span>Register Organization & Launch as CEO</span>
                     <ArrowRight className="w-3.5 h-3.5 text-indigo-200" />
                   </>
                 )}
