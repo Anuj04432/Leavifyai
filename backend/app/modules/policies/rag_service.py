@@ -72,7 +72,7 @@ class HybridOKFRAGService:
         # 2. Resilient deterministic vectorizer fallback (hashed character-ngram TF-IDF dense vector)
         return self._local_vectorize(clean_text)
 
-    def _local_vectorize(self, text: str, dim: int = 128) -> List[float]:
+    def _local_vectorize(self, text: str, dim: int = 512) -> List[float]:
         """Lightweight high-speed semantic dense vector representation using deterministic crc32 hashing."""
         import zlib
         vec = np.zeros(dim, dtype=np.float32)
