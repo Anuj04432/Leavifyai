@@ -160,6 +160,7 @@ class PaymentService:
                 try:
                     notif_svc = NotificationService(db)
                     await notif_svc.create_notification(
+                        company_id=batch.company_id,
                         employee_id=emp.id,
                         subject="Salary Disbursed",
                         body=f"Your salary of ${pr_item.net_salary:,.2f} for {batch.period_month}/{batch.period_year} has been disbursed via PayPal.",
