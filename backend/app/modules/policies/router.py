@@ -10,6 +10,7 @@ from app.dependencies import get_current_user, require_permission, require_roles
 from app.models.leave import LeavePolicy
 from app.models.user import User
 from app.modules.policies.okf_service import okf_service
+from app.modules.policies.rag_service import rag_service
 
 logger = logging.getLogger(__name__)
 
@@ -158,6 +159,20 @@ async def upload_policy(
             db.add(new_pol)
 
         await db.commit()
+
+        # Index policy document into RAG knowledge base for deep semantic multi-page search
+        try:
+            await rag_service.index_document(
+                db=db,
+                company_id=current_user.company_id,
+                policy_code=saved_policy.get("policy_code", "POL-GEN-01"),
+                document_title=saved_policy.get("title", file.filename or "Company Policy"),
+                markdown_content=raw_text,
+                meta_info=saved_policy.get("metadata", {}),
+            )
+        except Exception as rag_err:
+            logger.warning(f"RAG indexing warning on upload: {rag_err}")
+
         return saved_policy
     except Exception as e:
         logger.error(f"Failed to upload policy file: {e}", exc_info=True)
@@ -165,3 +180,22 @@ async def upload_policy(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to process policy upload: {str(e)}",
         )
+
+
+@router.get(
+    "/semantic-search",
+    summary="Perform deep semantic RAG search across company policies and handbooks",
+)
+async def semantic_search_policies(
+    query: str,
+    top_k: int = 4,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Retrieve top-K semantic chunks from company documents and handbooks."""
+    return await rag_service.search_knowledge(
+        db=db,
+        company_id=current_user.company_id,
+        query=query,
+        top_k=top_k,
+    )
