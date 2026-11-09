@@ -15,6 +15,8 @@ class Company(Base, UUIDMixin, TimestampMixin):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     slug: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)
     domain: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    organization_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, index=True)
+    is_email_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     settings: Mapped[dict] = mapped_column(JSONB, default=dict, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
