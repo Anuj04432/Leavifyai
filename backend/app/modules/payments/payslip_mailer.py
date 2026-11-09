@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Optional
 import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import get_settings
 from app.models.communication import CommunicationEvent
 from app.models.employee import Employee
 from app.models.payroll import PayrollBatch, PayrollItem
@@ -25,11 +26,12 @@ class PayslipMailer:
 
     def __init__(self, db: Optional[AsyncSession] = None):
         self.db = db
-        self.smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
-        self.smtp_port = int(os.getenv("SMTP_PORT", "587"))
-        self.smtp_user = os.getenv("SMTP_USER", "")
-        self.smtp_password = os.getenv("SMTP_PASSWORD", "")
-        self.from_email = os.getenv("SMTP_FROM_EMAIL", self.smtp_user or "payroll@workforceai.io")
+        settings = get_settings()
+        self.smtp_host = os.getenv("SMTP_HOST") or settings.SMTP_HOST
+        self.smtp_port = int(os.getenv("SMTP_PORT") or settings.SMTP_PORT)
+        self.smtp_user = (os.getenv("SMTP_USER") or settings.SMTP_USER).strip()
+        self.smtp_password = (os.getenv("SMTP_PASSWORD") or settings.SMTP_PASSWORD).strip()
+        self.from_email = os.getenv("SMTP_FROM_EMAIL") or settings.SMTP_FROM_EMAIL or self.smtp_user or "payroll@workforceai.io"
         self.is_configured = bool(self.smtp_user and self.smtp_password)
 
     def generate_payslip_html(
