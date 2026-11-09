@@ -1,7 +1,12 @@
 from functools import lru_cache
 from typing import List, Optional, Union
+from dotenv import load_dotenv
 from pydantic import AnyHttpUrl, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Ensure .env is explicitly loaded into os.environ
+load_dotenv()
+load_dotenv("../.env")
 
 
 class Settings(BaseSettings):
@@ -96,6 +101,18 @@ class Settings(BaseSettings):
     # Outbound Slack Webhook Integration
     SLACK_WEBHOOK_URL: str = ""
     SLACK_NOTIFICATIONS_ENABLED: bool = True
+
+    # Live Gmail Integration (IMAP Inbound + SMTP Outbound)
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM_EMAIL: str = ""
+
+    IMAP_HOST: str = "imap.gmail.com"
+    IMAP_PORT: int = 993
+    IMAP_USER: str = ""
+    IMAP_PASSWORD: str = ""
 
     model_config = SettingsConfigDict(
         env_file=("../.env", ".env"),
