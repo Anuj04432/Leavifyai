@@ -243,6 +243,7 @@ class EmailNotificationDispatcher:
                 event = CommunicationEvent(
                     channel="email",
                     direction="outbound",
+                    company_id=leave_req.company_id,
                     employee_id=employee.id,
                     leave_request_id=leave_req.id,
                     sender_identifier="system",
