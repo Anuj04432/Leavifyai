@@ -110,6 +110,7 @@ class CommunicationIngestionAgent:
         inbound_event = CommunicationEvent(
             channel=channel,
             direction="inbound",
+            company_id=company_id,
             employee_id=None,
             leave_request_id=None,
             sender_identifier=sender_identifier,
@@ -136,7 +137,8 @@ class CommunicationIngestionAgent:
             Employee.company_id == company_id,
             Employee.is_active == True,
             (
-                (Employee.email == clean_sender)
+                (Employee.personal_email == clean_sender)
+                | (Employee.email == clean_sender)
                 | (Employee.paypal_email == clean_sender)
             ),
         )
@@ -240,6 +242,7 @@ class CommunicationIngestionAgent:
         hr_alert = CommunicationEvent(
             channel="in_app",
             direction="outbound",
+            company_id=company_id,
             employee_id=None,  # Broadcast to company HR/Admins
             leave_request_id=leave_req.id,
             sender_identifier=channel,
