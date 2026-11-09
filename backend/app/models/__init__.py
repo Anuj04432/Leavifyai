@@ -9,6 +9,7 @@ from app.models.payment import Payment, Integration, PaymentStatus
 from app.models.communication import CommunicationEvent
 from app.models.audit import AuditLog
 from app.models.verification import EmailVerificationCode
+from app.models.knowledge import KnowledgeChunk
 
 __all__ = [
     "Base",
@@ -35,4 +36,5 @@ __all__ = [
     "CommunicationEvent",
     "AuditLog",
     "EmailVerificationCode",
+    "KnowledgeChunk",
 ]
