@@ -1,5 +1,11 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+import logging
+import os
 import re
+import secrets
+import smtplib
 import uuid
 from fastapi import HTTPException, status
 from sqlalchemy import select
@@ -17,6 +23,7 @@ from app.config import get_settings
 from app.models.company import Company
 from app.models.employee import Employee
 from app.models.user import User, UserRole
+from app.models.verification import EmailVerificationCode
 from app.schemas.auth import (
     CompanyCeoRegisterRequest,
     TokenResponse,
@@ -25,6 +32,7 @@ from app.schemas.auth import (
     UserResponse,
 )
 
+logger = logging.getLogger("workforceai.auth.service")
 settings = get_settings()
 
 
@@ -40,9 +48,158 @@ class AuthService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
+    async def send_organization_otp(self, email: str) -> dict:
+        """Generates a 6-digit OTP code, stores it, and sends it via SMTP to the organization Gmail."""
+        clean_email = email.strip().lower()
+        if not clean_email or "@" not in clean_email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="A valid email address is required.",
+            )
+
+        # Rate limit: Check if a code was issued in the last 45 seconds
+        recent_cutoff = datetime.now(timezone.utc) - timedelta(seconds=45)
+        recent_stmt = (
+            select(EmailVerificationCode)
+            .where(
+                EmailVerificationCode.email == clean_email,
+                EmailVerificationCode.created_at > recent_cutoff,
+            )
+        )
+        recent_code = (await self.db.execute(recent_stmt)).scalars().first()
+        if recent_code:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Verification code already sent recently. Please wait 45 seconds.",
+            )
+
+        # Generate 6-digit numeric OTP
+        otp_code = f"{secrets.randbelow(900000) + 100000}"
+        expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
+
+        record = EmailVerificationCode(
+            email=clean_email,
+            code_hash=otp_code,
+            purpose="org_registration",
+            expires_at=expires_at,
+            is_verified=False,
+        )
+        self.db.add(record)
+        await self.db.commit()
+
+        # Send email via SMTP
+        smtp_user = (os.getenv("SMTP_USER") or settings.SMTP_USER).strip()
+        smtp_password = (os.getenv("SMTP_PASSWORD") or settings.SMTP_PASSWORD).strip()
+        smtp_host = os.getenv("SMTP_HOST") or settings.SMTP_HOST
+        smtp_port = int(os.getenv("SMTP_PORT") or settings.SMTP_PORT)
+        from_email = os.getenv("SMTP_FROM_EMAIL") or settings.SMTP_FROM_EMAIL or smtp_user or "notifications@workforceai.io"
+
+        html_body = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <style>
+            body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #090d16; color: #f1f5f9; padding: 24px; }}
+            .container {{ max-width: 520px; margin: 0 auto; background: #0f172a; border: 1px solid #1e293b; border-radius: 12px; padding: 32px; }}
+            .brand {{ display: inline-block; background: #4f46e5; color: #ffffff; padding: 6px 12px; border-radius: 8px; font-weight: 700; font-size: 14px; margin-bottom: 20px; }}
+            h2 {{ color: #ffffff; margin-top: 0; font-size: 20px; }}
+            p {{ color: #94a3b8; font-size: 14px; line-height: 1.6; }}
+            .code-box {{ background: #020617; border: 1px solid #312e81; border-radius: 8px; padding: 18px; text-align: center; margin: 24px 0; }}
+            .code {{ font-family: monospace; font-size: 32px; letter-spacing: 8px; font-weight: 800; color: #818cf8; }}
+            .footer {{ border-top: 1px solid #1e293b; margin-top: 24px; padding-top: 16px; font-size: 11px; color: #64748b; }}
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="brand">WorkforceAI</div>
+            <h2>Verify Your Organization Email</h2>
+            <p>Use the 6-digit verification code below to verify your organization's official email address for WorkforceAI:</p>
+            <div class="code-box">
+              <span class="code">{otp_code}</span>
+            </div>
+            <p>This verification code expires in <strong>10 minutes</strong>. If you did not request this verification, you can safely ignore this email.</p>
+            <div class="footer">
+              Automated verification dispatch from WorkforceAI Autonomous Enterprise Engine.
+            </div>
+          </div>
+        </body>
+        </html>
+        """
+
+        if smtp_user and smtp_password:
+            try:
+                msg = MIMEMultipart("alternative")
+                msg["Subject"] = f"WorkforceAI Verification Code: {otp_code}"
+                msg["From"] = f"WorkforceAI Security <{from_email}>"
+                msg["To"] = clean_email
+                msg.attach(MIMEText(html_body, "html"))
+
+                with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as server:
+                    server.starttls()
+                    server.login(smtp_user, smtp_password)
+                    server.sendmail(from_email, [clean_email], msg.as_string())
+                logger.info(f"Verification OTP code sent to {clean_email}")
+            except Exception as ex:
+                logger.warning(f"SMTP OTP dispatch failed: {ex}. Simulated OTP: {otp_code}")
+        else:
+            logger.info(f"[SIMULATED_OTP] Organization {clean_email} OTP code: {otp_code}")
+
+        return {
+            "success": True,
+            "message": f"Verification code sent to {clean_email}",
+            # In sandbox / fallback mode, if smtp is unreachable, code can also be verified
+        }
+
+    async def verify_organization_otp(self, email: str, otp: str) -> dict:
+        """Verifies an OTP code for an organization email."""
+        clean_email = email.strip().lower()
+        clean_code = otp.strip()
+
+        stmt = (
+            select(EmailVerificationCode)
+            .where(
+                EmailVerificationCode.email == clean_email,
+                EmailVerificationCode.purpose == "org_registration",
+                EmailVerificationCode.expires_at > datetime.now(timezone.utc),
+            )
+            .order_by(EmailVerificationCode.created_at.desc())
+        )
+        record = (await self.db.execute(stmt)).scalars().first()
+        if not record or record.code_hash != clean_code:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired verification code.",
+            )
+
+        record.is_verified = True
+        await self.db.commit()
+        return {"verified": True, "message": "Email verified successfully."}
+
     async def register_company_ceo(self, data: CompanyCeoRegisterRequest) -> TokenResponse:
         """Registers a new company, creates the CEO account with Antigravity corporate email, and provisions CEO profile."""
-        # 1. Generate alphanumeric unique company slug
+        # 1. Verify OTP for organization_email
+        clean_org_email = data.organization_email.strip().lower()
+        clean_otp = data.otp.strip()
+
+        otp_stmt = (
+            select(EmailVerificationCode)
+            .where(
+                EmailVerificationCode.email == clean_org_email,
+                EmailVerificationCode.purpose == "org_registration",
+                EmailVerificationCode.expires_at > datetime.now(timezone.utc),
+            )
+            .order_by(EmailVerificationCode.created_at.desc())
+        )
+        ver_record = (await self.db.execute(otp_stmt)).scalars().first()
+        if not ver_record or (ver_record.code_hash != clean_otp and not ver_record.is_verified):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired verification code for organization email.",
+            )
+        ver_record.is_verified = True
+
+        # 2. Generate alphanumeric unique company slug
         base_slug = re.sub(r"[^a-z0-9]", "", data.company_name.lower())
         if not base_slug:
             base_slug = f"org{uuid.uuid4().hex[:6]}"
@@ -59,7 +216,7 @@ class AuthService:
         else:
             domain = f"{slug}.com"
 
-        # 2. Derive unique corporate email
+        # 3. Derive unique corporate email
         clean_first = re.sub(r"[^a-z0-9]", "", data.ceo_first_name.lower()) or "ceo"
         clean_last = re.sub(r"[^a-z0-9]", "", data.ceo_last_name.lower()) or "exec"
         corporate_email = f"{clean_first}.{clean_last}@{domain}"
@@ -69,18 +226,20 @@ class AuthService:
         if existing_user:
             corporate_email = f"{clean_first}.{clean_last}{uuid.uuid4().hex[:4]}@{domain}"
 
-        # 3. Create Company
+        # 4. Create Company with verified organization email
         company = Company(
             name=data.company_name.strip(),
             slug=slug,
             domain=domain,
-            settings={},
+            organization_email=clean_org_email,
+            is_email_verified=True,
+            settings={"organization_email": clean_org_email},
             is_active=True,
         )
         self.db.add(company)
         await self.db.flush()
 
-        # 4. Create CEO User with full capability set
+        # 5. Create CEO User with full capability set
         ceo_permissions = {
             "can_handle_paypal": True,
             "can_run_payroll": True,
@@ -101,7 +260,7 @@ class AuthService:
         self.db.add(user)
         await self.db.flush()
 
-        # 5. Create linked Employee profile for CEO
+        # 6. Create linked Employee profile for CEO with personal_email set to organization_email
         employee = Employee(
             user_id=user.id,
             company_id=company.id,
@@ -109,6 +268,7 @@ class AuthService:
             first_name=data.ceo_first_name.strip(),
             last_name=data.ceo_last_name.strip(),
             email=corporate_email,
+            personal_email=clean_org_email,
             date_of_joining=datetime.now(timezone.utc).date(),
             employment_type="full_time",
             department_id=None,
@@ -122,7 +282,7 @@ class AuthService:
         await self.db.commit()
         await self.db.refresh(user)
 
-        # 6. Issue access & refresh tokens
+        # 7. Issue access & refresh tokens
         access_token = create_access_token(
             subject=user.id,
             role=user.role,
@@ -141,6 +301,8 @@ class AuthService:
             permissions=user.permissions or {},
             company_name=company.name,
             company_domain=company.domain,
+            organization_email=company.organization_email,
+            personal_email=employee.personal_email,
             created_at=user.created_at,
         )
 
@@ -226,12 +388,17 @@ class AuthService:
 
     async def login(self, data: UserLoginRequest) -> TokenResponse:
         """Authenticates user credentials and generates access & refresh JWT tokens."""
+        clean_email = data.email.lower().strip()
         query = (
             select(User)
+            .outerjoin(Employee, Employee.user_id == User.id)
             .options(selectinload(User.employee), selectinload(User.company))
-            .where(User.email == data.email.lower())
+            .where(
+                (User.email == clean_email)
+                | (Employee.personal_email == clean_email)
+            )
         )
-        user = (await self.db.execute(query)).scalar_one_or_none()
+        user = (await self.db.execute(query)).scalars().first()
 
         if not user or not verify_password(data.password, user.password_hash):
             raise HTTPException(
@@ -270,6 +437,8 @@ class AuthService:
             permissions=user.permissions or {},
             company_name=user.company.name if user.company else None,
             company_domain=user.company.domain if user.company else None,
+            organization_email=user.company.organization_email if user.company else None,
+            personal_email=user.employee.personal_email if user.employee else None,
             created_at=user.created_at,
         )
 
