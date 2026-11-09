@@ -277,6 +277,7 @@ class LeaveService:
         notif = CommunicationEvent(
             channel="in_app",
             direction="outbound",
+            company_id=self.company_id,
             employee_id=None,  # Broadcast to company HR/Admins
             leave_request_id=req.id,
             sender_identifier="system",
@@ -397,6 +398,7 @@ class LeaveService:
         decision_notif = CommunicationEvent(
             channel="in_app",
             direction="outbound",
+            company_id=req.company_id,
             employee_id=req.employee_id,
             leave_request_id=req.id,
             sender_identifier="system",
