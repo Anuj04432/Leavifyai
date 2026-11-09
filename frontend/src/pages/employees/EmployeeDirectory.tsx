@@ -212,6 +212,7 @@ export default function EmployeeDirectory() {
   const [createdCredentials, setCreatedCredentials] = useState<{
     name: string;
     email: string;
+    personal_email?: string | null;
     role: string;
     permissions?: Record<string, boolean>;
     tempPassword?: string;
@@ -427,6 +428,7 @@ export default function EmployeeDirectory() {
       setCreatedCredentials({
         name: `${created.first_name} ${created.last_name}`,
         email: created.email,
+        personal_email: created.personal_email || formData.personal_email.trim() || null,
         role: created.role,
         permissions: created.permissions || formData.permissions,
         tempPassword: actualPassword,
@@ -1639,9 +1641,18 @@ export default function EmployeeDirectory() {
               </div>
             </div>
 
-            <p className="text-[11px] text-slate-400 leading-relaxed">
-              No personal email was used. The member can immediately log in to WorkforceAI using this corporate email and temporary password.
-            </p>
+            {createdCredentials.personal_email ? (
+              <div className="p-2.5 rounded-lg bg-indigo-950/60 border border-indigo-800/60 text-[11px] text-indigo-300 flex items-start gap-2">
+                <Mail className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+                <span>
+                  Welcome email containing login credentials and inbound leave instructions was automatically dispatched to <strong>{createdCredentials.personal_email}</strong>.
+                </span>
+              </div>
+            ) : (
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                The member can log in to WorkforceAI using this corporate email and temporary password.
+              </p>
+            )}
 
             <button
               type="button"
