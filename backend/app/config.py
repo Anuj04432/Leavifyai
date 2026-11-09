@@ -78,6 +78,11 @@ class Settings(BaseSettings):
     OPENROUTER_CHAT_BASE_URL: str = "https://openrouter.ai/api/v1"
     OPENROUTER_CHAT_MODEL: str = "openrouter/free"
 
+    # Dedicated OpenRouter Embedding Engine (For RAG Semantic Search)
+    OPENROUTER_EMBEDDING_API_KEY: str = ""
+    OPENROUTER_EMBEDDING_BASE_URL: str = "https://openrouter.ai/api/v1"
+    OPENROUTER_EMBEDDING_MODEL: str = "text-embedding-3-small"
+
     # Google Gemini
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-3.5-flash"
