@@ -228,3 +228,7 @@ frontend/node_modules/
 dist/
 frontend/dist/
 .neon
+
+# Tenant-isolated OKF policy storage (keep templates, ignore runtime company UUID directories)
+backend/app/knowledge/policies/*/
+!backend/app/knowledge/policies/templates/
