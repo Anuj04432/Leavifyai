@@ -2,6 +2,7 @@ from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 import email
 from email.header import decode_header
+from email.utils import parseaddr
 import json
 import logging
 import os
@@ -103,15 +104,41 @@ class CommunicationIngestionAgent:
         body: str,
         channel: str = "email",
     ) -> Dict[str, Any]:
-        """Core workflow: Comprehend message -> Resolve employee & policy -> Stage Leave Request -> Notify HR."""
+        """Core workflow: Verify employee -> Comprehend message -> Resolve policy -> Stage Leave Request -> Notify HR."""
+        # 1. Resolve employee by corporate, personal, or payout email strictly within the organization
+        _, raw_email_addr = parseaddr(sender_identifier)
+        clean_sender = (raw_email_addr or sender_identifier).strip().lower()
+
+        emp_stmt = select(Employee).where(
+            Employee.company_id == company_id,
+            Employee.is_active == True,
+            (
+                (Employee.personal_email == clean_sender)
+                | (Employee.email == clean_sender)
+                | (Employee.paypal_email == clean_sender)
+            ),
+        )
+        emp_res = await self.db.execute(emp_stmt)
+        employee = emp_res.scalars().first()
+
+        if not employee:
+            logger.info(
+                f"Ignored inbound message from unverified sender '{clean_sender}' for company {company_id}"
+            )
+            return {
+                "processed": False,
+                "reason": f"Sender '{clean_sender}' is not a registered active employee of this organization.",
+            }
+
+        # 2. Comprehend intent with LLM only for verified employees
         parsed = await self.parse_message_intent(sender_identifier, subject, body)
 
-        # 1. Log inbound communication event
+        # 3. Log inbound communication event with verified employee linkage
         inbound_event = CommunicationEvent(
             channel=channel,
             direction="inbound",
             company_id=company_id,
-            employee_id=None,
+            employee_id=employee.id,
             leave_request_id=None,
             sender_identifier=sender_identifier,
             subject=subject,
@@ -131,44 +158,7 @@ class CommunicationIngestionAgent:
                 "parsed": parsed,
             }
 
-        # 2. Resolve employee by corporate or personal email
-        clean_sender = sender_identifier.strip().lower()
-        emp_stmt = select(Employee).where(
-            Employee.company_id == company_id,
-            Employee.is_active == True,
-            (
-                (Employee.personal_email == clean_sender)
-                | (Employee.email == clean_sender)
-                | (Employee.paypal_email == clean_sender)
-            ),
-        )
-        emp_res = await self.db.execute(emp_stmt)
-        employee = emp_res.scalars().first()
-
-        # If not found by direct email, match by first name or fallback to first active employee
-        if not employee:
-            all_emps_res = await self.db.execute(
-                select(Employee).where(Employee.company_id == company_id, Employee.is_active == True).limit(5)
-            )
-            candidate_emps = all_emps_res.scalars().all()
-            for cand in candidate_emps:
-                if cand.first_name.lower() in clean_sender or cand.last_name.lower() in clean_sender:
-                    employee = cand
-                    break
-            if not employee and candidate_emps:
-                employee = candidate_emps[0]
-
-        if not employee:
-            inbound_event.processing_status = "unmatched_employee"
-            await self.db.commit()
-            return {
-                "processed": False,
-                "reason": f"No active employee could be matched with identifier '{sender_identifier}'.",
-            }
-
-        inbound_event.employee_id = employee.id
-
-        # 3. Resolve Leave Policy
+        # 4. Resolve Leave Policy
         target_type = parsed.get("leave_type", "casual")
         pol_stmt = select(LeavePolicy).where(
             LeavePolicy.company_id == company_id,
