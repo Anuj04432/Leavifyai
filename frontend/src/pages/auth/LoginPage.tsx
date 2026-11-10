@@ -73,10 +73,15 @@ export default function LoginPage() {
     setError(null);
     setSendingOtp(true);
     try {
-      await api.post("/auth/send-org-otp", { email: regData.organization_email.trim() });
+      const res = await api.post("/auth/send-org-otp", { email: regData.organization_email.trim() });
       setOtpSent(true);
       setOtpCooldown(45);
-      setSuccessMsg(`Verification code sent to ${regData.organization_email}! Please check your Gmail.`);
+      if (res.data?.preview_code) {
+        setRegData((prev) => ({ ...prev, otp: res.data.preview_code }));
+        setSuccessMsg(`Verification code: ${res.data.preview_code} (Auto-filled for demo / fallback)`);
+      } else {
+        setSuccessMsg(`Verification code sent to ${regData.organization_email}! Please check your Gmail.`);
+      }
     } catch (err: any) {
       const detail = err.response?.data?.detail;
       setError(typeof detail === "string" ? detail : "Failed to send verification code.");
@@ -200,9 +205,14 @@ export default function LoginPage() {
     setForgotError(null);
     setForgotLoading(true);
     try {
-      await api.post("/auth/forgot-password/request", { email: forgotEmail.trim() });
+      const res = await api.post("/auth/forgot-password/request", { email: forgotEmail.trim() });
       setForgotStep("reset");
-      setForgotSuccess(`Verification code dispatched to ${forgotEmail}. Please check your inbox.`);
+      if (res.data?.preview_code) {
+        setForgotOtp(res.data.preview_code);
+        setForgotSuccess(`Reset verification code: ${res.data.preview_code} (Auto-filled for demo / fallback)`);
+      } else {
+        setForgotSuccess(`Verification code dispatched to ${forgotEmail}. Please check your inbox.`);
+      }
     } catch (err: any) {
       const detail = err.response?.data?.detail;
       setForgotError(typeof detail === "string" ? detail : "Failed to dispatch reset code.");

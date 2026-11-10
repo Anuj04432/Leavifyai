@@ -127,6 +127,7 @@ class AuthService:
         </html>
         """
 
+        smtp_sent = False
         if smtp_user and smtp_password:
             try:
                 msg = MIMEMultipart("alternative")
@@ -140,16 +141,20 @@ class AuthService:
                     server.login(smtp_user, smtp_password)
                     server.sendmail(from_email, [clean_email], msg.as_string())
                 logger.info(f"Verification OTP code sent to {clean_email}")
+                smtp_sent = True
             except Exception as ex:
                 logger.warning(f"SMTP OTP dispatch failed: {ex}. Simulated OTP: {otp_code}")
         else:
             logger.info(f"[SIMULATED_OTP] Organization {clean_email} OTP code: {otp_code}")
 
-        return {
+        res = {
             "success": True,
             "message": f"Verification code sent to {clean_email}",
-            # In sandbox / fallback mode, if smtp is unreachable, code can also be verified
         }
+        if not smtp_sent:
+            res["preview_code"] = otp_code
+            res["message"] = f"Verification code generated (Demo preview: {otp_code})"
+        return res
 
     async def verify_organization_otp(self, email: str, otp: str) -> dict:
         """Verifies an OTP code for an organization email."""
@@ -581,6 +586,7 @@ class AuthService:
         </html>
         """
 
+        smtp_sent = False
         if smtp_user and smtp_password:
             try:
                 msg = MIMEMultipart("alternative")
@@ -594,15 +600,20 @@ class AuthService:
                     server.login(smtp_user, smtp_password)
                     server.sendmail(from_email, [clean_email], msg.as_string())
                 logger.info(f"Password reset OTP sent to {clean_email}")
+                smtp_sent = True
             except Exception as ex:
                 logger.warning(f"SMTP reset dispatch failed: {ex}. Simulated OTP: {otp_code}")
         else:
             logger.info(f"[SIMULATED_OTP] Password reset for {clean_email}: {otp_code}")
 
-        return {
+        res = {
             "success": True,
             "message": f"Password reset verification code sent to {clean_email}",
         }
+        if not smtp_sent:
+            res["preview_code"] = otp_code
+            res["message"] = f"Password reset code generated (Demo preview: {otp_code})"
+        return res
 
     async def reset_password_with_otp(self, email: str, otp: str, new_password: str) -> dict:
         """Verifies OTP and resets the user's password."""
