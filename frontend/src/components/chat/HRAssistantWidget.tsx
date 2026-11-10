@@ -161,7 +161,7 @@ export default function HRAssistantWidget() {
         leave_policy_id: extracted.policy_id,
         start_date: extracted.start_date,
         end_date: extracted.end_date,
-        reason: extracted.reason || "Submitted via WorkforceAI Copilot",
+        reason: extracted.reason || "Submitted via Leavify Copilot",
       });
 
       setMessages((prev) =>

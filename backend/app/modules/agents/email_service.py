@@ -112,9 +112,9 @@ class EmailNotificationDispatcher:
             <div style="max-width: 580px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 32px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
                 <!-- Brand Header -->
                 <div style="display: flex; align-items: center; margin-bottom: 24px; border-bottom: 1px solid #e2e8f0; padding-bottom: 16px;">
-                    <div style="background: {theme_color}; color: #ffffff; font-weight: bold; width: 40px; height: 40px; border-radius: 10px; text-align: center; line-height: 40px; font-size: 20px; margin-right: 14px;">W</div>
+                    <div style="background: {theme_color}; color: #ffffff; font-weight: bold; width: 40px; height: 40px; border-radius: 10px; text-align: center; line-height: 40px; font-size: 20px; margin-right: 14px;">L</div>
                     <div>
-                        <h2 style="margin: 0; font-size: 18px; color: #0f172a;">WorkforceAI Operations</h2>
+                        <h2 style="margin: 0; font-size: 18px; color: #0f172a;">Leavify Operations</h2>
                         <span style="font-size: 13px; color: #64748b;">Autonomous Leave & Payroll Management</span>
                     </div>
                 </div>
@@ -166,7 +166,7 @@ class EmailNotificationDispatcher:
                 ''' if reviewer_comment else ""}
 
                 <p style="font-size: 12px; line-height: 1.5; color: #64748b; margin-top: 24px; border-top: 1px solid #e2e8f0; padding-top: 16px;">
-                    This is an automated notification from WorkforceAI. If you have questions regarding your leave balance or payroll reconciliation, please contact your HR Operations team.
+                    This is an automated notification from Leavify.ai. If you have questions regarding your leave balance or payroll reconciliation, please contact your HR Operations team.
                 </p>
             </div>
         </body>
@@ -220,7 +220,7 @@ class EmailNotificationDispatcher:
             try:
                 msg = MIMEMultipart("alternative")
                 msg["Subject"] = subject
-                msg["From"] = f"WorkforceAI <{self.from_email}>"
+                msg["From"] = f"Leavify.ai <{self.from_email}>"
                 msg["To"] = recipient_email
                 msg.attach(MIMEText(html_body, "html"))
 

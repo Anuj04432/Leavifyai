@@ -33,7 +33,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title=settings.APP_NAME,
-    description="Agentic AI-Powered Workforce Management & Payroll Automation Platform",
+    description="Leavify.ai – Autonomous Leave & Workforce Intelligence Platform",
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",

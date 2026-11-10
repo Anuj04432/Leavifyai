@@ -42,12 +42,12 @@ export default function ExecutePayoutModal({
   onSuccess,
 }: ExecutePayoutModalProps) {
   const [emailSubject, setEmailSubject] = useState(
-    `WorkforceAI Salary Disbursement for ${batch.period_year}-${String(
+    `Leavify Salary Disbursement for ${batch.period_year}-${String(
       batch.period_month
     ).padStart(2, "0")}`
   );
   const [note, setNote] = useState(
-    "Automated salary payout authorized via WorkforceAI deterministic payroll engine."
+    "Automated salary payout authorized via Leavify deterministic payroll engine."
   );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);

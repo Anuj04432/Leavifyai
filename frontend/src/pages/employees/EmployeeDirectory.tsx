@@ -1650,7 +1650,7 @@ export default function EmployeeDirectory() {
               </div>
             ) : (
               <p className="text-[11px] text-slate-400 leading-relaxed">
-                The member can log in to WorkforceAI using this corporate email and temporary password.
+                The member can log in to Leavify.ai using this corporate email and temporary password.
               </p>
             )}
 

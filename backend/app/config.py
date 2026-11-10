@@ -1,5 +1,5 @@
 from functools import lru_cache
-from typing import List, Optional, Union
+from typing import Any, List, Optional, Union
 from dotenv import load_dotenv
 from pydantic import AnyHttpUrl, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -11,12 +11,12 @@ load_dotenv("../.env")
 
 class Settings(BaseSettings):
     # Application
-    APP_NAME: str = "WorkforceAI"
+    APP_NAME: str = "Leavify.ai"
     APP_ENV: str = "development"
     DEBUG: bool = True
     SECRET_KEY: str = "development-secret-key-change-in-production-min-32-chars"
     API_V1_PREFIX: str = "/api/v1"
-    CORS_ORIGINS: List[str] = [
+    CORS_ORIGINS: Union[List[str], str] = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "http://localhost:3000",
@@ -25,17 +25,20 @@ class Settings(BaseSettings):
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
-    def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
+    def assemble_cors_origins(cls, v: Any) -> List[str]:
         import json
         if isinstance(v, str):
-            if v.startswith("["):
+            v = v.strip()
+            if v.startswith("[") and v.endswith("]"):
                 try:
-                    return json.loads(v)
+                    parsed = json.loads(v)
+                    if isinstance(parsed, list):
+                        return [str(i).strip() for i in parsed if str(i).strip()]
                 except Exception:
                     pass
             return [i.strip() for i in v.split(",") if i.strip()]
-        elif isinstance(v, list):
-            return v
+        elif isinstance(v, (list, tuple, set)):
+            return [str(i).strip() for i in v if str(i).strip()]
         return ["*"]
 
     # Database

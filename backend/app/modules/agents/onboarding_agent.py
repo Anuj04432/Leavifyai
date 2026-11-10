@@ -60,10 +60,10 @@ class OnboardingDispatchAgent:
         <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #f1f5f9; background-color: #090d16; margin: 0; padding: 24px;">
             <div style="max-width: 560px; margin: 0 auto; background: #0f172a; border: 1px solid #1e293b; border-radius: 12px; padding: 32px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);">
                 <div style="display: flex; align-items: center; margin-bottom: 24px;">
-                    <div style="background: #4f46e5; color: #ffffff; font-weight: 800; width: 40px; height: 40px; border-radius: 10px; text-align: center; line-height: 40px; font-size: 20px; margin-right: 14px;">W</div>
+                    <div style="background: #ea580c; color: #ffffff; font-weight: 800; width: 40px; height: 40px; border-radius: 10px; text-align: center; line-height: 40px; font-size: 20px; margin-right: 14px;">L</div>
                     <div>
                         <h2 style="margin: 0; font-size: 18px; color: #ffffff;">Welcome to {company_name}</h2>
-                        <span style="font-size: 12px; color: #94a3b8;">WorkforceAI Autonomous Enterprise Portal</span>
+                        <span style="font-size: 12px; color: #94a3b8;">Leavify.ai Autonomous Enterprise Portal</span>
                     </div>
                 </div>
 
@@ -87,8 +87,8 @@ class OnboardingDispatchAgent:
                 </div>
 
                 <div style="text-align: center; margin: 24px 0;">
-                    <a href="{portal_url}" style="background: #4f46e5; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-weight: 600; font-size: 14px; display: inline-block;">
-                        Sign In to WorkforceAI Portal
+                    <a href="{portal_url}" style="background: #ea580c; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-weight: 600; font-size: 14px; display: inline-block;">
+                        Sign In to Leavify.ai Portal
                     </a>
                 </div>
 
@@ -134,8 +134,8 @@ class OnboardingDispatchAgent:
         # Real SMTP dispatch via standard STARTTLS
         try:
             msg = MIMEMultipart("alternative")
-            msg["Subject"] = f"Welcome to {company_name}: Your WorkforceAI Portal Access Credentials"
-            msg["From"] = f"WorkforceAI <{self.from_email}>"
+            msg["Subject"] = f"Welcome to {company_name}: Your Leavify.ai Portal Access Credentials"
+            msg["From"] = f"Leavify.ai <{self.from_email}>"
             msg["To"] = clean_dest
 
             html_content = self.format_email_body(

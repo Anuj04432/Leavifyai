@@ -100,27 +100,27 @@ class AuthService:
         <head>
           <meta charset="utf-8">
           <style>
-            body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #090d16; color: #f1f5f9; padding: 24px; }}
-            .container {{ max-width: 520px; margin: 0 auto; background: #0f172a; border: 1px solid #1e293b; border-radius: 12px; padding: 32px; }}
-            .brand {{ display: inline-block; background: #4f46e5; color: #ffffff; padding: 6px 12px; border-radius: 8px; font-weight: 700; font-size: 14px; margin-bottom: 20px; }}
-            h2 {{ color: #ffffff; margin-top: 0; font-size: 20px; }}
-            p {{ color: #94a3b8; font-size: 14px; line-height: 1.6; }}
-            .code-box {{ background: #020617; border: 1px solid #312e81; border-radius: 8px; padding: 18px; text-align: center; margin: 24px 0; }}
-            .code {{ font-family: monospace; font-size: 32px; letter-spacing: 8px; font-weight: 800; color: #818cf8; }}
-            .footer {{ border-top: 1px solid #1e293b; margin-top: 24px; padding-top: 16px; font-size: 11px; color: #64748b; }}
+            body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #0c0a09; color: #FAF8F5; padding: 24px; }}
+            .container {{ max-width: 520px; margin: 0 auto; background: #141210; border: 1px solid #292524; border-radius: 12px; padding: 32px; }}
+            .brand {{ display: inline-block; background: #ea580c; color: #ffffff; padding: 6px 14px; border-radius: 8px; font-weight: 700; font-size: 14px; margin-bottom: 20px; }}
+            h2 {{ color: #FAF8F5; margin-top: 0; font-size: 20px; }}
+            p {{ color: #a8a29e; font-size: 14px; line-height: 1.6; }}
+            .code-box {{ background: #0c0a09; border: 1px solid #ea580c; border-radius: 8px; padding: 18px; text-align: center; margin: 24px 0; }}
+            .code {{ font-family: monospace; font-size: 32px; letter-spacing: 8px; font-weight: 800; color: #f97316; }}
+            .footer {{ border-top: 1px solid #292524; margin-top: 24px; padding-top: 16px; font-size: 11px; color: #78716c; }}
           </style>
         </head>
         <body>
           <div class="container">
-            <div class="brand">WorkforceAI</div>
+            <div class="brand">Leavify.ai</div>
             <h2>Verify Your Organization Email</h2>
-            <p>Use the 6-digit verification code below to verify your organization's official email address for WorkforceAI:</p>
+            <p>Use the 6-digit verification code below to verify your organization's official email address for Leavify.ai:</p>
             <div class="code-box">
               <span class="code">{otp_code}</span>
             </div>
             <p>This verification code expires in <strong>10 minutes</strong>. If you did not request this verification, you can safely ignore this email.</p>
             <div class="footer">
-              Automated verification dispatch from WorkforceAI Autonomous Enterprise Engine.
+              Automated verification dispatch from Leavify.ai Autonomous Enterprise Engine.
             </div>
           </div>
         </body>
@@ -130,8 +130,8 @@ class AuthService:
         if smtp_user and smtp_password:
             try:
                 msg = MIMEMultipart("alternative")
-                msg["Subject"] = f"WorkforceAI Verification Code: {otp_code}"
-                msg["From"] = f"WorkforceAI Security <{from_email}>"
+                msg["Subject"] = f"Leavify.ai Verification Code: {otp_code}"
+                msg["From"] = f"Leavify.ai Security <{from_email}>"
                 msg["To"] = clean_email
                 msg.attach(MIMEText(html_body, "html"))
 
