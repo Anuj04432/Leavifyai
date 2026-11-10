@@ -678,7 +678,7 @@ class LeaveSupervisorWorkflow:
             for lt in ["sick", "annual", "casual", "unpaid"]:
                 if lt in user_msg:
                     matched_type = lt
-                    okf_grounding = okf_service.format_grounding_context(lt)
+                    okf_grounding = okf_service.format_grounding_context(lt, company_id=self.company_id)
                     break
 
             # Retrieve top semantic excerpts from multi-page documents via RAG
