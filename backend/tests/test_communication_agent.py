@@ -177,6 +177,94 @@ async def test_inbound_communication_agent_processing():
 
 
 @pytest.mark.asyncio
+async def test_inbound_message_rejects_unknown_sender_without_llm_call():
+    """Verifies that marketing spam and unknown senders are dropped immediately without LLM calls or candidate fallback."""
+    mock_db = AsyncMock()
+    mock_llm = MagicMock()
+    mock_llm.generate_decision = AsyncMock()
+
+    # DB returns None for employee lookup
+    res_emp = MagicMock()
+    res_emp.scalars.return_value.first.return_value = None
+    mock_db.execute = AsyncMock(return_value=res_emp)
+
+    agent = CommunicationIngestionAgent(mock_db, mock_llm)
+    result = await agent.process_inbound_message(
+        company_id=uuid.uuid4(),
+        sender_identifier="TCS iON <ExternalComm_tcsion@tcsion.com>",
+        subject="Last Chance to Register! Free Jobinar",
+        body="Join our upcoming session on 2026-11-12",
+        channel="gmail",
+    )
+
+    assert result["processed"] is False
+    assert "not a registered active employee" in result["reason"]
+    # Ensure LLM was never invoked for spam
+    assert not mock_llm.generate_decision.called
+
+
+@pytest.mark.asyncio
+async def test_inbound_message_extracts_clean_email_from_formatted_sender():
+    """Verifies parseaddr cleanly extracts the email address from 'Full Name <email@domain.com>'."""
+    mock_db = AsyncMock()
+    mock_llm = MagicMock()
+    mock_llm.generate_decision = AsyncMock(
+        return_value=(
+            json.dumps({
+                "is_leave_request": True,
+                "leave_type": "annual",
+                "start_date": "2026-11-20",
+                "end_date": "2026-11-20",
+                "reason": "Family function",
+                "confidence": 0.95,
+            }),
+            "openrouter",
+            "free-model",
+        )
+    )
+
+    company_id = uuid.uuid4()
+    mock_emp = Employee(
+        id=uuid.uuid4(),
+        company_id=company_id,
+        first_name="Anuj",
+        last_name="Wagmore",
+        email="anujwagmore835@gmail.com",
+    )
+    mock_pol = LeavePolicy(
+        id=uuid.uuid4(),
+        company_id=company_id,
+        name="Annual Leave",
+        leave_type="annual",
+        is_paid=True,
+        is_active=True,
+        days_allowed=15,
+    )
+
+    res_emp = MagicMock()
+    res_emp.scalars.return_value.first.return_value = mock_emp
+    res_pol = MagicMock()
+    res_pol.scalars.return_value.first.return_value = mock_pol
+    res_bal = MagicMock()
+    res_bal.scalars.return_value.first.return_value = None
+
+    mock_db.execute = AsyncMock(side_effect=[res_emp, res_pol, res_bal])
+
+    agent = CommunicationIngestionAgent(mock_db, mock_llm)
+    result = await agent.process_inbound_message(
+        company_id=company_id,
+        sender_identifier="Anuj Wagmore <anujwagmore835@gmail.com>",
+        subject="Leave request for Nov 20",
+        body="I will take a leave on 2026-11-20 for a family function.",
+        channel="gmail",
+    )
+
+    assert result["processed"] is True
+    assert result["employee_name"] == "Anuj Wagmore"
+    assert result["policy_name"] == "Annual Leave"
+
+
+@pytest.mark.asyncio
 async def test_payroll_calculation_exempts_waived_unpaid_leave():
     from app.modules.payroll.service import PayrollService
 
