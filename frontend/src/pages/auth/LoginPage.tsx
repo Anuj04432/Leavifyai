@@ -192,23 +192,23 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex font-sans antialiased">
+    <div className="min-h-screen bg-[#0c0a09] text-stone-100 flex font-sans antialiased">
       {/* PASS 1: Asymmetric Left Architecture Panel (Hidden on small screens) */}
-      <div className="hidden lg:flex lg:w-5/12 bg-slate-900 border-r border-slate-800 flex-col justify-between p-12 relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-5/12 bg-[#141210] border-r border-stone-800 flex-col justify-between p-12 relative overflow-hidden">
         {/* Subtle dot pattern */}
         <div className="absolute inset-0 pointer-events-none [background-image:radial-gradient(var(--surface-grid)_1px,transparent_1px)] [background-size:16px_16px]" />
 
         <div>
           {/* Logo & Product Identity */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-lg text-white shadow-sm">
+            <div className="w-10 h-10 rounded-2xl bg-orange-600 flex items-center justify-center font-bold text-lg text-white shadow-sm">
               W
             </div>
             <div>
-              <span className="font-extrabold text-white text-lg tracking-tight block">
+              <span className="font-extrabold text-[#FFFDF8] text-lg tracking-tight block">
                 WorkforceAI
               </span>
-              <span className="text-xs font-medium text-slate-400 block -mt-0.5">
+              <span className="text-xs font-medium text-stone-400 block -mt-0.5">
                 Enterprise Payroll OS
               </span>
             </div>
@@ -216,46 +216,46 @@ export default function LoginPage() {
 
           {/* Value Prop Headline */}
           <div className="mt-14 space-y-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               Neon Postgres 18.6 Live
             </div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-white leading-tight">
+            <h1 className="text-3xl font-extrabold tracking-tight text-[#FFFDF8] leading-tight">
               Agentic AI workforce & automated payroll operations.
             </h1>
-            <p className="text-xs text-slate-400 leading-relaxed">
+            <p className="text-xs text-stone-400 leading-relaxed">
               Autonomous workforce engine with LangGraph supervisors, deterministic leave reconciliation, and PayPal Payouts integration.
             </p>
           </div>
         </div>
 
         {/* Telemetry Architecture Cards */}
-        <div className="space-y-3.5 pt-8 border-t border-slate-800/80">
+        <div className="space-y-3.5 pt-8 border-t border-stone-800/80">
           <div className="flex items-start gap-3">
-            <Cpu className="w-4 h-4 text-indigo-400 mt-1 shrink-0" />
+            <Cpu className="w-4 h-4 text-orange-400 mt-1 shrink-0" />
             <div>
               <div className="text-xs font-semibold text-white">LangGraph AI Policy Supervisor</div>
-              <div className="text-[11px] text-slate-400 leading-normal">
+              <div className="text-[11px] text-stone-400 leading-normal">
                 Natural language parsing, SQL balance verification, and transparent rule citations.
               </div>
             </div>
           </div>
 
           <div className="flex items-start gap-3">
-            <CreditCard className="w-4 h-4 text-indigo-400 mt-1 shrink-0" />
+            <CreditCard className="w-4 h-4 text-orange-400 mt-1 shrink-0" />
             <div>
               <div className="text-xs font-semibold text-white">Deterministic Payroll Engine</div>
-              <div className="text-[11px] text-slate-400 leading-normal">
+              <div className="text-[11px] text-stone-400 leading-normal">
                 Reconciles unpaid leave deductions using Python Decimal zero-float precision.
               </div>
             </div>
           </div>
 
           <div className="flex items-start gap-3">
-            <CheckCircle2 className="w-4 h-4 text-indigo-400 mt-1 shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-orange-400 mt-1 shrink-0" />
             <div>
               <div className="text-xs font-semibold text-white">PayPal Sandbox Disbursements</div>
-              <div className="text-[11px] text-slate-400 leading-normal">
+              <div className="text-[11px] text-stone-400 leading-normal">
                 Automated batch payouts with sender idempotency and cryptographic webhook audits.
               </div>
             </div>
@@ -263,7 +263,7 @@ export default function LoginPage() {
         </div>
 
         {/* Footer Meta */}
-        <div className="text-xs text-slate-500 tracking-tight pt-4">
+        <div className="text-xs text-stone-500 tracking-tight pt-4">
           PayPal AI Hackathon 2026 · Build Production
         </div>
       </div>
@@ -273,26 +273,26 @@ export default function LoginPage() {
         <div className="w-full max-w-md space-y-6">
           {/* Mobile Header */}
           <div className="flex items-center gap-3 lg:hidden">
-            <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-white text-base">
+            <div className="w-9 h-9 rounded-xl bg-orange-600 flex items-center justify-center font-bold text-white text-base">
               W
             </div>
-            <span className="font-extrabold text-white text-base tracking-tight">
+            <span className="font-extrabold text-[#FFFDF8] text-base tracking-tight">
               WorkforceAI
             </span>
           </div>
 
           {/* Tab Selector: Sign In vs Register Organization */}
-          <div className="bg-slate-900 p-1 rounded-xl border border-slate-800 flex items-center gap-1">
+          <div className="bg-[#141210] p-1.5 rounded-2xl border border-stone-800 flex items-center gap-1 shadow-sm">
             <button
               type="button"
               onClick={() => {
                 setActiveTab("login");
                 setError(null);
               }}
-              className={`flex-1 py-2 text-xs font-semibold rounded-lg transition cursor-pointer text-center ${
+              className={`flex-1 py-2 text-xs font-semibold rounded-xl transition cursor-pointer text-center ${
                 activeTab === "login"
-                  ? "bg-slate-800 text-white border border-slate-700 shadow-sm"
-                  : "text-slate-400 hover:text-slate-200"
+                  ? "bg-stone-900 text-[#FFFDF8] border border-stone-700 shadow-sm"
+                  : "text-stone-400 hover:text-stone-200"
               }`}
             >
               Sign In
@@ -303,10 +303,10 @@ export default function LoginPage() {
                 setActiveTab("register");
                 setError(null);
               }}
-              className={`flex-1 py-2 text-xs font-semibold rounded-lg transition cursor-pointer text-center ${
+              className={`flex-1 py-2 text-xs font-semibold rounded-xl transition cursor-pointer text-center ${
                 activeTab === "register"
-                  ? "bg-slate-800 text-white border border-slate-700 shadow-sm"
-                  : "text-slate-400 hover:text-slate-200"
+                  ? "bg-stone-900 text-[#FFFDF8] border border-stone-700 shadow-sm"
+                  : "text-stone-400 hover:text-stone-200"
               }`}
             >
               Register as Company CEO
@@ -315,10 +315,10 @@ export default function LoginPage() {
 
           {/* Form Header */}
           <div>
-            <h2 className="text-xl font-bold tracking-tight text-white">
+            <h2 className="text-xl font-bold tracking-tight text-[#FFFDF8]">
               {activeTab === "login" ? "Sign in to your organization" : "Register company as CEO"}
             </h2>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-stone-400 mt-1">
               {activeTab === "login"
                 ? "Enter your provisioned WorkforceAI corporate email and password (CEO, HR, Finance, or Employee)."
                 : "Register as Company CEO. Team members and employees should use 'Sign In' with credentials issued by their company."}
@@ -327,13 +327,13 @@ export default function LoginPage() {
 
           {/* Alerts */}
           {error && (
-            <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs font-medium leading-relaxed">
+            <div className="p-3.5 rounded-2xl bg-rose-950/40 border border-rose-500/20 text-rose-300 text-xs font-medium leading-relaxed">
               {error}
             </div>
           )}
 
           {successMsg && (
-            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-medium leading-relaxed flex items-center gap-2">
+            <div className="p-3.5 rounded-2xl bg-emerald-950/40 border border-emerald-500/20 text-emerald-300 text-xs font-medium leading-relaxed flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
               <span>{successMsg}</span>
             </div>
@@ -343,35 +343,35 @@ export default function LoginPage() {
           {activeTab === "login" ? (
             <form onSubmit={handleLoginSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                <label className="block text-xs font-medium text-stone-300 mb-1.5">
                   Organization Gmail or Premise Corporate Email
                 </label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+                  <Mail className="w-4 h-4 text-stone-500 absolute left-3.5 top-3" />
                   <input
                     type="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="e.g. anujwagmore835@gmail.com or alice@acme.com"
-                    className="w-full bg-slate-900 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-100 placeholder-slate-600 outline-none transition"
+                    className="w-full bg-[#1c1917] border border-stone-800 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 rounded-xl pl-10 pr-4 py-2.5 text-xs text-stone-100 placeholder-stone-600 outline-none transition"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                <label className="block text-xs font-medium text-stone-300 mb-1.5">
                   Password
                 </label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+                  <Lock className="w-4 h-4 text-stone-500 absolute left-3.5 top-3" />
                   <input
                     type="password"
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full bg-slate-900 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-100 placeholder-slate-600 outline-none transition"
+                    className="w-full bg-[#1c1917] border border-stone-800 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 rounded-xl pl-10 pr-4 py-2.5 text-xs text-stone-100 placeholder-stone-600 outline-none transition"
                   />
                 </div>
               </div>
@@ -379,7 +379,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-indigo-600 hover:bg-indigo-500 active:scale-[0.99] disabled:opacity-50 text-white font-semibold text-xs py-2.5 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                className="w-full bg-orange-600 hover:bg-orange-500 active:bg-orange-700 active:scale-[0.99] disabled:opacity-50 text-white font-semibold text-xs py-3 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-md"
               >
                 {loading ? (
                   <>
@@ -389,7 +389,7 @@ export default function LoginPage() {
                 ) : (
                   <>
                     <span>Sign In</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-indigo-200" />
+                    <ArrowRight className="w-3.5 h-3.5 text-white" />
                   </>
                 )}
               </button>

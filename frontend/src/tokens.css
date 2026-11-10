@@ -1,29 +1,29 @@
-/* Hallmark · theme: modern-minimal · tokens */
+/* Hallmark · theme: bespoke-human-craft · tokens */
 :root {
-  --surface-canvas: oklch(0.12 0.015 260);
-  --surface-panel: oklch(0.16 0.02 260);
-  --surface-card: oklch(0.20 0.025 260);
-  --surface-inset: oklch(0.10 0.01 260);
-  --surface-muted: oklch(0.28 0.03 260);
-  --surface-grid: oklch(1 0 0 / 0.04);
+  --surface-canvas: oklch(0.11 0.01 45);
+  --surface-panel: oklch(0.15 0.012 45);
+  --surface-card: oklch(0.18 0.015 45);
+  --surface-inset: oklch(0.09 0.008 45);
+  --surface-muted: oklch(0.24 0.018 45);
+  --surface-grid: oklch(1 0 0 / 0.03);
 
-  --border-dim: oklch(0.24 0.02 260);
-  --border-subtle: oklch(0.30 0.025 260);
-  --border-bright: oklch(0.40 0.03 260);
+  --border-dim: oklch(0.22 0.015 45);
+  --border-subtle: oklch(0.28 0.02 45);
+  --border-bright: oklch(0.38 0.03 45);
 
-  --text-primary: oklch(0.98 0.005 260);
-  --text-secondary: oklch(0.75 0.02 260);
-  --text-muted: oklch(0.55 0.02 260);
+  --text-primary: #FAF8F5;
+  --text-secondary: #D6D0C7;
+  --text-muted: #8F877D;
 
-  --brand-primary: oklch(0.60 0.22 275);
-  --brand-hover: oklch(0.52 0.24 275);
-  --brand-surface: oklch(0.60 0.22 275 / 0.12);
-  --brand-border: oklch(0.60 0.22 275 / 0.25);
+  --brand-primary: #EA580C;
+  --brand-hover: #F97316;
+  --brand-surface: rgba(234, 88, 12, 0.12);
+  --brand-border: rgba(234, 88, 12, 0.28);
 
-  --status-success: oklch(0.72 0.17 155);
-  --status-success-bg: oklch(0.72 0.17 155 / 0.12);
-  --status-warning: oklch(0.76 0.16 75);
-  --status-warning-bg: oklch(0.76 0.16 75 / 0.12);
-  --status-danger: oklch(0.62 0.22 25);
-  --status-danger-bg: oklch(0.62 0.22 25 / 0.12);
+  --status-success: #22C55E;
+  --status-success-bg: rgba(34, 197, 94, 0.12);
+  --status-warning: #F59E0B;
+  --status-warning-bg: rgba(245, 158, 11, 0.12);
+  --status-danger: #EF4444;
+  --status-danger-bg: rgba(239, 68, 68, 0.12);
 }

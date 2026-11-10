@@ -593,19 +593,19 @@ export default function EmployeeDirectory() {
   const paypalConfiguredCount = employees.filter((e) => !!e.paypal_email).length;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans antialiased">
+    <div className="min-h-screen bg-[#0c0a09] text-stone-100 flex flex-col font-sans antialiased">
       <Navbar />
 
       {/* Main Content Area */}
       <main className="flex-1 p-6 max-w-7xl w-full mx-auto space-y-6">
         {/* Title & Action Row */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-800">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-stone-800">
           <div>
-            <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
-              <Users className="w-5 h-5 text-indigo-400" />
+            <h1 className="text-xl font-bold text-[#FFFDF8] tracking-tight flex items-center gap-2">
+              <Users className="w-5 h-5 text-orange-400" />
               Employee Directory
             </h1>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-stone-400 mt-0.5">
               Workforce records, department assignments, and payout endpoints.
             </p>
           </div>
@@ -618,9 +618,9 @@ export default function EmployeeDirectory() {
                   setImportResult(null);
                   setImportFile(null);
                 }}
-                className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                className="px-4 py-2 bg-stone-900 hover:bg-stone-800 border border-stone-700 text-stone-200 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
               >
-                <Upload className="w-3.5 h-3.5 text-slate-400" />
+                <Upload className="w-3.5 h-3.5 text-stone-400" />
                 Import CSV
               </button>
 
@@ -629,7 +629,7 @@ export default function EmployeeDirectory() {
                   setShowAddModal(true);
                   setFormError(null);
                 }}
-                className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                className="px-4 py-2 bg-orange-600 hover:bg-orange-500 active:bg-orange-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-sm"
               >
                 <Plus className="w-3.5 h-3.5" />
                 Add Employee
@@ -643,15 +643,15 @@ export default function EmployeeDirectory() {
           {/* Main 8-Column Roster Area */}
           <div className="lg:col-span-8 space-y-4">
             {/* Search & Filter Toolbar */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col sm:flex-row gap-2.5">
+            <div className="bg-[#141210] border border-stone-800 rounded-2xl p-3 flex flex-col sm:flex-row gap-2.5 shadow-sm">
               <div className="flex-1 relative">
-                <Search className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
+                <Search className="w-4 h-4 text-stone-500 absolute left-3 top-2.5" />
                 <input
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search by name, employee code, email..."
-                  className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 outline-none transition"
+                  className="w-full bg-[#1c1917] border border-stone-800 focus:border-orange-500 rounded-xl pl-9 pr-3 py-1.5 text-xs text-stone-200 placeholder-stone-500 outline-none transition"
                 />
               </div>
 
@@ -659,7 +659,7 @@ export default function EmployeeDirectory() {
                 <select
                   value={selectedDept}
                   onChange={(e) => setSelectedDept(e.target.value)}
-                  className="bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 outline-none"
+                  className="bg-[#1c1917] border border-stone-800 focus:border-orange-500 rounded-xl px-3 py-1.5 text-xs text-stone-200 outline-none"
                 >
                   <option value="">All Departments</option>
                   {departments.map((d) => (
@@ -672,7 +672,7 @@ export default function EmployeeDirectory() {
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 outline-none"
+                  className="bg-[#1c1917] border border-stone-800 focus:border-orange-500 rounded-xl px-3 py-1.5 text-xs text-stone-200 outline-none"
                 >
                   <option value="">All Statuses</option>
                   <option value="true">Active</option>
@@ -682,7 +682,7 @@ export default function EmployeeDirectory() {
             </div>
 
             {/* Employee Table */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+            <div className="bg-[#141210] border border-stone-800 rounded-2xl overflow-hidden shadow-sm">
               {loading ? (
                 <div className="p-12 text-center text-slate-400 flex flex-col items-center justify-center gap-2">
                   <Loader2 className="w-5 h-5 animate-spin text-indigo-400 motion-reduce:animate-none" />
@@ -847,49 +847,49 @@ export default function EmployeeDirectory() {
           {/* PASS 1: Asymmetric 4-Column Contextual Intelligence Rail */}
           <div className="lg:col-span-4 space-y-4">
             {/* Card 1: Live Workforce Telemetry */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                <span className="text-xs font-semibold text-white flex items-center gap-1.5">
-                  <TrendingUp className="w-3.5 h-3.5 text-indigo-400" />
+            <div className="bg-[#141210] border border-stone-800 rounded-2xl p-5 space-y-3.5 shadow-sm">
+              <div className="flex items-center justify-between pb-2 border-b border-stone-800">
+                <span className="text-xs font-semibold text-[#FFFDF8] flex items-center gap-1.5">
+                  <TrendingUp className="w-3.5 h-3.5 text-orange-400" />
                   Workforce Metrics
                 </span>
-                <span className="text-xs text-emerald-400 flex items-center gap-1">
+                <span className="text-xs text-emerald-400 flex items-center gap-1 font-mono">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse motion-reduce:animate-none" />
                   Live
                 </span>
               </div>
 
               <div className="grid grid-cols-2 gap-3 pt-1">
-                <div className="bg-slate-950 p-3 rounded-lg border border-slate-800/80">
-                  <div className="text-xs text-slate-400 font-medium">Headcount</div>
-                  <div className="text-xl font-bold text-white mt-1 font-mono">
+                <div className="bg-[#1c1917] p-3.5 rounded-xl border border-stone-800/80">
+                  <div className="text-xs text-stone-400 font-medium">Headcount</div>
+                  <div className="text-2xl font-bold text-white mt-1 font-mono">
                     {employees.length}
                   </div>
-                  <div className="text-[10px] text-slate-500 mt-0.5">Personnel records</div>
+                  <div className="text-[11px] text-stone-500 mt-0.5">Personnel records</div>
                 </div>
 
-                <div className="bg-slate-950 p-3 rounded-lg border border-slate-800/80">
-                  <div className="text-xs text-slate-400 font-medium">Monthly Run</div>
-                  <div className="text-xl font-bold text-white mt-1 font-mono">
+                <div className="bg-[#1c1917] p-3.5 rounded-xl border border-stone-800/80">
+                  <div className="text-xs text-stone-400 font-medium">Monthly Run</div>
+                  <div className="text-2xl font-bold text-white mt-1 font-mono">
                     ${Math.round(totalSalaries / 12).toLocaleString()}
                   </div>
-                  <div className="text-[10px] text-slate-500 mt-0.5">Base commitment</div>
+                  <div className="text-[11px] text-stone-500 mt-0.5">Base commitment</div>
                 </div>
               </div>
 
               <div className="pt-2">
-                <div className="flex items-center justify-between text-xs text-slate-300 mb-1">
+                <div className="flex items-center justify-between text-xs text-stone-300 mb-1.5">
                   <span>PayPal Payouts Coverage</span>
-                  <span className="font-mono text-indigo-400">
+                  <span className="font-mono text-orange-400 font-bold">
                     {employees.length > 0
                       ? Math.round((paypalConfiguredCount / employees.length) * 100)
                       : 0}
                     %
                   </span>
                 </div>
-                <div className="w-full bg-slate-950 rounded-full h-1.5 border border-slate-800">
+                <div className="w-full bg-stone-950 rounded-full h-1.5 border border-stone-800">
                   <div
-                    className="bg-indigo-600 h-1.5 rounded-full"
+                    className="bg-orange-600 h-1.5 rounded-full transition-all"
                     style={{
                       width: `${
                         employees.length > 0
@@ -903,30 +903,30 @@ export default function EmployeeDirectory() {
             </div>
 
             {/* Card 2: Settlement & Integration Pipeline */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
-              <div className="text-xs font-semibold text-white flex items-center gap-1.5 pb-2 border-b border-slate-800">
-                <CreditCard className="w-3.5 h-3.5 text-indigo-400" />
+            <div className="bg-[#141210] border border-stone-800 rounded-2xl p-5 space-y-3.5 shadow-sm">
+              <div className="text-xs font-semibold text-[#FFFDF8] flex items-center gap-1.5 pb-2 border-b border-stone-800">
+                <CreditCard className="w-3.5 h-3.5 text-orange-400" />
                 Settlement Rails
               </div>
 
               <div className="space-y-2 text-xs">
-                <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-950 border border-slate-800/80">
+                <div className="flex items-center justify-between p-3 rounded-xl bg-[#1c1917] border border-stone-800/80">
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-emerald-400" />
                     <span className="text-white font-medium">PayPal Payouts API</span>
                   </div>
-                  <span className="font-mono text-[10px] text-slate-400">Sandbox v1</span>
+                  <span className="font-mono text-[11px] text-stone-400">Sandbox v1</span>
                 </div>
 
-                <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-950 border border-slate-800/80">
+                <div className="flex items-center justify-between p-3 rounded-xl bg-[#1c1917] border border-stone-800/80">
                   <div className="flex items-center gap-2">
-                    <Cpu className="w-3.5 h-3.5 text-indigo-400" />
+                    <Cpu className="w-3.5 h-3.5 text-orange-400" />
                     <span className="text-white font-medium">Neon PostgreSQL</span>
                   </div>
-                  <span className="font-mono text-[10px] text-emerald-400">pgvector 18.6</span>
+                  <span className="font-mono text-[11px] text-emerald-400">pgvector 18.6</span>
                 </div>
 
-                <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-950 border border-slate-800/80">
+                <div className="flex items-center justify-between p-3 rounded-xl bg-[#1c1917] border border-stone-800/80">
                   <div className="flex items-center gap-2">
                     <Layers className="w-3.5 h-3.5 text-slate-400" />
                     <span className="text-white font-medium">Active Departments</span>

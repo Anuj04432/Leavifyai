@@ -178,18 +178,18 @@ export default function PolicyKnowledge() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans antialiased">
+    <div className="min-h-screen bg-[#0c0a09] text-stone-100 flex flex-col font-sans antialiased">
       <Navbar />
 
       <main className="flex-1 p-6 max-w-7xl w-full mx-auto space-y-6">
         {/* Title Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-800">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-stone-800">
           <div>
-            <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-indigo-400" />
+            <h1 className="text-xl font-bold text-[#FFFDF8] tracking-tight flex items-center gap-2">
+              <BookOpen className="w-5 h-5 text-orange-400" />
               Open Knowledge Format (OKF) Policy Repository
             </h1>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-stone-400 mt-0.5">
               Authoritative, deterministic Markdown & YAML policy contracts grounding the Agentic AI Supervisor.
             </p>
           </div>
@@ -202,20 +202,20 @@ export default function PolicyKnowledge() {
                   setUploadError(null);
                   setShowUploadModal(true);
                 }}
-                className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs flex items-center gap-1.5 transition-colors motion-reduce:transition-none cursor-pointer shadow-sm"
+                className="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 active:bg-orange-700 text-white font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-sm"
               >
                 <Upload className="w-3.5 h-3.5" />
                 Upload Policy Document
               </button>
             )}
-            <span className="text-xs px-2.5 py-1 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-medium">
+            <span className="text-xs px-3 py-1 rounded-md bg-orange-950/50 text-orange-400 border border-orange-500/20 font-mono">
               OKF Grounding Active
             </span>
           </div>
         </div>
 
         {error && (
-          <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2">
+          <div className="p-3.5 rounded-xl bg-rose-950/40 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
           </div>
@@ -225,15 +225,15 @@ export default function PolicyKnowledge() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* 4-Column Policy Navigation Rail */}
           <div className="lg:col-span-4 space-y-3">
-            <div className="text-xs font-semibold text-slate-300 flex items-center gap-1.5 px-1">
-              <FileCode className="w-4 h-4 text-indigo-400" />
+            <div className="text-xs font-semibold text-stone-200 flex items-center gap-1.5 px-1">
+              <FileCode className="w-4 h-4 text-orange-400" />
               Company Policy Documents ({policies.length})
             </div>
 
             {loading ? (
-              <div className="p-12 rounded-xl bg-slate-900 border border-slate-800 flex flex-col items-center justify-center gap-2">
-                <Loader2 className="w-5 h-5 animate-spin text-indigo-500" />
-                <span className="text-xs text-slate-400">Loading OKF bundles…</span>
+              <div className="p-12 rounded-2xl bg-[#141210] border border-stone-800 flex flex-col items-center justify-center gap-2">
+                <Loader2 className="w-5 h-5 animate-spin text-orange-500" />
+                <span className="text-xs text-stone-400">Loading OKF bundles…</span>
               </div>
             ) : (
               <div className="space-y-2">
@@ -243,17 +243,17 @@ export default function PolicyKnowledge() {
                     <button
                       key={p.policy_code}
                       onClick={() => handleSelectPolicy(p.policy_code)}
-                      className={`w-full p-3.5 rounded-xl text-left transition cursor-pointer border ${
+                      className={`w-full p-4 rounded-2xl text-left transition cursor-pointer border shadow-sm ${
                         isSelected
-                          ? "bg-slate-900 border-indigo-500/50 shadow-md text-white"
-                          : "bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-900/60"
+                          ? "bg-[#141210] border-orange-500/50 text-white"
+                          : "bg-[#1c1917]/70 border-stone-800 text-stone-400 hover:text-stone-200 hover:bg-[#141210]"
                       }`}
                     >
                       <div className="flex items-center justify-between gap-2 mb-1.5">
                         <span className="text-xs font-bold text-white tracking-tight">
                           {p.title}
                         </span>
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold">
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-stone-900 border border-stone-800 text-stone-300 font-bold">
                           {p.policy_code}
                         </span>
                       </div>

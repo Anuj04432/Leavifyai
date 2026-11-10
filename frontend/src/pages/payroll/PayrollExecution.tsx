@@ -217,44 +217,44 @@ export default function PayrollExecution() {
   }, [activeBatch]);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans antialiased">
+    <div className="min-h-screen bg-[#0c0a09] text-stone-100 flex flex-col font-sans antialiased">
       <Navbar />
 
       <main className="flex-1 p-6 max-w-7xl w-full mx-auto space-y-6">
         {/* Title Bar & Trigger Controls */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-800">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-stone-800">
           <div>
-            <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
-              <CreditCard className="w-5 h-5 text-indigo-400" />
+            <h1 className="text-xl font-bold text-[#FFFDF8] tracking-tight flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-orange-400" />
               Payroll Calculation & Settlement Engine
             </h1>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-stone-400 mt-0.5">
               Deterministic gross-to-net calculations reconciled with approved leave records.
             </p>
           </div>
 
           {canRunPayroll && (
             <div className="flex items-center gap-2.5">
-              <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 rounded-lg px-2 py-1">
+              <div className="flex items-center gap-1.5 bg-[#141210] border border-stone-800 rounded-xl px-2.5 py-1.5">
                 <select
                   value={selectedYear}
                   onChange={(e) => setSelectedYear(Number(e.target.value))}
-                  className="bg-transparent text-xs text-slate-200 outline-none cursor-pointer"
+                  className="bg-transparent text-xs text-stone-200 outline-none cursor-pointer"
                 >
                   {[2025, 2026, 2027].map((y) => (
-                    <option key={y} value={y} className="bg-slate-900">
+                    <option key={y} value={y} className="bg-stone-900">
                       {y}
                     </option>
                   ))}
                 </select>
-                <span className="text-slate-600">/</span>
+                <span className="text-stone-600">/</span>
                 <select
                   value={selectedMonth}
                   onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                  className="bg-transparent text-xs text-slate-200 outline-none cursor-pointer"
+                  className="bg-transparent text-xs text-stone-200 outline-none cursor-pointer"
                 >
                   {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                    <option key={m} value={m} className="bg-slate-900">
+                    <option key={m} value={m} className="bg-stone-900">
                       {new Date(2026, m - 1).toLocaleString("default", { month: "short" })}
                     </option>
                   ))}
@@ -264,7 +264,7 @@ export default function PayrollExecution() {
               <button
                 onClick={handleGeneratePayroll}
                 disabled={calculating}
-                className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50 shadow-sm"
+                className="px-4 py-2 bg-orange-600 hover:bg-orange-500 active:bg-orange-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50 shadow-sm"
               >
                 {calculating ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -282,28 +282,28 @@ export default function PayrollExecution() {
           {/* Main 8-Column Active Batch Table */}
           <div className="lg:col-span-8 space-y-4">
             {activeBatch ? (
-              <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden space-y-0">
+              <div className="bg-[#141210] border border-stone-800 rounded-2xl overflow-hidden shadow-sm space-y-0">
                 {/* Batch Header Bar */}
-                <div className="p-4 border-b border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-950/40">
+                <div className="p-4 border-b border-stone-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-[#1c1917]/70">
                   <div>
                     <div className="flex items-center gap-2.5">
-                      <span className="text-sm font-bold text-white">
+                      <span className="text-sm font-bold text-[#FFFDF8]">
                         Batch {activeBatch.period_year}-{String(activeBatch.period_month).padStart(2, "0")}
                       </span>
                       <span
                         className={`text-xs px-2.5 py-0.5 rounded-full capitalize font-semibold flex items-center gap-1 ${
                           activeBatch.status === "paid"
-                            ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                            ? "bg-emerald-950/60 text-emerald-400 border border-emerald-500/30"
                             : activeBatch.status === "approved"
-                            ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
-                            : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                            ? "bg-orange-950/60 text-orange-400 border border-orange-500/30"
+                            : "bg-amber-950/60 text-amber-400 border border-amber-500/30"
                         }`}
                       >
                         {activeBatch.status === "paid" && <CheckCircle2 className="w-3 h-3" />}
                         {activeBatch.status}
                       </span>
                     </div>
-                    <span className="text-xs text-slate-400 mt-0.5 block">
+                    <span className="text-xs text-stone-400 mt-0.5 block">
                       {activeBatch.employee_count} employees reconciled
                     </span>
                   </div>

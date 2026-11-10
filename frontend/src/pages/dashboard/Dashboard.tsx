@@ -240,47 +240,47 @@ export default function Dashboard() {
   }, [user?.company_name, user?.company_domain, user?.email]);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans antialiased">
+    <div className="min-h-screen bg-[#0c0a09] text-stone-100 flex flex-col font-sans antialiased">
       <Navbar />
 
       <main className="flex-1 p-6 max-w-7xl w-full mx-auto space-y-6">
         {/* Identity & Hero Banner */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <div className="bg-[#141210] border border-stone-800 rounded-2xl p-6 relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-sm">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center font-bold text-white text-xl">
+            <div className="w-14 h-14 rounded-2xl bg-orange-950/60 border border-orange-500/30 flex items-center justify-center font-bold text-orange-400 text-xl shadow-sm">
               {employeeProfile?.first_name ? employeeProfile.first_name[0] : user?.email[0].toUpperCase()}
             </div>
             <div>
               <div className="flex items-center gap-2.5 flex-wrap">
-                <h1 className="text-xl font-bold text-white tracking-tight">
+                <h1 className="text-xl font-bold text-[#FFFDF8] tracking-tight">
                   {employeeProfile ? `${employeeProfile.first_name} ${employeeProfile.last_name}` : user?.email}
                 </h1>
                 <span
-                  className={`px-2 py-0.5 rounded text-xs capitalize font-medium ${
+                  className={`px-2.5 py-0.5 rounded-lg text-xs font-mono capitalize border ${
                     user?.role === "ceo"
-                      ? "bg-amber-500/10 text-amber-300 border border-amber-500/30 font-semibold"
+                      ? "bg-amber-950/60 text-amber-300 border-amber-500/30 font-semibold"
                       : user?.role === "finance_manager"
-                      ? "bg-blue-500/10 text-blue-300 border border-blue-500/30 font-semibold"
-                      : "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
+                      ? "bg-stone-900 text-stone-300 border-stone-700 font-semibold"
+                      : "bg-stone-900 text-stone-300 border-stone-800"
                   }`}
                 >
                   {user?.role?.replace("_", " ")}
                 </span>
-                <span className="px-2 py-0.5 rounded text-xs font-semibold bg-slate-800 text-indigo-300 border border-slate-700 flex items-center gap-1.5">
+                <span className="px-2.5 py-0.5 rounded-lg text-xs font-medium bg-stone-900/90 text-stone-200 border border-stone-800 flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                   {orgName}
                 </span>
               </div>
-              <div className="flex items-center gap-4 text-xs text-slate-400 mt-1 flex-wrap">
-                <span className="flex items-center gap-1 font-mono text-slate-300">
+              <div className="flex items-center gap-3 text-xs text-stone-400 mt-1.5 flex-wrap">
+                <span className="flex items-center gap-1 font-mono text-stone-300 bg-stone-900/80 px-2 py-0.5 rounded border border-stone-800">
                   {employeeProfile?.employee_code || "EMP-PORTAL"}
                 </span>
                 <span>•</span>
                 <span>{employeeProfile?.designation || "Staff Member"}</span>
                 <span>•</span>
-                <span className="text-slate-300">{employeeProfile?.department_name || "General"}</span>
+                <span className="text-stone-300">{employeeProfile?.department_name || "General"}</span>
                 <span>•</span>
-                <span className="text-slate-300 font-medium">{orgName} Workspace</span>
+                <span className="text-stone-300 font-medium">{orgName} Workspace</span>
               </div>
             </div>
           </div>
@@ -291,14 +291,14 @@ export default function Dashboard() {
                 setApplyError(null);
                 setShowApplyModal(true);
               }}
-              className="flex-1 md:flex-initial px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-sm"
+              className="flex-1 md:flex-initial px-4 py-2.5 bg-orange-600 hover:bg-orange-500 active:bg-orange-700 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm"
             >
               <Plus className="w-4 h-4" />
               Apply for Leave
             </button>
             <Link
               to="/leaves"
-              className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-xs font-medium flex items-center gap-1.5 transition"
+              className="px-4 py-2.5 bg-stone-900 hover:bg-stone-800 text-stone-300 hover:text-white border border-stone-800 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-colors"
             >
               <Calendar className="w-3.5 h-3.5" />
               All Requests
@@ -312,63 +312,63 @@ export default function Dashboard() {
           <div className="lg:col-span-8 space-y-6">
             {/* PASS 1: Asymmetric Balance Metric Grid (7:5 Split) */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-              <div className="md:col-span-7 p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-3">
+              <div className="md:col-span-7 p-5 rounded-2xl bg-[#141210] border border-stone-800 space-y-3 shadow-sm">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-slate-400 font-medium">
+                  <span className="text-xs text-stone-400 font-medium">
                     Available Time-Off Pool
                   </span>
-                  <span className="text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 font-medium">
+                  <span className="text-xs text-emerald-400 bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-500/20 font-medium">
                     Active Entitlement
                   </span>
                 </div>
                 <div className="flex items-baseline gap-3">
                   <div className="text-3xl font-extrabold font-mono text-white tracking-tight">
-                    {totalAvailableDays} <span className="text-sm font-sans font-normal text-slate-400">days</span>
+                    {totalAvailableDays} <span className="text-sm font-sans font-normal text-stone-400">days</span>
                   </div>
-                  <span className="text-xs text-slate-400">across all active company policies</span>
+                  <span className="text-xs text-stone-400">across all active company policies</span>
                 </div>
-                <div className="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden flex gap-0.5 p-0.5 border border-slate-800/80">
+                <div className="w-full bg-stone-950 rounded-full h-1.5 overflow-hidden flex gap-0.5 p-0.5 border border-stone-800/80">
                   <div
-                    className="bg-indigo-500 h-full rounded-full"
+                    className="bg-orange-600 h-full rounded-full transition-all"
                     style={{ width: `${Math.min(100, Math.max(15, totalAvailableDays * 3))}%` }}
                   />
                 </div>
               </div>
 
               <div className="md:col-span-5 grid grid-cols-2 gap-3">
-                <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 flex flex-col justify-between">
-                  <span className="text-xs text-slate-400 font-medium">In review</span>
+                <div className="p-4 rounded-2xl bg-[#141210] border border-stone-800 flex flex-col justify-between shadow-sm">
+                  <span className="text-xs text-stone-400 font-medium">In review</span>
                   <div className="text-2xl font-bold font-mono text-amber-400 my-1">
                     {requests.filter((r) => r.status === "pending").length}
                   </div>
-                  <span className="text-xs text-slate-500">Awaiting Manager</span>
+                  <span className="text-[11px] text-stone-500">Awaiting Manager</span>
                 </div>
 
-                <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 flex flex-col justify-between">
-                  <span className="text-xs text-slate-400 font-medium">Approved</span>
+                <div className="p-4 rounded-2xl bg-[#141210] border border-stone-800 flex flex-col justify-between shadow-sm">
+                  <span className="text-xs text-stone-400 font-medium">Approved</span>
                   <div className="text-2xl font-bold font-mono text-emerald-400 my-1">
                     {requests.filter((r) => r.status === "approved").length}
                   </div>
-                  <span className="text-xs text-slate-500">Current Year</span>
+                  <span className="text-[11px] text-stone-500">Current Year</span>
                 </div>
               </div>
             </div>
 
             {/* Recent Requests Section */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden space-y-0">
-              <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+            <div className="bg-[#141210] border border-stone-800 rounded-2xl overflow-hidden space-y-0 shadow-sm">
+              <div className="p-4 border-b border-stone-800 flex items-center justify-between">
                 <div>
-                  <h2 className="text-sm font-bold text-white flex items-center gap-2">
-                    <CalendarDays className="w-4 h-4 text-indigo-400" />
+                  <h2 className="text-sm font-bold text-[#FFFDF8] flex items-center gap-2">
+                    <CalendarDays className="w-4 h-4 text-orange-400" />
                     Recent Leave Applications
                   </h2>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="text-xs text-stone-400 mt-0.5">
                     Track real-time status of your submitted time-off requests.
                   </p>
                 </div>
                 <Link
                   to="/leaves"
-                  className="text-xs text-indigo-400 hover:text-indigo-300 font-medium flex items-center gap-1"
+                  className="text-xs text-orange-400 hover:text-orange-300 font-medium flex items-center gap-1 transition-colors"
                 >
                   View full ledger <ExternalLink className="w-3 h-3" />
                 </Link>
@@ -376,14 +376,14 @@ export default function Dashboard() {
 
               {loading ? (
                 <div className="p-10 flex flex-col items-center justify-center gap-2">
-                  <Loader2 className="w-5 h-5 animate-spin text-indigo-500" />
-                  <span className="text-xs text-slate-400">Loading leave requests…</span>
+                  <Loader2 className="w-5 h-5 animate-spin text-orange-500" />
+                  <span className="text-xs text-stone-400">Loading leave requests…</span>
                 </div>
               ) : requests.length === 0 ? (
                 <div className="p-8 text-center space-y-2">
-                  <FileText className="w-8 h-8 text-slate-600 mx-auto" />
-                  <div className="text-xs font-medium text-slate-300">No leave applications on file</div>
-                  <p className="text-xs text-slate-500">
+                  <FileText className="w-8 h-8 text-stone-600 mx-auto" />
+                  <div className="text-xs font-medium text-stone-300">No leave applications on file</div>
+                  <p className="text-xs text-stone-500">
                     Use the “Apply for Leave” button above to submit your first request.
                   </p>
                 </div>
@@ -391,7 +391,7 @@ export default function Dashboard() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
-                      <tr className="border-b border-slate-800 bg-slate-950/40 text-xs text-slate-400 font-medium">
+                      <tr className="border-b border-stone-800 bg-[#1c1917]/50 text-xs text-stone-400 font-medium">
                         <th className="py-2.5 px-4">Request #</th>
                         <th className="py-2.5 px-4">Category</th>
                         <th className="py-2.5 px-4">Duration</th>
@@ -399,17 +399,17 @@ export default function Dashboard() {
                         <th className="py-2.5 px-4 text-right">Status</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800/60">
+                    <tbody className="divide-y divide-stone-800/60">
                       {requests.slice(0, 5).map((req) => (
-                        <tr key={req.id} className="hover:bg-slate-800/20 transition">
-                          <td className="py-3 px-4 font-mono font-medium text-indigo-400">
+                        <tr key={req.id} className="hover:bg-stone-800/20 transition">
+                          <td className="py-3 px-4 font-mono font-medium text-orange-400">
                             {req.request_number}
                           </td>
                           <td className="py-3 px-4">
-                            <span className="font-medium text-slate-200">
+                            <span className="font-medium text-stone-200">
                               {req.policy_name || "Leave"}
                             </span>
-                            <span className="text-[10px] text-slate-500 block">
+                            <span className="text-[10px] text-stone-500 block">
                               {req.is_paid ? "Paid" : "Unpaid"}
                             </span>
                           </td>
@@ -417,28 +417,28 @@ export default function Dashboard() {
                             <div className="font-semibold text-white">
                               {req.total_days} day{Number(req.total_days) !== 1 ? "s" : ""}
                             </div>
-                            <span className="text-[10px] font-mono text-slate-500">
+                            <span className="text-[10px] font-mono text-stone-500">
                               {req.start_date} → {req.end_date}
                             </span>
                           </td>
-                          <td className="py-3 px-4 text-slate-400 max-w-xs truncate">
+                          <td className="py-3 px-4 text-stone-400 max-w-xs truncate">
                             {req.reason || "—"}
                           </td>
                           <td className="py-3 px-4 text-right">
                             {req.status === "approved" && (
-                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[11px] font-medium">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-950/50 text-emerald-400 border border-emerald-500/30 text-[11px] font-medium">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
                                 Approved
                               </span>
                             )}
                             {req.status === "rejected" && (
-                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20 text-[11px] font-medium">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-950/50 text-rose-400 border border-rose-500/30 text-[11px] font-medium">
                                 <span className="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
                                 Rejected
                               </span>
                             )}
                             {req.status === "pending" && (
-                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[11px] font-medium">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-950/50 text-amber-400 border border-amber-500/30 text-[11px] font-medium">
                                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
                                 In Review
                               </span>
@@ -456,19 +456,19 @@ export default function Dashboard() {
           {/* 4-Column Contextual Intelligence Rail */}
           <div className="lg:col-span-4 space-y-5">
             {/* Live Leave Balance Breakdown */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3.5">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-indigo-400" />
+            <div className="bg-[#141210] border border-stone-800 rounded-2xl p-5 space-y-3.5 shadow-sm">
+              <div className="flex items-center justify-between pb-2 border-b border-stone-800">
+                <span className="text-xs font-semibold text-stone-200 flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-orange-400" />
                   Your Leave Balances
                 </span>
-                <span className="text-xs font-mono text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20">
+                <span className="text-xs font-mono text-orange-400 bg-orange-950/50 px-2 py-0.5 rounded-md border border-orange-500/20">
                   {new Date().getFullYear()} CY
                 </span>
               </div>
 
               {balances.length === 0 ? (
-                <p className="text-xs text-slate-500 italic py-2">No policy balances initialized.</p>
+                <p className="text-xs text-stone-500 italic py-2">No policy balances initialized.</p>
               ) : (
                 <div className="space-y-3">
                   {balances.map((b) => {
@@ -478,32 +478,32 @@ export default function Dashboard() {
                     return (
                       <div
                         key={b.id}
-                        className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-2 hover:border-slate-700/80 transition-colors motion-reduce:transition-none"
+                        className="p-3.5 rounded-xl bg-[#1c1917] border border-stone-800 space-y-2 hover:border-stone-700 transition-colors motion-reduce:transition-none"
                       >
                         <div className="flex items-center justify-between text-xs">
                           <span className="font-semibold text-white">{b.policy_name || "Leave"}</span>
-                          <span className="font-mono text-indigo-400 font-bold">
+                          <span className="font-mono text-orange-400 font-bold">
                             {b.available}d remaining
                           </span>
                         </div>
 
                         {/* Progress Meter */}
-                        <div className="w-full bg-slate-900 rounded-full h-1 overflow-hidden">
+                        <div className="w-full bg-stone-900 rounded-full h-1.5 overflow-hidden">
                           <div
-                            className="bg-indigo-500 h-full rounded-full"
+                            className="bg-orange-600 h-full rounded-full transition-all"
                             style={{ width: `${pct}%` }}
                           />
                         </div>
 
-                        <div className="grid grid-cols-3 gap-1 text-xs text-slate-400 pt-1 border-t border-slate-900">
+                        <div className="grid grid-cols-3 gap-1 text-[11px] text-stone-400 pt-1.5 border-t border-stone-800/80">
                           <div>
-                            Alloc: <span className="text-slate-200">{b.total_allocated}d</span>
+                            Alloc: <span className="text-stone-200 font-mono">{b.total_allocated}d</span>
                           </div>
                           <div>
-                            Used: <span className="text-slate-200">{b.used}d</span>
+                            Used: <span className="text-stone-200 font-mono">{b.used}d</span>
                           </div>
                           <div>
-                            Pending: <span className="text-amber-400">{b.pending}d</span>
+                            Pending: <span className="text-amber-400 font-mono">{b.pending}d</span>
                           </div>
                         </div>
                       </div>
@@ -514,27 +514,27 @@ export default function Dashboard() {
             </div>
 
             {/* Compensation & PayPal Payout Footprint */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
-              <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                <CreditCard className="w-4 h-4 text-indigo-400" />
+            <div className="bg-[#141210] border border-stone-800 rounded-2xl p-5 space-y-3 shadow-sm">
+              <span className="text-xs font-semibold text-stone-200 flex items-center gap-1.5">
+                <CreditCard className="w-4 h-4 text-orange-400" />
                 Disbursement & Payout Rail
               </span>
 
-              <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-2 text-xs">
+              <div className="p-3.5 rounded-xl bg-[#1c1917] border border-stone-800 space-y-2.5 text-xs">
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-400">Direct PayPal Email</span>
-                  <span className="font-mono text-slate-200 font-medium">
+                  <span className="text-stone-400">Direct PayPal Email</span>
+                  <span className="font-mono text-stone-200 font-medium">
                     {employeeProfile?.paypal_email || "Not linked"}
                   </span>
                 </div>
-                <div className="flex items-center justify-between pt-1 border-t border-slate-900">
-                  <span className="text-slate-400">Sandbox Settlement</span>
-                  <span className="inline-flex items-center gap-1 text-emerald-400 text-xs">
-                    <CheckCircle2 className="w-3 h-3" /> Active
+                <div className="flex items-center justify-between pt-1.5 border-t border-stone-800/80">
+                  <span className="text-stone-400">Sandbox Settlement</span>
+                  <span className="inline-flex items-center gap-1 text-emerald-400 text-xs font-medium">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Active
                   </span>
                 </div>
-                <div className="flex items-center justify-between pt-1 border-t border-slate-900">
-                  <span className="text-slate-400">Annual Base</span>
+                <div className="flex items-center justify-between pt-1.5 border-t border-stone-800/80">
+                  <span className="text-stone-400">Annual Base</span>
                   <span className="font-mono text-white font-bold">
                     ${Number(employeeProfile?.salary_basic || 0).toLocaleString()} USD
                   </span>
@@ -543,18 +543,18 @@ export default function Dashboard() {
             </div>
 
             {/* Embedded Employee AI Leave Assistant */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                <span className="text-xs font-semibold text-white flex items-center gap-1.5">
-                  <Bot className="w-4 h-4 text-indigo-400" />
+            <div className="bg-[#141210] border border-stone-800 rounded-2xl p-5 space-y-3.5 shadow-sm">
+              <div className="flex items-center justify-between pb-2 border-b border-stone-800">
+                <span className="text-xs font-semibold text-[#FFFDF8] flex items-center gap-1.5">
+                  <Bot className="w-4 h-4 text-orange-400" />
                   WorkforceAI Leave Copilot
                 </span>
-                <span className="text-xs text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20">
-                  Gemini 2.5
+                <span className="text-xs text-orange-400 bg-orange-950/50 px-2 py-0.5 rounded-md border border-orange-500/20 font-mono">
+                  Active
                 </span>
               </div>
 
-              <p className="text-[11px] text-slate-400 leading-relaxed">
+              <p className="text-xs text-stone-400 leading-relaxed">
                 Ask about company leave rules, check entitlement, or draft leave requests in natural language.
               </p>
 
@@ -563,41 +563,41 @@ export default function Dashboard() {
                 <button
                   type="button"
                   onClick={() => handleAiAsk("What is my current leave balance?")}
-                  className="px-2 py-1 rounded bg-slate-950 hover:bg-slate-800 border border-slate-800 text-[10px] text-slate-300 transition-colors motion-reduce:transition-none"
+                  className="px-2.5 py-1 rounded-full bg-[#1c1917] hover:bg-stone-800 border border-stone-800 text-xs text-stone-300 hover:text-white transition-colors cursor-pointer"
                 >
                   Check my balances
                 </button>
                 <button
                   type="button"
                   onClick={() => handleAiAsk("What is the notice requirement for casual leave?")}
-                  className="px-2 py-1 rounded bg-slate-950 hover:bg-slate-800 border border-slate-800 text-[10px] text-slate-300 transition-colors motion-reduce:transition-none"
+                  className="px-2.5 py-1 rounded-full bg-[#1c1917] hover:bg-stone-800 border border-stone-800 text-xs text-stone-300 hover:text-white transition-colors cursor-pointer"
                 >
                   Casual leave rules
                 </button>
                 <button
                   type="button"
                   onClick={() => handleAiAsk("Can I take 2 days sick leave?")}
-                  className="px-2 py-1 rounded bg-slate-950 hover:bg-slate-800 border border-slate-800 text-[10px] text-slate-300 transition-colors motion-reduce:transition-none"
+                  className="px-2.5 py-1 rounded-full bg-[#1c1917] hover:bg-stone-800 border border-stone-800 text-xs text-stone-300 hover:text-white transition-colors cursor-pointer"
                 >
                   Sick leave policy
                 </button>
               </div>
 
               {/* Chat Input */}
-              <div className="flex gap-1.5 pt-1">
+              <div className="flex gap-2 pt-1">
                 <input
                   type="text"
                   placeholder="e.g. I need next Friday off…"
                   value={aiInput}
                   onChange={(e) => setAiInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleAiAsk()}
-                  className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 outline-none focus:border-indigo-500"
+                  className="flex-1 bg-[#1c1917] border border-stone-800 rounded-xl px-3 py-2 text-xs text-white placeholder-stone-500 outline-none focus:border-orange-500"
                 />
                 <button
                   type="button"
                   onClick={() => handleAiAsk()}
                   disabled={aiLoading || !aiInput.trim()}
-                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-lg text-xs font-semibold flex items-center justify-center transition-colors motion-reduce:transition-none cursor-pointer"
+                  className="px-3.5 py-2 bg-orange-600 hover:bg-orange-500 active:bg-orange-700 disabled:opacity-50 text-white rounded-xl text-xs font-semibold flex items-center justify-center transition-all cursor-pointer shadow-sm"
                 >
                   {aiLoading ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -609,17 +609,17 @@ export default function Dashboard() {
 
               {/* AI Response Display */}
               {aiResponse && (
-                <div className="p-3 rounded-lg bg-slate-950 border border-indigo-500/20 text-xs text-slate-300 space-y-2 mt-2">
-                  <div className="text-xs text-indigo-400 flex items-center gap-1 font-medium">
-                    <Sparkles className="w-3 h-3" />
+                <div className="p-3.5 rounded-xl bg-[#1c1917] border border-orange-500/20 text-xs text-stone-300 space-y-2 mt-2">
+                  <div className="text-xs text-orange-400 flex items-center gap-1 font-semibold">
+                    <Sparkles className="w-3.5 h-3.5" />
                     Agent Response:
                   </div>
-                  <p className="text-[11px] leading-relaxed whitespace-pre-wrap">{aiResponse}</p>
+                  <p className="text-xs leading-relaxed whitespace-pre-wrap">{aiResponse}</p>
                   {aiExtracted && (
                     <button
                       type="button"
                       onClick={handleApplyFromAi}
-                      className="w-full mt-2 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition-colors motion-reduce:transition-none cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap"
+                      className="w-full mt-2 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       Apply for Extracted Leave
@@ -634,23 +634,23 @@ export default function Dashboard() {
 
       {/* Apply Leave Modal */}
       {showApplyModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/90 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-md w-full p-6 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-indigo-400" />
+        <div className="fixed inset-0 z-50 bg-[#0c0a09]/90 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#141210] border border-stone-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-stone-800">
+              <h2 className="text-base font-bold text-[#FFFDF8] flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-orange-400" />
                 Apply for Leave
               </h2>
               <button
                 onClick={() => setShowApplyModal(false)}
-                className="text-slate-400 hover:text-white transition cursor-pointer"
+                className="text-stone-400 hover:text-white transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {applyError && (
-              <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2">
+              <div className="p-3 rounded-xl bg-rose-950/40 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{applyError}</span>
               </div>
@@ -658,11 +658,11 @@ export default function Dashboard() {
 
             <form onSubmit={handleApplySubmit} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">Leave Category</label>
+                <label className="block text-xs font-medium text-stone-300 mb-1">Leave Category</label>
                 <select
                   value={formData.policy_id}
                   onChange={(e) => setFormData({ ...formData, policy_id: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:border-indigo-500 outline-none"
+                  className="w-full bg-[#1c1917] border border-stone-800 rounded-xl px-3 py-2 text-xs text-white focus:border-orange-500 outline-none"
                   required
                 >
                   {policies.map((p) => (
@@ -675,29 +675,29 @@ export default function Dashboard() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Start Date</label>
+                  <label className="block text-xs font-medium text-stone-300 mb-1">Start Date</label>
                   <input
                     type="date"
                     value={formData.start_date}
                     onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:border-indigo-500 outline-none"
+                    className="w-full bg-[#1c1917] border border-stone-800 rounded-xl px-3 py-2 text-xs text-white focus:border-orange-500 outline-none"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">End Date</label>
+                  <label className="block text-xs font-medium text-stone-300 mb-1">End Date</label>
                   <input
                     type="date"
                     value={formData.end_date}
                     onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:border-indigo-500 outline-none"
+                    className="w-full bg-[#1c1917] border border-stone-800 rounded-xl px-3 py-2 text-xs text-white focus:border-orange-500 outline-none"
                     required
                   />
                 </div>
               </div>
 
               {previewWorkingDays > 0 && (
-                <div className="p-2.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-300 flex items-center justify-between">
+                <div className="p-2.5 rounded-xl bg-orange-950/40 border border-orange-500/20 text-xs text-orange-300 flex items-center justify-between">
                   <span>Calculated Business Days:</span>
                   <span className="font-mono font-bold text-white">
                     {previewWorkingDays} day{previewWorkingDays !== 1 ? "s" : ""}
@@ -706,13 +706,13 @@ export default function Dashboard() {
               )}
 
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">Reason / Note</label>
+                <label className="block text-xs font-medium text-stone-300 mb-1">Reason / Note</label>
                 <textarea
                   value={formData.reason}
                   onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
                   placeholder="Provide context for manager review..."
                   rows={3}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:border-indigo-500 outline-none resize-none"
+                  className="w-full bg-[#1c1917] border border-stone-800 rounded-xl p-3 text-xs text-white focus:border-orange-500 outline-none resize-none"
                 />
               </div>
 
@@ -720,14 +720,14 @@ export default function Dashboard() {
                 <button
                   type="button"
                   onClick={() => setShowApplyModal(false)}
-                  className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium transition cursor-pointer"
+                  className="px-4 py-2 bg-stone-900 hover:bg-stone-800 text-stone-300 rounded-xl text-xs font-medium transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={applying}
-                  className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition disabled:opacity-50 cursor-pointer"
+                  className="px-4 py-2 bg-orange-600 hover:bg-orange-500 active:bg-orange-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition disabled:opacity-50 cursor-pointer shadow-sm"
                 >
                   {applying && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   Submit Application

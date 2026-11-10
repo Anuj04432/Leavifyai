@@ -208,19 +208,19 @@ export default function LeaveManagement() {
   }, [requests, statusFilter]);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans antialiased">
+    <div className="min-h-screen bg-[#0c0a09] text-stone-100 flex flex-col font-sans antialiased">
       <Navbar />
 
       {/* Main Content Viewport */}
       <main className="flex-1 p-6 max-w-7xl w-full mx-auto space-y-6">
         {/* Title Bar & Application Action */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-800">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-stone-800">
           <div>
-            <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-indigo-400" />
+            <h1 className="text-xl font-bold text-[#FFFDF8] tracking-tight flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-orange-400" />
               Leave & Time-Off Management
             </h1>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-stone-400 mt-0.5">
               Submit applications, track balances, and audit approval chains.
             </p>
           </div>
@@ -229,9 +229,9 @@ export default function LeaveManagement() {
             {isCeoOrHr && (
               <Link
                 to="/policies"
-                className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                className="px-4 py-2 bg-stone-900 hover:bg-stone-800 text-stone-200 border border-stone-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
               >
-                <BookOpen className="w-3.5 h-3.5 text-indigo-400" />
+                <BookOpen className="w-3.5 h-3.5 text-orange-400" />
                 Upload / View Policies (PDF)
               </Link>
             )}
@@ -240,7 +240,7 @@ export default function LeaveManagement() {
                 setApplyError(null);
                 setShowApplyModal(true);
               }}
-              className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer self-start sm:self-auto"
+              className="px-4 py-2 bg-orange-600 hover:bg-orange-500 active:bg-orange-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer self-start sm:self-auto shadow-sm"
             >
               <Plus className="w-3.5 h-3.5" />
               Apply for Leave
@@ -253,7 +253,7 @@ export default function LeaveManagement() {
           {/* Main 8-Column Applications Roster */}
           <div className="lg:col-span-8 space-y-4">
             {/* Filter Tabs */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-2.5 flex items-center justify-between">
+            <div className="bg-[#141210] border border-stone-800 rounded-2xl p-2.5 flex items-center justify-between shadow-sm">
               <div className="flex items-center gap-1">
                 {[
                   { id: "all", label: "All Requests" },
@@ -264,10 +264,10 @@ export default function LeaveManagement() {
                   <button
                     key={tab.id}
                     onClick={() => setStatusFilter(tab.id)}
-                    className={`px-3 py-1 rounded-lg text-xs font-medium transition cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-xl text-xs font-medium transition cursor-pointer ${
                       statusFilter === tab.id
-                        ? "bg-slate-800 text-white border border-slate-700"
-                        : "text-slate-400 hover:text-slate-200"
+                        ? "bg-stone-900 text-[#FFFDF8] border border-stone-700/80 shadow-sm"
+                        : "text-stone-400 hover:text-stone-200"
                     }`}
                   >
                     {tab.label}
@@ -275,13 +275,13 @@ export default function LeaveManagement() {
                 ))}
               </div>
 
-              <span className="text-[11px] font-mono text-slate-500 mr-2">
+              <span className="text-xs font-mono text-stone-500 mr-2">
                 {filteredRequests.length} record{filteredRequests.length !== 1 ? "s" : ""}
               </span>
             </div>
 
             {/* Applications Table Card */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+            <div className="bg-[#141210] border border-stone-800 rounded-2xl overflow-hidden shadow-sm">
               {loading ? (
                 <div className="p-12 flex flex-col items-center justify-center gap-3">
                   <Loader2 className="w-6 h-6 animate-spin text-indigo-500 motion-reduce:animate-none" />
@@ -411,41 +411,41 @@ export default function LeaveManagement() {
           {/* 4-Column Contextual Intelligence Rail */}
           <div className="lg:col-span-4 space-y-4">
             {/* Balance Ledger Card */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3.5">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-indigo-400" />
+            <div className="bg-[#141210] border border-stone-800 rounded-2xl p-5 space-y-3.5 shadow-sm">
+              <div className="flex items-center justify-between pb-2 border-b border-stone-800">
+                <span className="text-xs font-semibold text-[#FFFDF8] flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-orange-400" />
                   Annual Balance Ledger
                 </span>
-                <span className="text-xs font-mono text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20">
+                <span className="text-xs font-mono text-orange-400 bg-orange-950/50 px-2 py-0.5 rounded-md border border-orange-500/20">
                   {new Date().getFullYear()} CY
                 </span>
               </div>
 
               {balances.length === 0 ? (
-                <p className="text-xs text-slate-500 italic py-2">No active policy balances configured.</p>
+                <p className="text-xs text-stone-500 italic py-2">No active policy balances configured.</p>
               ) : (
                 <div className="space-y-3">
                   {balances.map((bal) => (
                     <div
                       key={bal.id}
-                      className="p-2.5 rounded-lg bg-slate-950 border border-slate-800/80 space-y-1.5"
+                      className="p-3.5 rounded-xl bg-[#1c1917] border border-stone-800/80 space-y-1.5"
                     >
                       <div className="flex items-center justify-between text-xs">
                         <span className="font-semibold text-white">{bal.policy_name || "Leave"}</span>
-                        <span className="font-mono text-indigo-400 font-bold">
+                        <span className="font-mono text-orange-400 font-bold">
                           {bal.available}d left
                         </span>
                       </div>
-                      <div className="grid grid-cols-3 gap-2 text-xs text-slate-400 pt-1 border-t border-slate-900">
+                      <div className="grid grid-cols-3 gap-2 text-xs text-stone-400 pt-1.5 border-t border-stone-800/80">
                         <div>
-                          Alloc: <span className="text-slate-200">{bal.total_allocated}d</span>
+                          Alloc: <span className="text-stone-200 font-mono">{bal.total_allocated}d</span>
                         </div>
                         <div>
-                          Used: <span className="text-slate-200">{bal.used}d</span>
+                          Used: <span className="text-stone-200 font-mono">{bal.used}d</span>
                         </div>
                         <div>
-                          Pending: <span className="text-amber-400">{bal.pending}d</span>
+                          Pending: <span className="text-amber-400 font-mono">{bal.pending}d</span>
                         </div>
                       </div>
                     </div>
@@ -455,28 +455,28 @@ export default function LeaveManagement() {
             </div>
 
             {/* Policy Rules & Guardrails Card */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
-              <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                <Info className="w-4 h-4 text-indigo-400" />
+            <div className="bg-[#141210] border border-stone-800 rounded-2xl p-5 space-y-3.5 shadow-sm">
+              <span className="text-xs font-semibold text-[#FFFDF8] flex items-center gap-1.5 pb-2 border-b border-stone-800">
+                <Info className="w-4 h-4 text-orange-400" />
                 Policy Guardrails
               </span>
 
-              <div className="text-xs text-slate-400 space-y-2">
-                <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800/80 flex items-start gap-2">
-                  <Clock className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
+              <div className="text-xs text-stone-400 space-y-2.5">
+                <div className="p-3 rounded-xl bg-[#1c1917] border border-stone-800/80 flex items-start gap-2.5">
+                  <Clock className="w-4 h-4 text-stone-500 shrink-0 mt-0.5" />
                   <div>
-                    <div className="font-medium text-slate-200">Weekend Exclusion</div>
-                    <p className="text-[11px] text-slate-400">
+                    <div className="font-semibold text-stone-200">Weekend Exclusion</div>
+                    <p className="text-xs text-stone-400 mt-0.5">
                       Saturdays and Sundays are automatically deducted from duration counts.
                     </p>
                   </div>
                 </div>
 
-                <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800/80 flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
+                <div className="p-3 rounded-xl bg-[#1c1917] border border-stone-800/80 flex items-start gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-stone-500 shrink-0 mt-0.5" />
                   <div>
-                    <div className="font-medium text-slate-200">Conflict Prevention</div>
-                    <p className="text-[11px] text-slate-400">
+                    <div className="font-semibold text-stone-200">Conflict Prevention</div>
+                    <p className="text-xs text-stone-400 mt-0.5">
                       Overlapping requests for the same date window are rejected with HTTP 409.
                     </p>
                   </div>
@@ -485,7 +485,7 @@ export default function LeaveManagement() {
                 {isCeoOrHr && (
                   <Link
                     to="/policies"
-                    className="mt-3 w-full py-2 px-3 rounded-lg bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 font-medium text-xs flex items-center justify-center gap-1.5 transition"
+                    className="mt-3 w-full py-2.5 px-3 rounded-xl bg-orange-950/40 hover:bg-orange-950/60 text-orange-400 border border-orange-500/30 font-semibold text-xs flex items-center justify-center gap-1.5 transition"
                   >
                     <Upload className="w-3.5 h-3.5" />
                     Upload / Deploy Policy (PDF / MD)

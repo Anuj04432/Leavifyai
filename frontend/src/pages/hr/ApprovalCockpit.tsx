@@ -156,18 +156,18 @@ export default function ApprovalCockpit() {
   const rejectedCount = requests.filter((r) => r.status === "rejected").length;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans antialiased">
+    <div className="min-h-screen bg-[#0c0a09] text-stone-100 flex flex-col font-sans antialiased">
       <Navbar />
 
       <main className="flex-1 p-6 max-w-7xl w-full mx-auto space-y-6">
         {/* Title Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-800">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-stone-800">
           <div>
-            <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
-              <CheckSquare className="w-5 h-5 text-indigo-400" />
+            <h1 className="text-xl font-bold text-[#FFFDF8] tracking-tight flex items-center gap-2">
+              <CheckSquare className="w-5 h-5 text-orange-400" />
               HR & Manager Approval Cockpit
             </h1>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-stone-400 mt-0.5">
               Review organization-wide leave applications, audit decisions, and enforce policy compliance.
             </p>
           </div>
@@ -179,13 +179,13 @@ export default function ApprovalCockpit() {
                   ? `Last background poll: ${new Date(workerStatus.last_poll_at).toLocaleTimeString()}`
                   : "Background ingestion worker active"
               }
-              className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px] text-slate-300 font-mono"
+              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#141210] border border-stone-800 text-xs text-stone-300 font-mono"
             >
               <span
                 className={`w-2 h-2 rounded-full ${
                   workerStatus?.is_running
                     ? "bg-emerald-400 animate-pulse"
-                    : "bg-slate-500"
+                    : "bg-stone-500"
                 }`}
               />
               <span>
@@ -200,7 +200,7 @@ export default function ApprovalCockpit() {
               onClick={handleSyncExternalMessages}
               disabled={syncingInbox}
               title="Trigger instant inbox sweep"
-              className="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
+              className="px-4 py-2 bg-orange-950/40 hover:bg-orange-950/60 border border-orange-500/30 text-orange-400 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
             >
               {syncingInbox ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -212,7 +212,7 @@ export default function ApprovalCockpit() {
             <button
               onClick={fetchRequests}
               title="Refresh queue"
-              className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 rounded-lg text-xs font-medium flex items-center gap-1.5 transition cursor-pointer"
+              className="px-4 py-2 bg-stone-900 hover:bg-stone-800 border border-stone-800 text-stone-300 rounded-xl text-xs font-medium flex items-center gap-1.5 transition cursor-pointer"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
               Sync Queue
@@ -221,14 +221,14 @@ export default function ApprovalCockpit() {
         </div>
 
         {syncNotice && (
-          <div className="p-3 bg-indigo-950/60 border border-indigo-800/80 rounded-xl text-xs text-indigo-200 flex items-center justify-between animate-fadeIn">
+          <div className="p-3.5 bg-orange-950/30 border border-orange-500/30 rounded-2xl text-xs text-orange-200 flex items-center justify-between">
             <span className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
               {syncNotice}
             </span>
             <button
               onClick={() => setSyncNotice(null)}
-              className="text-indigo-400 hover:text-white text-xs"
+              className="text-orange-400 hover:text-white text-xs cursor-pointer"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -240,8 +240,8 @@ export default function ApprovalCockpit() {
           {/* Main 8-Column Review Queue */}
           <div className="lg:col-span-8 space-y-4">
             {/* Triage Search & Filter Tabs */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
-              <div className="flex items-center gap-1">
+            <div className="bg-[#141210] border border-stone-800 rounded-2xl p-3 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between shadow-sm">
+              <div className="flex items-center gap-1 flex-wrap">
                 {[
                   { id: "pending", label: "Pending Triage", count: pendingCount },
                   { id: "approved", label: "Approved", count: approvedCount },
@@ -251,18 +251,18 @@ export default function ApprovalCockpit() {
                   <button
                     key={tab.id}
                     onClick={() => setStatusFilter(tab.id)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer flex items-center gap-1.5 ${
+                    className={`px-3 py-1.5 rounded-xl text-xs font-medium transition cursor-pointer flex items-center gap-1.5 ${
                       statusFilter === tab.id
-                        ? "bg-slate-800 text-white border border-slate-700"
-                        : "text-slate-400 hover:text-slate-200"
+                        ? "bg-stone-900 text-[#FFFDF8] border border-stone-700/80 shadow-sm"
+                        : "text-stone-400 hover:text-stone-200"
                     }`}
                   >
                     <span>{tab.label}</span>
                     <span
-                      className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
+                      className={`text-[10px] font-mono px-1.5 py-0.2 rounded-md ${
                         statusFilter === tab.id
-                          ? "bg-indigo-600/30 text-indigo-300"
-                          : "bg-slate-800 text-slate-500"
+                          ? "bg-orange-600 text-white"
+                          : "bg-stone-800 text-stone-500"
                       }`}
                     >
                       {tab.count}
@@ -272,28 +272,28 @@ export default function ApprovalCockpit() {
               </div>
 
               <div className="relative">
-                <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-2.5" />
+                <Search className="w-3.5 h-3.5 text-stone-500 absolute left-2.5 top-2.5" />
                 <input
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Filter applicant or ID..."
-                  className="bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 outline-none w-full sm:w-48 transition"
+                  className="bg-[#1c1917] border border-stone-800 focus:border-orange-500 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder-stone-500 outline-none w-full sm:w-48 transition"
                 />
               </div>
             </div>
 
             {/* Applications List */}
             {loading ? (
-              <div className="p-16 rounded-xl bg-slate-900 border border-slate-800 flex flex-col items-center justify-center gap-2">
-                <Loader2 className="w-6 h-6 animate-spin text-indigo-500 motion-reduce:animate-none" />
-                <span className="text-xs text-slate-400">Loading leave triage records…</span>
+              <div className="p-16 rounded-2xl bg-[#141210] border border-stone-800 flex flex-col items-center justify-center gap-2">
+                <Loader2 className="w-6 h-6 animate-spin text-orange-500 motion-reduce:animate-none" />
+                <span className="text-xs text-stone-400">Loading leave triage records…</span>
               </div>
             ) : filteredRequests.length === 0 ? (
-              <div className="p-14 rounded-xl bg-slate-900 border border-slate-800 text-center space-y-2">
-                <UserCheck className="w-8 h-8 text-slate-600 mx-auto" />
-                <div className="text-sm font-semibold text-slate-300">Queue is completely clear</div>
-                <p className="text-xs text-slate-500 max-w-sm mx-auto">
+              <div className="p-14 rounded-2xl bg-[#141210] border border-stone-800 text-center space-y-2">
+                <UserCheck className="w-8 h-8 text-stone-600 mx-auto" />
+                <div className="text-sm font-semibold text-stone-300">Queue is completely clear</div>
+                <p className="text-xs text-stone-500 max-w-sm mx-auto">
                   No applications are currently awaiting action under this view.
                 </p>
               </div>
@@ -302,21 +302,21 @@ export default function ApprovalCockpit() {
                 {filteredRequests.map((req) => (
                   <div
                     key={req.id}
-                    className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-3 hover:border-slate-700/80 transition-colors motion-reduce:transition-none"
+                    className="p-5 rounded-2xl bg-[#141210] border border-stone-800 space-y-3.5 hover:border-stone-700/80 transition-colors shadow-sm"
                   >
                     {/* Header Row */}
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-mono text-xs font-bold text-indigo-400">
+                          <span className="font-mono text-xs font-bold text-orange-400">
                             {req.request_number}
                           </span>
-                          <span className="text-slate-600">•</span>
-                          <span className="text-xs font-semibold text-white">
+                          <span className="text-stone-600">•</span>
+                          <span className="text-xs font-semibold text-[#FFFDF8]">
                             {req.employee_name || "Applicant"}
                           </span>
                           {req.employee_code && (
-                            <span className="text-xs font-mono text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">
+                            <span className="text-xs font-mono text-stone-300 bg-stone-900 border border-stone-800 px-2 py-0.5 rounded-md">
                               {req.employee_code}
                             </span>
                           )}
@@ -416,43 +416,43 @@ export default function ApprovalCockpit() {
           {/* 4-Column Contextual Intelligence Rail */}
           <div className="lg:col-span-4 space-y-4">
             {/* Triage Overview Card */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
-              <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                <ShieldAlert className="w-4 h-4 text-indigo-400" />
+            <div className="bg-[#141210] border border-stone-800 rounded-2xl p-5 space-y-3.5 shadow-sm">
+              <span className="text-xs font-semibold text-[#FFFDF8] flex items-center gap-1.5 pb-2 border-b border-stone-800">
+                <ShieldAlert className="w-4 h-4 text-orange-400" />
                 Triage Overview
               </span>
 
-              <div className="space-y-2 text-xs">
-                <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
-                  <span className="text-slate-400">Awaiting Decision</span>
+              <div className="space-y-2.5 text-xs">
+                <div className="p-3.5 rounded-xl bg-[#1c1917] border border-stone-800/80 flex items-center justify-between">
+                  <span className="text-stone-400">Awaiting Decision</span>
                   <span className="font-mono text-amber-400 font-bold text-sm">{pendingCount}</span>
                 </div>
-                <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
-                  <span className="text-slate-400">Total Reviewed</span>
-                  <span className="font-mono text-slate-200 font-semibold">{approvedCount + rejectedCount}</span>
+                <div className="p-3.5 rounded-xl bg-[#1c1917] border border-stone-800/80 flex items-center justify-between">
+                  <span className="text-stone-400">Total Reviewed</span>
+                  <span className="font-mono text-stone-200 font-semibold">{approvedCount + rejectedCount}</span>
                 </div>
-                <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
-                  <span className="text-slate-400">Concurrency Guard</span>
-                  <span className="inline-flex items-center gap-1 text-emerald-400 text-xs">
-                    <CheckCircle2 className="w-3 h-3" /> Optimistic Locking Active
+                <div className="p-3.5 rounded-xl bg-[#1c1917] border border-stone-800/80 flex items-center justify-between">
+                  <span className="text-stone-400">Concurrency Guard</span>
+                  <span className="inline-flex items-center gap-1 text-emerald-400 text-xs font-medium">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Optimistic Locking Active
                   </span>
                 </div>
               </div>
             </div>
 
             {/* Approval Guardrails Policy */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
-              <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                <Calendar className="w-4 h-4 text-indigo-400" />
+            <div className="bg-[#141210] border border-stone-800 rounded-2xl p-5 space-y-3.5 shadow-sm">
+              <span className="text-xs font-semibold text-[#FFFDF8] flex items-center gap-1.5 pb-2 border-b border-stone-800">
+                <Calendar className="w-4 h-4 text-orange-400" />
                 Compliance Guardrails
               </span>
 
-              <div className="text-xs text-slate-400 space-y-2">
-                <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
-                  <span className="font-semibold text-slate-200 block mb-0.5">Automatic Ledger Sync</span>
+              <div className="text-xs text-stone-400 space-y-2.5">
+                <div className="p-3 rounded-xl bg-[#1c1917] border border-stone-800/80">
+                  <span className="font-semibold text-stone-200 block mb-0.5">Automatic Ledger Sync</span>
                   Approving deducts pending days and marks them as used. Rejecting restores days immediately.
                 </div>
-                <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
+                <div className="p-3 rounded-xl bg-[#1c1917] border border-stone-800/80">
                   <span className="font-semibold text-slate-200 block mb-0.5">Audit Trail Retention</span>
                   Every decision, timestamp, and review comment is recorded permanently in the forensic audit ledger.
                 </div>
