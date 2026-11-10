@@ -32,7 +32,7 @@ async def list_policies(
     current_user: User = Depends(get_current_user),
 ):
     """Retrieve the company's active policy knowledge documents with YAML frontmatter."""
-    return okf_service.list_policies()
+    return okf_service.list_policies(company_id=current_user.company_id)
 
 
 @router.get(
@@ -46,7 +46,7 @@ async def get_policy(
     current_user: User = Depends(get_current_user),
 ):
     """Fetch single OKF policy document by code (e.g. POL-CAS-01)."""
-    policy = okf_service.get_policy_by_code(policy_code)
+    policy = okf_service.get_policy_by_code(policy_code, company_id=current_user.company_id)
     if not policy:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -73,7 +73,11 @@ async def update_policy(
 ):
     """Update company policy markdown rules."""
     try:
-        updated = okf_service.update_policy_content(policy_code, payload.markdown_content)
+        updated = okf_service.update_policy_content(
+            policy_code,
+            payload.markdown_content,
+            company_id=current_user.company_id,
+        )
         return updated
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
@@ -155,6 +159,7 @@ async def upload_policy(
         saved_policy = okf_service.create_or_upload_policy(
             filename=file.filename or "custom_policy.md",
             content=raw_text,
+            company_id=current_user.company_id,
             metadata=meta,
         )
 
