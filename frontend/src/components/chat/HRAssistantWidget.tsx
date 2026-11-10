@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   Bot,
   Zap,
+  RotateCcw,
 } from "lucide-react";
 import { api } from "../../lib/api";
 
@@ -42,10 +43,10 @@ function getProviderBadge(provider?: string | null, model?: string | null) {
   if (!provider) return null;
   const p = provider.toLowerCase();
   if (p === "omniroute") {
-    return { name: "OmniRoute", model: model || "gpt-4o-mini", color: "text-amber-400 border-amber-500/30 bg-amber-500/10" };
+    return { name: "OmniRoute", model: model || "gpt-4o-mini", color: "text-amber-300 border-amber-500/30 bg-amber-500/10" };
   }
   if (p === "openrouter") {
-    return { name: "OpenRouter", model: model || "llama-3.3", color: "text-cyan-400 border-cyan-500/30 bg-cyan-500/10" };
+    return { name: "OpenRouter", model: model || "llama-3.3", color: "text-orange-400 border-orange-500/30 bg-orange-500/10" };
   }
   if (p === "gemini") {
     return { name: "Gemini", model: model || "gemini-2.5-flash", color: "text-emerald-400 border-emerald-500/30 bg-emerald-500/10" };
@@ -54,9 +55,9 @@ function getProviderBadge(provider?: string | null, model?: string | null) {
     return { name: "Grok", model: model || "grok-2", color: "text-rose-400 border-rose-500/30 bg-rose-500/10" };
   }
   if (p === "local") {
-    return { name: "Local LLM", model: model || "llama3", color: "text-indigo-400 border-indigo-500/30 bg-indigo-500/10" };
+    return { name: "Local LLM", model: model || "llama3", color: "text-amber-400 border-amber-500/30 bg-amber-500/10" };
   }
-  return { name: "Deterministic Engine", model: "Rule Engine", color: "text-slate-400 border-slate-700 bg-slate-800/40" };
+  return { name: "Deterministic Engine", model: "Rule Engine", color: "text-stone-400 border-stone-700 bg-stone-800/40" };
 }
 
 export default function HRAssistantWidget() {
@@ -70,7 +71,7 @@ export default function HRAssistantWidget() {
     {
       id: "initial-msg",
       sender: "bot",
-      text: "Hi! I am your WorkforceAI Supervisor powered by our decoupled OpenRouter Free Decision Model & Multi-LLM Chat Engine. You can ask me about your leave balances, company policies, or type something like 'I need next Monday off for personal reasons' to draft a request.",
+      text: "Hello! I am your WorkforceAI Assistant. I can check your leave balances, explain company policies, or help you stage and submit time-off requests. Feel free to ask anything or choose a quick suggestion below.",
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     },
   ]);
@@ -82,6 +83,17 @@ export default function HRAssistantWidget() {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages, isOpen]);
+
+  const handleResetChat = () => {
+    setMessages([
+      {
+        id: "initial-msg",
+        sender: "bot",
+        text: "Hello! I am your WorkforceAI Assistant. I can check your leave balances, explain company policies, or help you stage and submit time-off requests. Feel free to ask anything or choose a quick suggestion below.",
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      },
+    ]);
+  };
 
   const handleSendMessage = async (customText?: string) => {
     const textToSend = customText || input.trim();
@@ -176,8 +188,9 @@ export default function HRAssistantWidget() {
 
   const starterChips = [
     "Check my balance",
+    "Sick leave policy",
     "I need 2 days off next Monday",
-    "What is our sick leave policy?",
+    "Annual leave rules",
   ];
 
   return (
@@ -186,40 +199,47 @@ export default function HRAssistantWidget() {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="px-4 py-2.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white border border-slate-700 flex items-center gap-2.5 transition-colors motion-reduce:transition-none cursor-pointer group focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none"
+          className="px-4 py-3 rounded-full bg-[#181512] hover:bg-[#221d18] text-[#FFFDF8] border border-stone-700 shadow-2xl flex items-center gap-2.5 transition-all motion-reduce:transition-none cursor-pointer group hover:border-orange-500/60 focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:outline-none"
         >
-          <div className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center">
-            <Sparkles className="w-3.5 h-3.5 text-white" />
+          <div className="w-7 h-7 rounded-full bg-orange-600 flex items-center justify-center text-white shadow-sm">
+            <Sparkles className="w-4 h-4" />
           </div>
-          <span className="text-xs font-semibold">WorkforceAI Copilot</span>
+          <span className="text-sm font-semibold tracking-tight">WorkforceAI Copilot</span>
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse motion-reduce:animate-none"></span>
         </button>
       )}
 
       {/* Expanded Floating Chat Drawer */}
       {isOpen && (
-        <div className="w-96 max-w-[calc(100vw-2rem)] h-[520px] bg-slate-900 border border-slate-800 rounded-2xl flex flex-col overflow-hidden">
+        <div className="w-[420px] max-w-[calc(100vw-2rem)] h-[580px] bg-[#181512] border border-stone-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
           {/* Header */}
-          <div className="p-3.5 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+          <div className="p-3.5 bg-[#120f0d] border-b border-stone-800 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-white text-xs">
+              <div className="w-8 h-8 rounded-xl bg-orange-600 flex items-center justify-center font-bold text-white text-xs shadow-sm">
                 <Sparkles className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-xs font-bold text-white leading-tight">WorkforceAI Copilot</h3>
-                <span className="text-[11px] text-emerald-400 flex items-center gap-1 font-medium">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                <h3 className="text-sm font-semibold text-[#FFFDF8] tracking-tight leading-tight">WorkforceAI Copilot</h3>
+                <span className="text-xs text-amber-400/90 flex items-center gap-1.5 font-medium mt-0.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>
                   {activeDecisionProvider
                     ? `Decision: ${getProviderBadge(activeDecisionProvider, null)?.name || activeDecisionProvider} · Chat: ${getProviderBadge(activeChatProvider, null)?.name || 'Active'}`
-                    : "OpenRouter Free Decision & Chat Engine"}
+                    : "Multi-LLM Autonomous Agent"}
                 </span>
               </div>
             </div>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 text-stone-400">
+              <button
+                onClick={handleResetChat}
+                className="p-1.5 rounded-lg hover:text-white hover:bg-stone-800/80 transition-colors motion-reduce:transition-none cursor-pointer focus-visible:ring-2 focus-visible:ring-orange-500"
+                title="Reset conversation"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+              </button>
               <button
                 onClick={() => setIsOpen(false)}
-                className="p-1 rounded text-slate-400 hover:text-white transition-colors motion-reduce:transition-none cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-500"
+                className="p-1.5 rounded-lg hover:text-white hover:bg-stone-800/80 transition-colors motion-reduce:transition-none cursor-pointer focus-visible:ring-2 focus-visible:ring-orange-500"
                 title="Close chat"
               >
                 <X className="w-4 h-4" />
@@ -228,54 +248,63 @@ export default function HRAssistantWidget() {
           </div>
 
           {/* Messages Stream */}
-          <div className="flex-1 p-3.5 overflow-y-auto space-y-3 text-xs">
+          <div className="flex-1 p-4 overflow-y-auto space-y-3.5 text-sm">
             {messages.map((m) => (
               <div
                 key={m.id}
-                className={`flex gap-2 ${m.sender === "user" ? "justify-end" : "justify-start"}`}
+                className={`flex gap-2.5 ${m.sender === "user" ? "justify-end" : "justify-start"}`}
               >
                 {m.sender === "bot" && (
-                  <div className="w-6 h-6 rounded-full bg-indigo-600/30 border border-indigo-500/30 flex items-center justify-center shrink-0 mt-0.5">
-                    <Bot className="w-3.5 h-3.5 text-indigo-400" />
+                  <div className="w-7 h-7 rounded-xl bg-orange-950/70 border border-orange-500/30 flex items-center justify-center shrink-0 mt-0.5 text-orange-400">
+                    <Bot className="w-4 h-4" />
                   </div>
                 )}
 
                 <div
-                  className={`max-w-[85%] rounded-xl p-3 space-y-2 ${
+                  className={`max-w-[85%] rounded-2xl p-3.5 space-y-2.5 ${
                     m.sender === "user"
-                      ? "bg-indigo-600 text-white"
-                      : "bg-slate-950 border border-slate-800 text-slate-200"
+                      ? "bg-orange-600 text-white rounded-tr-sm shadow-sm"
+                      : "bg-[#221d18] border border-stone-800 text-[#F5F2EB]"
                   }`}
                 >
-                  <p className="leading-relaxed whitespace-pre-wrap">{m.text}</p>
+                  <p className="leading-relaxed whitespace-pre-wrap text-sm">{m.text}</p>
 
                   {/* Drafted Leave Card if extracted */}
                   {m.extracted_leave && m.extracted_leave.is_leave_request && (
-                    <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 space-y-2 mt-2">
-                      <div className="flex items-center justify-between text-[11px] font-semibold text-indigo-400">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3" /> Drafted Application
+                    <div className="p-3 rounded-xl bg-[#2b241e] border border-orange-500/30 space-y-2.5 mt-2">
+                      <div className="flex items-center justify-between text-xs font-semibold text-orange-400">
+                        <span className="flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5 text-orange-400" /> Drafted Application
                         </span>
-                        <span className="font-mono text-slate-300">
+                        <span className="font-mono text-amber-200/90 text-xs bg-orange-950/60 px-2 py-0.5 rounded border border-orange-500/20">
                           {m.extracted_leave.total_days} business day(s)
                         </span>
                       </div>
 
-                      <div className="text-xs text-slate-400 space-y-0.5">
-                        <div>Category: <span className="text-white">{m.extracted_leave.policy_name || "Leave"}</span></div>
-                        <div>Dates: <span className="text-white">{m.extracted_leave.start_date} to {m.extracted_leave.end_date}</span></div>
-                        <div>Available: <span className="text-emerald-400">{m.extracted_leave.available_balance}d</span></div>
+                      <div className="text-xs text-stone-300 space-y-1">
+                        <div className="flex justify-between">
+                          <span className="text-stone-400">Category:</span>
+                          <span className="text-white font-medium">{m.extracted_leave.policy_name || "Leave"}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-stone-400">Dates:</span>
+                          <span className="text-white font-medium">{m.extracted_leave.start_date} to {m.extracted_leave.end_date}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-stone-400">Available Balance:</span>
+                          <span className="text-emerald-400 font-medium">{m.extracted_leave.available_balance ?? "N/A"}d</span>
+                        </div>
                       </div>
 
                       {m.submitted ? (
-                        <div className="inline-flex items-center gap-1 text-xs text-emerald-400 font-semibold">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Request Submitted
+                        <div className="inline-flex items-center gap-1.5 text-xs text-emerald-400 font-semibold bg-emerald-950/40 border border-emerald-500/30 rounded-lg px-2.5 py-1.5 w-full justify-center">
+                          <CheckCircle2 className="w-4 h-4" /> Request Submitted Successfully
                         </div>
                       ) : (
                         <button
                           onClick={() => handleAutoSubmitLeave(m.id, m.extracted_leave!)}
                           disabled={submittingLeaveId === m.id || !m.extracted_leave.can_auto_submit}
-                          className="w-full py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors motion-reduce:transition-none cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-indigo-500"
+                          className="w-full py-2 bg-orange-600 hover:bg-orange-500 active:bg-orange-700 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all shadow cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-orange-500"
                         >
                           {submittingLeaveId === m.id ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin motion-reduce:animate-none" />
@@ -288,12 +317,12 @@ export default function HRAssistantWidget() {
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between text-[10px] opacity-75 pt-1 border-t border-slate-800/60 mt-1 gap-1.5 flex-wrap">
+                  <div className="flex items-center justify-between text-xs opacity-75 pt-1.5 border-t border-stone-800/80 mt-1 gap-1.5 flex-wrap">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {m.decision_provider && (() => {
                         const b = getProviderBadge(m.decision_provider, m.decision_model);
                         return b ? (
-                          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono border ${b.color}`}>
+                          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono border ${b.color}`}>
                             <Zap className="w-2.5 h-2.5" />
                             <span>Decision: {b.name}</span>
                           </span>
@@ -302,7 +331,7 @@ export default function HRAssistantWidget() {
                       {m.chat_provider && (() => {
                         const b = getProviderBadge(m.chat_provider, m.chat_model);
                         return b ? (
-                          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono border ${b.color}`}>
+                          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono border ${b.color}`}>
                             <span>Chat: {b.name}</span>
                           </span>
                         ) : null;
@@ -310,34 +339,34 @@ export default function HRAssistantWidget() {
                       {!m.decision_provider && !m.chat_provider && m.provider && (() => {
                         const b = getProviderBadge(m.provider, m.model);
                         return b ? (
-                          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono border ${b.color}`}>
+                          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono border ${b.color}`}>
                             <Zap className="w-2.5 h-2.5" />
                             <span>{b.name}</span>
                           </span>
                         ) : null;
                       })()}
                     </div>
-                    <span className="text-[10px] opacity-60 ml-auto">{m.timestamp}</span>
+                    <span className="text-[11px] text-stone-400 ml-auto font-mono">{m.timestamp}</span>
                   </div>
                 </div>
               </div>
             ))}
             {loading && (
-              <div className="flex items-center gap-2 text-slate-400 text-xs pl-8">
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-400 motion-reduce:animate-none" />
-                <span className="text-xs">Supervisor evaluating policies…</span>
+              <div className="flex items-center gap-2 text-stone-400 text-sm pl-9">
+                <Loader2 className="w-4 h-4 animate-spin text-orange-400 motion-reduce:animate-none" />
+                <span className="text-xs">Evaluating policies & drafting response…</span>
               </div>
             )}
             <div ref={messagesEndRef} />
           </div>
 
           {/* Quick Starter Chips */}
-          <div className="px-3 py-1.5 bg-slate-950/80 border-t border-slate-800/80 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+          <div className="px-3.5 py-2 bg-[#14110f] border-t border-stone-800 flex items-center gap-2 overflow-x-auto no-scrollbar">
             {starterChips.map((chip, idx) => (
               <button
                 key={idx}
                 onClick={() => handleSendMessage(chip)}
-                className="px-2 py-0.5 rounded-full bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[10px] text-slate-400 hover:text-slate-200 whitespace-nowrap transition cursor-pointer"
+                className="px-2.5 py-1 rounded-full bg-[#221d18] hover:bg-[#2e2620] border border-stone-800 hover:border-orange-500/40 text-xs text-stone-300 hover:text-white whitespace-nowrap transition-colors cursor-pointer"
               >
                 {chip}
               </button>
@@ -350,21 +379,21 @@ export default function HRAssistantWidget() {
               e.preventDefault();
               handleSendMessage();
             }}
-            className="p-2.5 bg-slate-950 border-t border-slate-800 flex items-center gap-2"
+            className="p-3 bg-[#120f0d] border-t border-stone-800 flex items-center gap-2"
           >
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask anything or request time off..."
-              className="flex-1 bg-slate-900 border border-slate-800 focus:border-indigo-500 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 outline-none transition"
+              className="flex-1 bg-[#201b17] border border-stone-800 focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 rounded-xl px-3.5 py-2.5 text-sm text-[#FFFDF8] placeholder-stone-500 outline-none transition"
             />
             <button
               type="submit"
               disabled={loading || !input.trim()}
-              className="p-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition disabled:opacity-40 cursor-pointer"
+              className="p-2.5 bg-orange-600 hover:bg-orange-500 active:bg-orange-700 text-white rounded-xl transition shadow disabled:opacity-40 cursor-pointer focus-visible:ring-2 focus-visible:ring-orange-500"
             >
-              <Send className="w-3.5 h-3.5" />
+              <Send className="w-4 h-4" />
             </button>
           </form>
         </div>
