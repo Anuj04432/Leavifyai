@@ -75,3 +75,15 @@ class TokenResponse(BaseModel):
 class TokenRefreshRequest(BaseModel):
     """Payload for refreshing an expired access token."""
     refresh_token: str = Field(..., description="Valid refresh token")
+
+
+class ForgotPasswordRequest(BaseModel):
+    """Payload to request password reset OTP code."""
+    email: EmailStr = Field(..., description="Registered account email address")
+
+
+class ResetPasswordRequest(BaseModel):
+    """Payload to verify OTP and set a new password."""
+    email: EmailStr = Field(..., description="Registered account email address")
+    otp: str = Field(..., min_length=6, max_length=6, description="6-digit verification code")
+    new_password: str = Field(..., min_length=8, max_length=100, description="New password (min 8 characters)")

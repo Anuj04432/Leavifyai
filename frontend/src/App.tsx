@@ -6,6 +6,7 @@ import Dashboard from "./pages/dashboard/Dashboard";
 import ApprovalCockpit from "./pages/hr/ApprovalCockpit";
 import PayrollExecution from "./pages/payroll/PayrollExecution";
 import PolicyKnowledge from "./pages/policies/PolicyKnowledge";
+import CompanyChatPage from "./pages/chat/CompanyChatPage";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 export default function App() {
@@ -19,6 +20,7 @@ export default function App() {
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/leaves" element={<LeaveManagement />} />
+        <Route path="/company-chat" element={<CompanyChatPage />} />
       </Route>
 
       {/* Protected Routes: Personnel Directory & Management */}

@@ -7,6 +7,8 @@ from app.models.user import User
 from app.modules.auth.service import AuthService
 from app.schemas.auth import (
     CompanyCeoRegisterRequest,
+    ForgotPasswordRequest,
+    ResetPasswordRequest,
     SendOtpRequest,
     TokenRefreshRequest,
     TokenResponse,
@@ -120,3 +122,27 @@ async def get_me(
         personal_email=current_user.employee.personal_email if current_user.employee else None,
         created_at=current_user.created_at,
     )
+
+
+@router.post(
+    "/forgot-password/request",
+    summary="Dispatch 6-digit password reset OTP code to registered user email",
+)
+async def request_password_reset(
+    data: ForgotPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    service = AuthService(db)
+    return await service.request_password_reset(data.email)
+
+
+@router.post(
+    "/forgot-password/reset",
+    summary="Verify OTP and set a new password",
+)
+async def reset_password(
+    data: ResetPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    service = AuthService(db)
+    return await service.reset_password_with_otp(data.email, data.otp, data.new_password)

@@ -8,7 +8,7 @@ import secrets
 import smtplib
 import uuid
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -494,3 +494,170 @@ class AuthService:
             token_type="bearer",
             expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         )
+
+    async def request_password_reset(self, email: str) -> dict:
+        """Sends a 6-digit password reset OTP code to the registered user."""
+        clean_email = email.strip().lower()
+
+        # Check if user exists with this email or as employee personal email
+        user_query = select(User).where(func.lower(User.email) == clean_email)
+        user = (await self.db.execute(user_query)).scalar_one_or_none()
+        if not user:
+            emp_query = select(Employee).options(selectinload(Employee.user)).where(func.lower(Employee.personal_email) == clean_email)
+            emp = (await self.db.execute(emp_query)).scalar_one_or_none()
+            if emp and emp.user:
+                user = emp.user
+
+        if not user or not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No active account registered with this email address.",
+            )
+
+        # Rate limit: reject if code requested in last 45 seconds
+        time_limit = datetime.now(timezone.utc) - timedelta(seconds=45)
+        stmt_check = select(EmailVerificationCode).where(
+            EmailVerificationCode.email == clean_email,
+            EmailVerificationCode.purpose == "forgot_password",
+            EmailVerificationCode.created_at >= time_limit,
+        )
+        recent_code = (await self.db.execute(stmt_check)).scalar_one_or_none()
+        if recent_code:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Password reset code already sent recently. Please wait 45 seconds.",
+            )
+
+        otp_code = f"{secrets.randbelow(900000) + 100000}"
+        expires_at = datetime.now(timezone.utc) + timedelta(minutes=15)
+
+        record = EmailVerificationCode(
+            email=clean_email,
+            code_hash=otp_code,
+            purpose="forgot_password",
+            expires_at=expires_at,
+            is_verified=False,
+        )
+        self.db.add(record)
+        await self.db.commit()
+
+        # Send email via SMTP
+        smtp_user = (os.getenv("SMTP_USER") or settings.SMTP_USER).strip()
+        smtp_password = (os.getenv("SMTP_PASSWORD") or settings.SMTP_PASSWORD).strip()
+        smtp_host = os.getenv("SMTP_HOST") or settings.SMTP_HOST
+        smtp_port = int(os.getenv("SMTP_PORT") or settings.SMTP_PORT)
+        from_email = os.getenv("SMTP_FROM_EMAIL") or settings.SMTP_FROM_EMAIL or smtp_user or "security@leavify.ai"
+
+        html_body = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <style>
+            body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #0c0a09; color: #FAF8F5; padding: 24px; }}
+            .container {{ max-width: 520px; margin: 0 auto; background: #141210; border: 1px solid #292524; border-radius: 12px; padding: 32px; }}
+            .brand {{ display: inline-block; background: #ea580c; color: #ffffff; padding: 6px 14px; border-radius: 8px; font-weight: 700; font-size: 14px; margin-bottom: 20px; }}
+            h2 {{ color: #FAF8F5; margin-top: 0; font-size: 20px; }}
+            p {{ color: #a8a29e; font-size: 14px; line-height: 1.6; }}
+            .code-box {{ background: #0c0a09; border: 1px solid #ea580c; border-radius: 8px; padding: 18px; text-align: center; margin: 24px 0; }}
+            .code {{ font-family: monospace; font-size: 32px; letter-spacing: 8px; font-weight: 800; color: #f97316; }}
+            .footer {{ border-top: 1px solid #292524; margin-top: 24px; padding-top: 16px; font-size: 11px; color: #78716c; }}
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="brand">Leavify.ai</div>
+            <h2>Password Reset Code</h2>
+            <p>We received a request to reset your password for your Leavify.ai account. Use the 6-digit verification code below:</p>
+            <div class="code-box">
+              <span class="code">{otp_code}</span>
+            </div>
+            <p>This verification code expires in <strong>15 minutes</strong>. If you did not request a password reset, please secure your account immediately or ignore this email.</p>
+            <div class="footer">
+              Automated security dispatch from Leavify.ai Autonomous Workforce Platform.
+            </div>
+          </div>
+        </body>
+        </html>
+        """
+
+        if smtp_user and smtp_password:
+            try:
+                msg = MIMEMultipart("alternative")
+                msg["Subject"] = f"Leavify.ai Password Reset Code: {otp_code}"
+                msg["From"] = f"Leavify.ai Security <{from_email}>"
+                msg["To"] = clean_email
+                msg.attach(MIMEText(html_body, "html"))
+
+                with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as server:
+                    server.starttls()
+                    server.login(smtp_user, smtp_password)
+                    server.sendmail(from_email, [clean_email], msg.as_string())
+                logger.info(f"Password reset OTP sent to {clean_email}")
+            except Exception as ex:
+                logger.warning(f"SMTP reset dispatch failed: {ex}. Simulated OTP: {otp_code}")
+        else:
+            logger.info(f"[SIMULATED_OTP] Password reset for {clean_email}: {otp_code}")
+
+        return {
+            "success": True,
+            "message": f"Password reset verification code sent to {clean_email}",
+        }
+
+    async def reset_password_with_otp(self, email: str, otp: str, new_password: str) -> dict:
+        """Verifies OTP and resets the user's password."""
+        clean_email = email.strip().lower()
+        clean_code = otp.strip()
+
+        # Verify OTP
+        stmt = (
+            select(EmailVerificationCode)
+            .where(
+                EmailVerificationCode.email == clean_email,
+                EmailVerificationCode.code_hash == clean_code,
+                EmailVerificationCode.purpose == "forgot_password",
+                EmailVerificationCode.is_verified == False,
+            )
+            .order_by(EmailVerificationCode.created_at.desc())
+        )
+        record = (await self.db.execute(stmt)).scalar_one_or_none()
+
+        if not record:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid verification code or email address.",
+            )
+
+        now = datetime.now(timezone.utc)
+        record_expires = record.expires_at if record.expires_at.tzinfo else record.expires_at.replace(tzinfo=timezone.utc)
+        if record_expires < now:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Verification code has expired. Please request a new code.",
+            )
+
+        # Find user
+        user_query = select(User).where(func.lower(User.email) == clean_email)
+        user = (await self.db.execute(user_query)).scalar_one_or_none()
+        if not user:
+            emp_query = select(Employee).options(selectinload(Employee.user)).where(func.lower(Employee.personal_email) == clean_email)
+            emp = (await self.db.execute(emp_query)).scalar_one_or_none()
+            if emp and emp.user:
+                user = emp.user
+
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User account not found.",
+            )
+
+        # Update password
+        user.password_hash = get_password_hash(new_password)
+        record.is_verified = True
+        await self.db.commit()
+
+        logger.info(f"Password successfully reset for user: {user.email}")
+        return {
+            "success": True,
+            "message": "Password reset successfully. You can now sign in with your new password.",
+        }

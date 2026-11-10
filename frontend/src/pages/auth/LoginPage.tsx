@@ -5,10 +5,12 @@ import {
   Lock,
   Mail,
   Loader2,
-  Cpu,
   CheckCircle2,
   ArrowRight,
   Building2,
+  Sparkles,
+  KeyRound,
+  X,
   CreditCard,
 } from "lucide-react";
 import { api } from "../../lib/api";
@@ -44,6 +46,16 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Forgot Password Modal State
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotOtp, setForgotOtp] = useState("");
+  const [forgotNewPassword, setForgotNewPassword] = useState("");
+  const [forgotStep, setForgotStep] = useState<"request" | "reset">("request");
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError, setForgotError] = useState<string | null>(null);
+  const [forgotSuccess, setForgotSuccess] = useState<string | null>(null);
 
   // OTP resend cooldown timer
   useEffect(() => {
@@ -138,18 +150,15 @@ export default function LoginPage() {
 
   const handleRegisterSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (!otpVerified) {
+      setError("You must verify your organization Gmail address with the 6-digit code before registering.");
+      return;
+    }
     setError(null);
     setLoading(true);
 
     try {
-      if (!regData.organization_email || !regData.otp) {
-        setError("Please provide and verify your organization Gmail address with the 6-digit code.");
-        setLoading(false);
-        return;
-      }
-
-      // Register company & CEO account with verified organization email & auto-provisioned corporate email
-      const res = await api.post("/auth/register-company", {
+      const payload = {
         company_name: regData.company_name.trim(),
         organization_email: regData.organization_email.trim(),
         otp: regData.otp.trim(),
@@ -157,8 +166,9 @@ export default function LoginPage() {
         ceo_first_name: regData.ceo_first_name.trim(),
         ceo_last_name: regData.ceo_last_name.trim(),
         password: regData.password,
-      });
+      };
 
+      const res = await api.post("/auth/register-company", payload);
       const { access_token, refresh_token, user } = res.data;
       if (user) {
         setAuth(access_token, refresh_token, user);
@@ -168,11 +178,7 @@ export default function LoginPage() {
         });
         setAuth(access_token, refresh_token, meRes.data);
       }
-
-      setSuccessMsg(
-        `Welcome CEO! Corporate email assigned: ${user?.email || previewEmail}`
-      );
-      setTimeout(() => navigate("/dashboard"), 700);
+      navigate("/dashboard");
     } catch (err: any) {
       const detail = err.response?.data?.detail;
       setError(
@@ -185,113 +191,179 @@ export default function LoginPage() {
     }
   };
 
-  const fillQuickLogin = (roleEmail: string) => {
-    setActiveTab("login");
-    setEmail(roleEmail);
-    setPassword("Password123!");
+  const handleForgotRequestOtp = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail || !forgotEmail.includes("@")) {
+      setForgotError("Please enter a valid account email address.");
+      return;
+    }
+    setForgotError(null);
+    setForgotLoading(true);
+    try {
+      await api.post("/auth/forgot-password/request", { email: forgotEmail.trim() });
+      setForgotStep("reset");
+      setForgotSuccess(`Verification code dispatched to ${forgotEmail}. Please check your inbox.`);
+    } catch (err: any) {
+      const detail = err.response?.data?.detail;
+      setForgotError(typeof detail === "string" ? detail : "Failed to dispatch reset code.");
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleForgotResetPassword = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!forgotOtp || forgotOtp.trim().length !== 6) {
+      setForgotError("Please enter the 6-digit code received in your email.");
+      return;
+    }
+    if (!forgotNewPassword || forgotNewPassword.length < 8) {
+      setForgotError("New password must be at least 8 characters long.");
+      return;
+    }
+    setForgotError(null);
+    setForgotLoading(true);
+    try {
+      await api.post("/auth/forgot-password/reset", {
+        email: forgotEmail.trim(),
+        otp: forgotOtp.trim(),
+        new_password: forgotNewPassword,
+      });
+      setShowForgotModal(false);
+      setSuccessMsg("Password successfully reset! You can now sign in with your new password.");
+      setEmail(forgotEmail);
+      setPassword(forgotNewPassword);
+      setForgotStep("request");
+      setForgotOtp("");
+      setForgotNewPassword("");
+    } catch (err: any) {
+      const detail = err.response?.data?.detail;
+      setForgotError(typeof detail === "string" ? detail : "Failed to reset password. Please check your verification code.");
+    } finally {
+      setForgotLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-[#0c0a09] text-stone-100 flex font-sans antialiased">
-      {/* PASS 1: Asymmetric Left Architecture Panel (Hidden on small screens) */}
+      {/* Left Architecture & Value Messaging Panel */}
       <div className="hidden lg:flex lg:w-5/12 bg-[#141210] border-r border-stone-800 flex-col justify-between p-12 relative overflow-hidden">
-        {/* Subtle dot pattern */}
+        {/* Subtle grid texture */}
         <div className="absolute inset-0 pointer-events-none [background-image:radial-gradient(var(--surface-grid)_1px,transparent_1px)] [background-size:16px_16px]" />
 
         <div>
           {/* Logo & Product Identity */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-orange-600 flex items-center justify-center font-bold text-lg text-white shadow-sm">
-              W
+            <div className="w-10 h-10 rounded-2xl bg-orange-600 flex items-center justify-center font-bold text-xl text-white shadow-sm">
+              L
             </div>
             <div>
-              <span className="font-extrabold text-[#FFFDF8] text-lg tracking-tight block">
-                WorkforceAI
+              <span className="font-extrabold text-[#FFFDF8] text-xl tracking-tight block">
+                Leavify.ai
               </span>
               <span className="text-xs font-medium text-stone-400 block -mt-0.5">
-                Enterprise Payroll OS
+                Autonomous Leave & Workforce OS
               </span>
             </div>
           </div>
 
           {/* Value Prop Headline */}
           <div className="mt-14 space-y-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-950/60 border border-orange-500/30 text-orange-400 text-xs font-mono font-medium">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              Neon Postgres 18.6 Live
+              Enterprise Platform Live
             </div>
             <h1 className="text-3xl font-extrabold tracking-tight text-[#FFFDF8] leading-tight">
-              Agentic AI workforce & automated payroll operations.
+              Autonomous leave intelligence & effortless workforce operations.
             </h1>
-            <p className="text-xs text-stone-400 leading-relaxed">
-              Autonomous workforce engine with LangGraph supervisors, deterministic leave reconciliation, and PayPal Payouts integration.
+            <p className="text-sm text-stone-400 leading-relaxed">
+              Empower high-performance teams with instant policy answers, deterministic quota verification, one-click approvals, and automated global settlements.
             </p>
           </div>
         </div>
 
-        {/* Telemetry Architecture Cards */}
-        <div className="space-y-3.5 pt-8 border-t border-stone-800/80">
-          <div className="flex items-start gap-3">
-            <Cpu className="w-4 h-4 text-orange-400 mt-1 shrink-0" />
+        {/* Enterprise Value Cards */}
+        <div className="space-y-4 pt-8 border-t border-stone-800/80">
+          <div className="flex items-start gap-3.5">
+            <div className="w-8 h-8 rounded-xl bg-[#1c1917] border border-stone-800 flex items-center justify-center shrink-0 text-orange-400">
+              <ShieldCheck className="w-4 h-4" />
+            </div>
             <div>
-              <div className="text-xs font-semibold text-white">LangGraph AI Policy Supervisor</div>
-              <div className="text-[11px] text-stone-400 leading-normal">
-                Natural language parsing, SQL balance verification, and transparent rule citations.
+              <div className="text-sm font-semibold text-white">Deterministic Policy Verification</div>
+              <div className="text-xs text-stone-400 leading-normal mt-0.5">
+                Instant qualification and conflict checking against organizational handbooks with zero quota overages.
               </div>
             </div>
           </div>
 
-          <div className="flex items-start gap-3">
-            <CreditCard className="w-4 h-4 text-orange-400 mt-1 shrink-0" />
+          <div className="flex items-start gap-3.5">
+            <div className="w-8 h-8 rounded-xl bg-[#1c1917] border border-stone-800 flex items-center justify-center shrink-0 text-orange-400">
+              <Sparkles className="w-4 h-4" />
+            </div>
             <div>
-              <div className="text-xs font-semibold text-white">Deterministic Payroll Engine</div>
-              <div className="text-[11px] text-stone-400 leading-normal">
-                Reconciles unpaid leave deductions using Python Decimal zero-float precision.
+              <div className="text-sm font-semibold text-white">Talk with Company Copilot</div>
+              <div className="text-xs text-stone-400 leading-normal mt-0.5">
+                Conversational leave staging, policy inquiries, and instant time-off drafts in plain English.
               </div>
             </div>
           </div>
 
-          <div className="flex items-start gap-3">
-            <CheckCircle2 className="w-4 h-4 text-orange-400 mt-1 shrink-0" />
+          <div className="flex items-start gap-3.5">
+            <div className="w-8 h-8 rounded-xl bg-[#1c1917] border border-stone-800 flex items-center justify-center shrink-0 text-orange-400">
+              <CreditCard className="w-4 h-4" />
+            </div>
             <div>
-              <div className="text-xs font-semibold text-white">PayPal Sandbox Disbursements</div>
-              <div className="text-[11px] text-stone-400 leading-normal">
-                Automated batch payouts with sender idempotency and cryptographic webhook audits.
+              <div className="text-sm font-semibold text-white">PayPal Automated Disbursements</div>
+              <div className="text-xs text-stone-400 leading-normal mt-0.5">
+                Direct cross-border settlement rails for monthly payroll and proration adjustments.
               </div>
             </div>
           </div>
         </div>
 
         {/* Footer Meta */}
-        <div className="text-xs text-stone-500 tracking-tight pt-4">
-          PayPal AI Hackathon 2026 · Build Production
+        <div className="text-xs text-stone-500 tracking-tight pt-4 font-mono">
+          Leavify.ai Enterprise Cloud · Multi-Tenant Architecture
         </div>
       </div>
 
-      {/* PASS 2 & 3: Right Form Viewport (Asymmetric 7/12 width) */}
+      {/* Right Form Viewport */}
       <div className="flex-1 flex items-center justify-center p-6 sm:p-12 overflow-y-auto">
         <div className="w-full max-w-md space-y-6">
           {/* Mobile Header */}
           <div className="flex items-center gap-3 lg:hidden">
-            <div className="w-9 h-9 rounded-xl bg-orange-600 flex items-center justify-center font-bold text-white text-base">
-              W
+            <div className="w-9 h-9 rounded-xl bg-orange-600 flex items-center justify-center font-bold text-white text-lg">
+              L
             </div>
-            <span className="font-extrabold text-[#FFFDF8] text-base tracking-tight">
-              WorkforceAI
+            <span className="font-extrabold text-[#FFFDF8] text-lg tracking-tight">
+              Leavify.ai
             </span>
           </div>
 
-          {/* Tab Selector: Sign In vs Register Organization */}
-          <div className="bg-[#141210] p-1.5 rounded-2xl border border-stone-800 flex items-center gap-1 shadow-sm">
+          {/* Heading */}
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight text-[#FFFDF8]">
+              {activeTab === "login" ? "Sign in to your workspace" : "Register your Organization"}
+            </h2>
+            <p className="text-sm text-stone-400 mt-1">
+              {activeTab === "login"
+                ? "Enter your credentials to access your leave and payroll copilot."
+                : "Create a verified company workspace and launch with automated leave rails."}
+            </p>
+          </div>
+
+          {/* Segmented Mode Selector */}
+          <div className="p-1 rounded-xl bg-[#141210] border border-stone-800 grid grid-cols-2 gap-1 text-sm">
             <button
               type="button"
               onClick={() => {
                 setActiveTab("login");
                 setError(null);
+                setSuccessMsg(null);
               }}
-              className={`flex-1 py-2 text-xs font-semibold rounded-xl transition cursor-pointer text-center ${
+              className={`py-2 rounded-lg font-medium transition cursor-pointer ${
                 activeTab === "login"
-                  ? "bg-stone-900 text-[#FFFDF8] border border-stone-700 shadow-sm"
+                  ? "bg-[#201c18] text-[#FFFDF8] border border-stone-700 font-semibold shadow-sm"
                   : "text-stone-400 hover:text-stone-200"
               }`}
             >
@@ -302,39 +374,29 @@ export default function LoginPage() {
               onClick={() => {
                 setActiveTab("register");
                 setError(null);
+                setSuccessMsg(null);
               }}
-              className={`flex-1 py-2 text-xs font-semibold rounded-xl transition cursor-pointer text-center ${
+              className={`py-2 rounded-lg font-medium transition cursor-pointer ${
                 activeTab === "register"
-                  ? "bg-stone-900 text-[#FFFDF8] border border-stone-700 shadow-sm"
+                  ? "bg-[#201c18] text-[#FFFDF8] border border-stone-700 font-semibold shadow-sm"
                   : "text-stone-400 hover:text-stone-200"
               }`}
             >
-              Register as Company CEO
+              Register Company
             </button>
           </div>
 
-          {/* Form Header */}
-          <div>
-            <h2 className="text-xl font-bold tracking-tight text-[#FFFDF8]">
-              {activeTab === "login" ? "Sign in to your organization" : "Register company as CEO"}
-            </h2>
-            <p className="text-xs text-stone-400 mt-1">
-              {activeTab === "login"
-                ? "Enter your provisioned WorkforceAI corporate email and password (CEO, HR, Finance, or Employee)."
-                : "Register as Company CEO. Team members and employees should use 'Sign In' with credentials issued by their company."}
-            </p>
-          </div>
-
-          {/* Alerts */}
+          {/* Feedback Alerts */}
           {error && (
-            <div className="p-3.5 rounded-2xl bg-rose-950/40 border border-rose-500/20 text-rose-300 text-xs font-medium leading-relaxed">
-              {error}
+            <div className="p-3.5 rounded-xl bg-rose-950/40 border border-rose-500/30 text-rose-300 text-xs sm:text-sm flex items-start gap-2.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-400 mt-2 shrink-0" />
+              <span>{error}</span>
             </div>
           )}
 
           {successMsg && (
-            <div className="p-3.5 rounded-2xl bg-emerald-950/40 border border-emerald-500/20 text-emerald-300 text-xs font-medium leading-relaxed flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+            <div className="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-xs sm:text-sm flex items-start gap-2.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
               <span>{successMsg}</span>
             </div>
           )}
@@ -343,35 +405,50 @@ export default function LoginPage() {
           {activeTab === "login" ? (
             <form onSubmit={handleLoginSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-stone-300 mb-1.5">
-                  Organization Gmail or Premise Corporate Email
+                <label className="block text-xs sm:text-sm font-medium text-stone-300 mb-1.5">
+                  Email Address
                 </label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-stone-500 absolute left-3.5 top-3" />
+                  <Mail className="w-4 h-4 text-stone-500 absolute left-3.5 top-3.5" />
                   <input
                     type="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="e.g. anujwagmore835@gmail.com or alice@acme.com"
-                    className="w-full bg-[#1c1917] border border-stone-800 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 rounded-xl pl-10 pr-4 py-2.5 text-xs text-stone-100 placeholder-stone-600 outline-none transition"
+                    placeholder="name@company.com"
+                    className="w-full bg-[#141210] border border-stone-800 focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 rounded-xl pl-10 pr-4 py-2.5 text-sm text-[#FFFDF8] placeholder-stone-500 outline-none transition"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-stone-300 mb-1.5">
-                  Password
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs sm:text-sm font-medium text-stone-300">
+                    Password
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForgotEmail(email);
+                      setForgotError(null);
+                      setForgotSuccess(null);
+                      setForgotStep("request");
+                      setShowForgotModal(true);
+                    }}
+                    className="text-xs text-orange-400 hover:text-orange-300 font-medium transition cursor-pointer"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-stone-500 absolute left-3.5 top-3" />
+                  <Lock className="w-4 h-4 text-stone-500 absolute left-3.5 top-3.5" />
                   <input
                     type="password"
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full bg-[#1c1917] border border-stone-800 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 rounded-xl pl-10 pr-4 py-2.5 text-xs text-stone-100 placeholder-stone-600 outline-none transition"
+                    className="w-full bg-[#141210] border border-stone-800 focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 rounded-xl pl-10 pr-4 py-2.5 text-sm text-[#FFFDF8] placeholder-stone-500 outline-none transition"
                   />
                 </div>
               </div>
@@ -379,30 +456,30 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-orange-600 hover:bg-orange-500 active:bg-orange-700 active:scale-[0.99] disabled:opacity-50 text-white font-semibold text-xs py-3 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-md"
+                className="w-full bg-orange-600 hover:bg-orange-500 active:bg-orange-700 active:scale-[0.99] disabled:opacity-50 text-white font-semibold text-sm py-3 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-md"
               >
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Authenticating...</span>
+                    <span>Signing in…</span>
                   </>
                 ) : (
                   <>
-                    <span>Sign In</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-white" />
+                    <span>Sign In to Leavify</span>
+                    <ArrowRight className="w-4 h-4 text-white" />
                   </>
                 )}
               </button>
             </form>
           ) : (
-            /* REGISTER AS COMPANY CEO FORM WITH GMAIL OTP VERIFICATION */
+            /* REGISTER COMPANY FORM */
             <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">
-                  Organization / Company Name
+                <label className="block text-xs sm:text-sm font-medium text-stone-300 mb-1">
+                  Company / Organization Name *
                 </label>
                 <div className="relative">
-                  <Building2 className="w-4 h-4 text-slate-500 absolute left-3.5 top-2.5" />
+                  <Building2 className="w-4 h-4 text-stone-500 absolute left-3.5 top-3" />
                   <input
                     type="text"
                     required
@@ -411,27 +488,27 @@ export default function LoginPage() {
                       setRegData({ ...regData, company_name: e.target.value })
                     }
                     placeholder="Acme Global Inc"
-                    className="w-full bg-slate-900 border border-slate-800 focus:border-indigo-500 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-100 placeholder-slate-600 outline-none transition"
+                    className="w-full bg-[#141210] border border-stone-800 focus:border-orange-500 rounded-xl pl-10 pr-4 py-2 text-sm text-stone-100 placeholder-stone-600 outline-none transition"
                   />
                 </div>
               </div>
 
-              {/* Organization Inbound Gmail Address with OTP Dispatch */}
+              {/* Organization Gmail Address with OTP */}
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-medium text-slate-300">
+                  <label className="text-xs sm:text-sm font-medium text-stone-300">
                     Organization Official Gmail (Inbound Mailbox) *
                   </label>
                   {otpVerified && (
-                    <span className="flex items-center gap-1 text-[11px] text-emerald-400 font-semibold">
-                      <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                      Gmail Verified
+                    <span className="flex items-center gap-1 text-xs text-emerald-400 font-semibold">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Verified
                     </span>
                   )}
                 </div>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
-                    <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-2.5" />
+                    <Mail className="w-4 h-4 text-stone-500 absolute left-3.5 top-3" />
                     <input
                       type="email"
                       required
@@ -440,8 +517,8 @@ export default function LoginPage() {
                       onChange={(e) =>
                         setRegData({ ...regData, organization_email: e.target.value })
                       }
-                      placeholder="e.g. anujwagmore835@gmail.com"
-                      className="w-full bg-slate-900 border border-slate-800 focus:border-indigo-500 disabled:opacity-75 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-100 placeholder-slate-600 outline-none transition"
+                      placeholder="e.g. company.leaves@gmail.com"
+                      className="w-full bg-[#141210] border border-stone-800 focus:border-orange-500 disabled:opacity-75 rounded-xl pl-10 pr-4 py-2 text-sm text-stone-100 placeholder-stone-600 outline-none transition"
                     />
                   </div>
                   {!otpVerified && (
@@ -449,34 +526,31 @@ export default function LoginPage() {
                       type="button"
                       onClick={handleSendOtp}
                       disabled={sendingOtp || otpCooldown > 0}
-                      className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 disabled:text-slate-500 text-white rounded-xl text-xs font-semibold cursor-pointer transition flex items-center gap-1.5 shrink-0"
+                      className="px-4 py-2 bg-orange-600 hover:bg-orange-500 disabled:bg-stone-800 disabled:text-stone-500 text-white rounded-xl text-xs font-semibold cursor-pointer transition flex items-center gap-1.5 shrink-0"
                     >
                       {sendingOtp ? (
-                        <>
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          <span>Sending...</span>
-                        </>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
                       ) : otpCooldown > 0 ? (
-                        <span>Resend in {otpCooldown}s</span>
+                        <span>{otpCooldown}s</span>
                       ) : (
-                        <span>{otpSent ? "Resend Code" : "Send Code"}</span>
+                        <span>{otpSent ? "Resend" : "Send OTP"}</span>
                       )}
                     </button>
                   )}
                 </div>
-                <p className="text-[10px] text-slate-500 mt-1">
+                <p className="text-[11px] text-stone-500 mt-1">
                   We'll send a 6-digit verification code to confirm ownership of this Gmail address.
                 </p>
               </div>
 
-              {/* 6-Digit OTP Verification Field (Shown once code is sent or during input) */}
+              {/* 6-Digit OTP */}
               {(otpSent || regData.otp) && !otpVerified && (
-                <div className="p-3 bg-slate-900/90 border border-indigo-500/40 rounded-xl space-y-2">
+                <div className="p-3.5 bg-[#181512] border border-orange-500/40 rounded-xl space-y-2">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-medium text-indigo-300">
+                    <label className="text-xs font-medium text-orange-300">
                       Enter 6-Digit Verification Code
                     </label>
-                    <span className="text-[10px] text-slate-400">Valid for 10 minutes</span>
+                    <span className="text-[11px] text-stone-400">Valid for 10 minutes</span>
                   </div>
                   <div className="flex gap-2">
                     <input
@@ -490,7 +564,7 @@ export default function LoginPage() {
                         })
                       }
                       placeholder="123456"
-                      className="flex-1 bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-lg px-3 py-1.5 text-center font-mono text-base tracking-[6px] text-white outline-none"
+                      className="flex-1 bg-[#0c0a09] border border-stone-800 focus:border-orange-500 rounded-lg px-3 py-1.5 text-center font-mono text-base tracking-[6px] text-white outline-none"
                     />
                     <button
                       type="button"
@@ -498,20 +572,18 @@ export default function LoginPage() {
                       disabled={verifyingOtp || regData.otp.length !== 6}
                       className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-lg text-xs font-semibold cursor-pointer transition flex items-center gap-1"
                     >
-                      {verifyingOtp ? (
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                      ) : (
-                        "Verify"
-                      )}
+                      {verifyingOtp && <Loader2 className="w-3 h-3 animate-spin" />}
+                      Verify
                     </button>
                   </div>
                 </div>
               )}
 
+              {/* CEO Names */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">
-                    CEO First Name
+                  <label className="block text-xs font-medium text-stone-300 mb-1">
+                    CEO First Name *
                   </label>
                   <input
                     type="text"
@@ -521,12 +593,12 @@ export default function LoginPage() {
                       setRegData({ ...regData, ceo_first_name: e.target.value })
                     }
                     placeholder="Jane"
-                    className="w-full bg-slate-900 border border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder-slate-600 outline-none transition"
+                    className="w-full bg-[#141210] border border-stone-800 focus:border-orange-500 rounded-xl px-3 py-2 text-sm text-stone-100 placeholder-stone-600 outline-none transition"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">
-                    CEO Last Name
+                  <label className="block text-xs font-medium text-stone-300 mb-1">
+                    CEO Last Name *
                   </label>
                   <input
                     type="text"
@@ -536,31 +608,22 @@ export default function LoginPage() {
                       setRegData({ ...regData, ceo_last_name: e.target.value })
                     }
                     placeholder="Doe"
-                    className="w-full bg-slate-900 border border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder-slate-600 outline-none transition"
+                    className="w-full bg-[#141210] border border-stone-800 focus:border-orange-500 rounded-xl px-3 py-2 text-sm text-stone-100 placeholder-stone-600 outline-none transition"
                   />
                 </div>
               </div>
 
-              {/* Live Auto-Provisioned Organization Email Display */}
-              <div className="p-3 bg-slate-900 rounded-xl border border-indigo-500/30 text-xs space-y-1.5">
-                <div className="flex items-center gap-1.5 text-indigo-400 font-semibold text-[11px]">
-                  <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>Provisioned On-Premise Corporate Email</span>
-                </div>
-                <div className="font-mono text-white text-xs bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-800 break-all select-all">
-                  {previewEmail}
-                </div>
-                <div className="text-[10px] text-slate-400 leading-tight">
-                  You can sign in using either your verified Organization Gmail or this on-premise email with your master password.
-                </div>
+              <div className="p-2.5 rounded-xl bg-[#1c1917] border border-stone-800 text-xs text-stone-400">
+                <span className="text-stone-500 block text-[11px]">Primary CEO Work Email:</span>
+                <span className="font-mono text-orange-400">{previewEmail}</span>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">
-                  CEO Master Password (min 8 characters)
+                <label className="block text-xs font-medium text-stone-300 mb-1">
+                  CEO Master Password (min 8 characters) *
                 </label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-2.5" />
+                  <Lock className="w-4 h-4 text-stone-500 absolute left-3.5 top-3" />
                   <input
                     type="password"
                     required
@@ -570,7 +633,7 @@ export default function LoginPage() {
                       setRegData({ ...regData, password: e.target.value })
                     }
                     placeholder="••••••••"
-                    className="w-full bg-slate-900 border border-slate-800 focus:border-indigo-500 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-100 placeholder-slate-600 outline-none transition"
+                    className="w-full bg-[#141210] border border-stone-800 focus:border-orange-500 rounded-xl pl-10 pr-4 py-2 text-sm text-stone-100 placeholder-stone-600 outline-none transition"
                   />
                 </div>
               </div>
@@ -578,67 +641,149 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-indigo-600 hover:bg-indigo-500 active:scale-[0.99] disabled:opacity-50 text-white font-semibold text-xs py-2.5 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-sm mt-2"
+                className="w-full bg-orange-600 hover:bg-orange-500 active:bg-orange-700 disabled:opacity-50 text-white font-semibold text-sm py-3 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-md mt-3"
               >
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Registering Company as CEO...</span>
+                    <span>Registering Organization…</span>
                   </>
                 ) : (
                   <>
                     <span>Register Organization & Launch as CEO</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-indigo-200" />
+                    <ArrowRight className="w-4 h-4" />
                   </>
                 )}
               </button>
             </form>
           )}
-
-          {/* Quick Demo Credentials Panel */}
-          <div className="pt-5 border-t border-slate-800/80">
-            <div className="flex items-center justify-between mb-2.5">
-              <span className="text-xs font-semibold text-slate-400">
-                Demo Credentials
-              </span>
-              <span className="text-xs text-slate-500">1-click autofill</span>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-              <button
-                type="button"
-                onClick={() => fillQuickLogin("admin@workforce.io")}
-                className="p-2.5 bg-slate-900 hover:bg-slate-800/80 border border-slate-800 hover:border-slate-700 rounded-xl text-left transition flex items-center justify-between group cursor-pointer"
-              >
-                <div>
-                  <div className="font-semibold text-white group-hover:text-indigo-400 transition text-xs">
-                    Administrator
-                  </div>
-                  <div className="text-[10px] text-slate-400 font-mono mt-0.5">
-                    admin@workforce.io
-                  </div>
-                </div>
-                <ShieldCheck className="w-3.5 h-3.5 text-slate-500 group-hover:text-indigo-400 transition" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => fillQuickLogin("aarav.sharma@workforce.io")}
-                className="p-2.5 bg-slate-900 hover:bg-slate-800/80 border border-slate-800 hover:border-slate-700 rounded-xl text-left transition flex items-center justify-between group cursor-pointer"
-              >
-                <div>
-                  <div className="font-semibold text-white group-hover:text-indigo-400 transition text-xs">
-                    Lead Architect
-                  </div>
-                  <div className="text-[10px] text-slate-400 font-mono mt-0.5">
-                    aarav.sharma@workforce.io
-                  </div>
-                </div>
-                <ShieldCheck className="w-3.5 h-3.5 text-slate-500 group-hover:text-indigo-400 transition" />
-              </button>
-            </div>
-          </div>
         </div>
       </div>
+
+      {/* FORGOT PASSWORD MODAL */}
+      {showForgotModal && (
+        <div className="fixed inset-0 z-50 bg-[#0c0a09]/90 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#141210] border border-stone-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-stone-800">
+              <h2 className="text-base font-bold text-[#FFFDF8] flex items-center gap-2">
+                <KeyRound className="w-4 h-4 text-orange-400" />
+                Reset Password
+              </h2>
+              <button
+                onClick={() => setShowForgotModal(false)}
+                className="text-stone-400 hover:text-white p-1 rounded-lg"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {forgotError && (
+              <div className="p-3 bg-rose-950/40 border border-rose-500/30 rounded-xl text-xs text-rose-300">
+                {forgotError}
+              </div>
+            )}
+
+            {forgotSuccess && (
+              <div className="p-3 bg-emerald-950/40 border border-emerald-500/30 rounded-xl text-xs text-emerald-300">
+                {forgotSuccess}
+              </div>
+            )}
+
+            {forgotStep === "request" ? (
+              <form onSubmit={handleForgotRequestOtp} className="space-y-4">
+                <p className="text-xs text-stone-400 leading-relaxed">
+                  Enter your registered account email. We'll send a 6-digit verification code to reset your password.
+                </p>
+                <div>
+                  <label className="block text-xs font-medium text-stone-300 mb-1">
+                    Account Email Address
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    placeholder="name@company.com"
+                    className="w-full bg-[#1c1917] border border-stone-800 focus:border-orange-500 rounded-xl px-3.5 py-2.5 text-sm text-stone-100 outline-none transition"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotModal(false)}
+                    className="px-4 py-2 bg-stone-900 hover:bg-stone-800 text-stone-300 rounded-xl text-xs font-medium cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={forgotLoading || !forgotEmail}
+                    className="px-5 py-2.5 bg-orange-600 hover:bg-orange-500 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
+                  >
+                    {forgotLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    Send Reset Code
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={handleForgotResetPassword} className="space-y-4">
+                <p className="text-xs text-stone-400 leading-relaxed">
+                  Enter the 6-digit verification code sent to <strong className="text-stone-200">{forgotEmail}</strong> and choose a new password.
+                </p>
+
+                <div>
+                  <label className="block text-xs font-medium text-stone-300 mb-1">
+                    6-Digit Verification Code
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={6}
+                    required
+                    value={forgotOtp}
+                    onChange={(e) => setForgotOtp(e.target.value.replace(/[^0-9]/g, ""))}
+                    placeholder="123456"
+                    className="w-full bg-[#1c1917] border border-stone-800 focus:border-orange-500 rounded-xl px-3 py-2 text-center font-mono text-base tracking-[6px] text-white outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-stone-300 mb-1">
+                    New Password (min 8 characters)
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    minLength={8}
+                    value={forgotNewPassword}
+                    onChange={(e) => setForgotNewPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full bg-[#1c1917] border border-stone-800 focus:border-orange-500 rounded-xl px-3.5 py-2.5 text-sm text-stone-100 outline-none transition"
+                  />
+                </div>
+
+                <div className="flex justify-between items-center gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setForgotStep("request")}
+                    className="text-xs text-stone-400 hover:text-stone-200"
+                  >
+                    ← Change Email
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={forgotLoading || forgotOtp.length !== 6 || forgotNewPassword.length < 8}
+                    className="px-5 py-2.5 bg-orange-600 hover:bg-orange-500 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
+                  >
+                    {forgotLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    Reset Password & Sign In
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -71,7 +71,7 @@ export default function HRAssistantWidget() {
     {
       id: "initial-msg",
       sender: "bot",
-      text: "Hello! I am your WorkforceAI Assistant. I can check your leave balances, explain company policies, or help you stage and submit time-off requests. Feel free to ask anything or choose a quick suggestion below.",
+      text: "Hello! I am your Leavify Copilot. I can check your leave balances, explain company policies, or help you stage and submit time-off requests. Feel free to ask anything or choose a quick suggestion below.",
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     },
   ]);
@@ -89,7 +89,7 @@ export default function HRAssistantWidget() {
       {
         id: "initial-msg",
         sender: "bot",
-        text: "Hello! I am your WorkforceAI Assistant. I can check your leave balances, explain company policies, or help you stage and submit time-off requests. Feel free to ask anything or choose a quick suggestion below.",
+        text: "Hello! I am your Leavify Copilot. I can check your leave balances, explain company policies, or help you stage and submit time-off requests. Feel free to ask anything or choose a quick suggestion below.",
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       },
     ]);
@@ -194,7 +194,7 @@ export default function HRAssistantWidget() {
   ];
 
   return (
-    <aside aria-label="WorkforceAI Copilot Assistant" className="fixed bottom-6 right-6 z-40 font-sans">
+    <aside aria-label="Leavify Copilot Assistant" className="fixed bottom-6 right-6 z-40 font-sans">
       {/* Minimized Launcher Button */}
       {!isOpen && (
         <button
@@ -204,7 +204,7 @@ export default function HRAssistantWidget() {
           <div className="w-7 h-7 rounded-full bg-orange-600 flex items-center justify-center text-white shadow-sm">
             <Sparkles className="w-4 h-4" />
           </div>
-          <span className="text-sm font-semibold tracking-tight">WorkforceAI Copilot</span>
+          <span className="text-sm font-semibold tracking-tight">Leavify Copilot</span>
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse motion-reduce:animate-none"></span>
         </button>
       )}
@@ -219,7 +219,7 @@ export default function HRAssistantWidget() {
                 <Sparkles className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-[#FFFDF8] tracking-tight leading-tight">WorkforceAI Copilot</h3>
+                <h3 className="text-sm font-semibold text-[#FFFDF8] tracking-tight leading-tight">Leavify Copilot</h3>
                 <span className="text-xs text-amber-400/90 flex items-center gap-1.5 font-medium mt-0.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>
                   {activeDecisionProvider
