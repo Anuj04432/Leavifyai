@@ -169,7 +169,7 @@ class PaymentService:
                 except Exception as ex:
                     logger.warning(f"Failed to dispatch disbursement notification to employee {emp.id}: {ex}")
 
-            emp_name = f"{emp.user.first_name} {emp.user.last_name}" if emp and emp.user else "Employee"
+            emp_name = f"{emp.first_name} {emp.last_name}" if emp else "Employee"
             details.append(
                 PayoutItemDetail(
                     payroll_item_id=pr_item.id,
@@ -251,8 +251,8 @@ class PaymentService:
                 pending_count += 1
 
             emp_name = (
-                f"{p.employee.user.first_name} {p.employee.user.last_name}"
-                if p.employee and p.employee.user
+                f"{p.employee.first_name} {p.employee.last_name}"
+                if p.employee
                 else "Employee"
             )
             items.append(
