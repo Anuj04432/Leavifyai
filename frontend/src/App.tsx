@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import LoginPage from "./pages/auth/LoginPage";
+import LandingPage from "./pages/public/LandingPage";
 import EmployeeDirectory from "./pages/employees/EmployeeDirectory";
 import LeaveManagement from "./pages/leaves/LeaveManagement";
 import Dashboard from "./pages/dashboard/Dashboard";
@@ -12,12 +12,13 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 export default function App() {
   return (
     <Routes>
-      {/* Public Routes */}
-      <Route path="/login" element={<LoginPage />} />
+      {/* Public Routes: Modern Landing Page with Integrated Auth Console */}
+      <Route path="/" element={<LandingPage defaultTab="login" />} />
+      <Route path="/login" element={<LandingPage defaultTab="login" />} />
+      <Route path="/register" element={<LandingPage defaultTab="register" />} />
 
       {/* Protected Routes: General (All authenticated employees) */}
       <Route element={<ProtectedRoute />}>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/leaves" element={<LeaveManagement />} />
         <Route path="/company-chat" element={<CompanyChatPage />} />
