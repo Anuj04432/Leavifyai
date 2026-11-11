@@ -14,6 +14,14 @@ import {
   Zap,
   Check,
   AlertTriangle,
+  Bot,
+  Cpu,
+  ChevronDown,
+  ChevronUp,
+  Inbox,
+  Calendar,
+  Layers,
+  HelpCircle,
 } from "lucide-react";
 import { api } from "../../lib/api";
 import { useAuthStore } from "../../store/authStore";
@@ -62,6 +70,16 @@ export default function LandingPage({ defaultTab = "login" }: LandingPageProps) 
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotError, setForgotError] = useState<string | null>(null);
   const [forgotSuccess, setForgotSuccess] = useState<string | null>(null);
+
+  // FAQ Accordion State
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
+
+  const fillDemoAccount = (demoEmail: string, demoPass: string = "password123") => {
+    setEmail(demoEmail);
+    setPassword(demoPass);
+    setError(null);
+    setSuccessMsg(null);
+  };
 
   useEffect(() => {
     if (otpCooldown > 0) {
@@ -269,6 +287,13 @@ export default function LandingPage({ defaultTab = "login" }: LandingPageProps) 
             </div>
           </div>
 
+          <nav className="hidden lg:flex items-center gap-6 text-xs text-stone-400 font-medium">
+            <a href="#auth-console" className="hover:text-orange-400 transition">Console</a>
+            <a href="#agents" className="hover:text-orange-400 transition">5 Autonomous Agents</a>
+            <a href="#lifecycle" className="hover:text-orange-400 transition">Workflow</a>
+            <a href="#faq" className="hover:text-orange-400 transition">FAQ</a>
+          </nav>
+
           <div className="flex items-center gap-4">
             <div className="hidden md:flex items-center gap-2 text-xs font-mono text-stone-400 bg-[#141210] px-3 py-1.5 rounded-xl border border-stone-800">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -429,6 +454,43 @@ export default function LandingPage({ defaultTab = "login" }: LandingPageProps) 
               {/* SIGN IN TAB */}
               {activeTab === "login" ? (
                 <form onSubmit={handleLoginSubmit} className="space-y-4">
+                  {/* Quick Evaluation Demo Logins */}
+                  <div className="p-3 rounded-2xl bg-[#1c1917] border border-stone-800 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-mono uppercase tracking-wider text-orange-400 font-semibold flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-orange-400" />
+                        <span>Instant Demo Evaluation</span>
+                      </span>
+                      <span className="text-[10px] text-stone-500">Click to autofill credentials</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => fillDemoAccount("anujwagmore835@gmail.com", "password123")}
+                        className="p-2 rounded-xl bg-[#141210] hover:bg-stone-800 text-stone-300 hover:text-white border border-stone-800 text-left transition cursor-pointer group"
+                      >
+                        <div className="text-[11px] font-bold text-white group-hover:text-orange-400 transition">CEO / Admin</div>
+                        <div className="text-[10px] text-stone-500 truncate">anujwagmore835@...</div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => fillDemoAccount("hr@leavify.ai", "password123")}
+                        className="p-2 rounded-xl bg-[#141210] hover:bg-stone-800 text-stone-300 hover:text-white border border-stone-800 text-left transition cursor-pointer group"
+                      >
+                        <div className="text-[11px] font-bold text-white group-hover:text-orange-400 transition">HR Lead</div>
+                        <div className="text-[10px] text-stone-500 truncate">hr@leavify.ai</div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => fillDemoAccount("employee@leavify.ai", "password123")}
+                        className="p-2 rounded-xl bg-[#141210] hover:bg-stone-800 text-stone-300 hover:text-white border border-stone-800 text-left transition cursor-pointer group"
+                      >
+                        <div className="text-[11px] font-bold text-white group-hover:text-orange-400 transition">Employee</div>
+                        <div className="text-[10px] text-stone-500 truncate">employee@...</div>
+                      </button>
+                    </div>
+                  </div>
+
                   <div>
                     <label className="block text-xs font-semibold text-stone-300 mb-1.5">
                       Account Email
@@ -723,6 +785,225 @@ export default function LandingPage({ defaultTab = "login" }: LandingPageProps) 
                 </li>
               </ul>
             </div>
+          </div>
+        </div>
+
+        {/* 5 Autonomous Specialized Agents Grid */}
+        <div id="agents" className="space-y-8 pt-6">
+          <div className="text-center space-y-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-950/40 border border-orange-500/20 text-orange-400 text-xs font-mono">
+              <Bot className="w-3.5 h-3.5" />
+              <span>Multi-Agent Architecture</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+              5 Specialized Autonomous Agents Working In Concert
+            </h2>
+            <p className="text-sm sm:text-base text-stone-400 max-w-2xl mx-auto">
+              Every workflow is decoupled into dedicated single-responsibility agents with dual-system guardrails.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+            {/* Agent 1: Supervisor */}
+            <div className="md:col-span-7 p-6 sm:p-7 rounded-3xl bg-[#141210] border border-stone-800 space-y-3 relative overflow-hidden group hover:border-orange-500/40 transition">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-xl bg-orange-950/60 border border-orange-500/30 text-orange-400 flex items-center justify-center font-bold">
+                  <Cpu className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] font-mono uppercase tracking-wider text-orange-400 bg-orange-950/50 px-2.5 py-1 rounded-full border border-orange-500/20">
+                  Agent 01 · Orchestrator
+                </span>
+              </div>
+              <h3 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                Supervisor Agent (Orchestration & Dual-System Guardrail)
+              </h3>
+              <p className="text-xs sm:text-sm text-stone-400 leading-relaxed">
+                Evaluates user intent and routes tasks. Enforces a strict separation between <strong>System 2 (conversational reasoning)</strong> and <strong>System 1 (deterministic financial math)</strong> so no generative model ever touches salary calculations.
+              </p>
+              <div className="pt-2 flex flex-wrap gap-2 text-[11px] font-mono text-stone-400">
+                <span className="bg-[#1c1917] px-2.5 py-1 rounded-lg border border-stone-800">Intent Routing</span>
+                <span className="bg-[#1c1917] px-2.5 py-1 rounded-lg border border-stone-800">Prompt Injection Guard</span>
+                <span className="bg-[#1c1917] px-2.5 py-1 rounded-lg border border-stone-800">Zero Hallucination</span>
+              </div>
+            </div>
+
+            {/* Agent 2: Inbound Email Worker */}
+            <div className="md:col-span-5 p-6 sm:p-7 rounded-3xl bg-[#141210] border border-stone-800 space-y-3 relative overflow-hidden group hover:border-orange-500/40 transition">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-xl bg-amber-950/60 border border-amber-500/30 text-amber-400 flex items-center justify-center font-bold">
+                  <Inbox className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] font-mono uppercase tracking-wider text-amber-400 bg-amber-950/50 px-2.5 py-1 rounded-full border border-amber-500/20">
+                  Agent 02 · Inbound
+                </span>
+              </div>
+              <h3 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                Autonomous Inbound Mailbox Worker
+              </h3>
+              <p className="text-xs sm:text-sm text-stone-400 leading-relaxed">
+                Background worker polling the company inbox every 60s. Authenticates sender against verified employee whitelists and files leave requests automatically.
+              </p>
+              <div className="pt-2 flex flex-wrap gap-2 text-[11px] font-mono text-stone-400">
+                <span className="bg-[#1c1917] px-2.5 py-1 rounded-lg border border-stone-800">IMAP Polling</span>
+                <span className="bg-[#1c1917] px-2.5 py-1 rounded-lg border border-stone-800">Whitelist Security</span>
+              </div>
+            </div>
+
+            {/* Agent 3: Leave Intelligence */}
+            <div className="md:col-span-4 p-6 sm:p-7 rounded-3xl bg-[#141210] border border-stone-800 space-y-3 relative overflow-hidden group hover:border-orange-500/40 transition">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-xl bg-emerald-950/60 border border-emerald-500/30 text-emerald-400 flex items-center justify-center font-bold">
+                  <Calendar className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] font-mono uppercase tracking-wider text-emerald-400 bg-emerald-950/50 px-2.5 py-1 rounded-full border border-emerald-500/20">
+                  Agent 03
+                </span>
+              </div>
+              <h3 className="text-base font-bold text-white tracking-tight">
+                Leave Intelligence & Conflict Engine
+              </h3>
+              <p className="text-xs text-stone-400 leading-relaxed">
+                Calculates remaining paid quotas, verifies multi-day bank holiday schedules, and detects team collision when critical roles overlap.
+              </p>
+            </div>
+
+            {/* Agent 4: Loss-of-Pay Math */}
+            <div className="md:col-span-4 p-6 sm:p-7 rounded-3xl bg-[#141210] border border-stone-800 space-y-3 relative overflow-hidden group hover:border-orange-500/40 transition">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-xl bg-cyan-950/60 border border-cyan-500/30 text-cyan-400 flex items-center justify-center font-bold">
+                  <Layers className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] font-mono uppercase tracking-wider text-cyan-400 bg-cyan-950/50 px-2.5 py-1 rounded-full border border-cyan-500/20">
+                  Agent 04 · Math
+                </span>
+              </div>
+              <h3 className="text-base font-bold text-white tracking-tight">
+                Deterministic Loss-of-Pay (LOP) Rails
+              </h3>
+              <p className="text-xs text-stone-400 leading-relaxed">
+                Computes daily wage baselines and pro-rata deductions for unpaid days. Deterministic Python execution with 0% chance of calculation drift.
+              </p>
+            </div>
+
+            {/* Agent 5: PayPal Settlement */}
+            <div className="md:col-span-4 p-6 sm:p-7 rounded-3xl bg-[#141210] border border-orange-500/30 space-y-3 relative overflow-hidden group hover:border-orange-500/60 transition">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-xl bg-orange-950/60 border border-orange-500/30 text-orange-400 flex items-center justify-center font-bold">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] font-mono uppercase tracking-wider text-orange-400 bg-orange-950/50 px-2.5 py-1 rounded-full border border-orange-500/20">
+                  Agent 05 · Rails
+                </span>
+              </div>
+              <h3 className="text-base font-bold text-white tracking-tight">
+                PayPal Payouts Settlement Engine
+              </h3>
+              <p className="text-xs text-stone-300 leading-relaxed">
+                Connects directly to PayPal Payouts REST API. Executes global 1-click batch payouts with UUIDv4 cryptographic idempotency to prevent duplicate debits.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* 3-Step Lifecycle Visual */}
+        <div id="lifecycle" className="space-y-8 pt-6">
+          <div className="text-center space-y-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-stone-900 border border-stone-800 text-stone-400 text-xs font-mono">
+              <Sparkles className="w-3.5 h-3.5 text-orange-400" />
+              <span>End-to-End Automation</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+              How a Leave Request Resolves in Under 2 Seconds
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="p-6 rounded-3xl bg-[#141210] border border-stone-800 space-y-3">
+              <div className="w-8 h-8 rounded-lg bg-orange-600 text-white font-mono font-bold text-xs flex items-center justify-center">
+                01
+              </div>
+              <h4 className="text-base font-bold text-white">Inbound Ingestion</h4>
+              <p className="text-xs text-stone-400 leading-relaxed">
+                Employee sends an email or asks the conversational assistant: <em>&ldquo;I need 3 days off next Tuesday for family travel.&rdquo;</em> The inbound parser extracts dates and reason.
+              </p>
+            </div>
+
+            <div className="p-6 rounded-3xl bg-[#141210] border border-stone-800 space-y-3">
+              <div className="w-8 h-8 rounded-lg bg-stone-800 text-stone-200 font-mono font-bold text-xs flex items-center justify-center">
+                02
+              </div>
+              <h4 className="text-base font-bold text-white">Policy & Quota Audit</h4>
+              <p className="text-xs text-stone-400 leading-relaxed">
+                The agent checks remaining PTO, compares against department blackout dates, and automatically requests manager approval or auto-approves compliant leaves.
+              </p>
+            </div>
+
+            <div className="p-6 rounded-3xl bg-[#141210] border border-stone-800 space-y-3">
+              <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white font-mono font-bold text-xs flex items-center justify-center">
+                03
+              </div>
+              <h4 className="text-base font-bold text-white">Deterministic Payout</h4>
+              <p className="text-xs text-stone-400 leading-relaxed">
+                At payroll cutoff, unpaid leave deductions are calculated with exact math. HR reviews the batch and clicks once to disburse funds globally via PayPal.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Enterprise FAQ Accordion */}
+        <div id="faq" className="space-y-8 pt-6 max-w-4xl mx-auto w-full">
+          <div className="text-center space-y-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-stone-900 border border-stone-800 text-stone-400 text-xs font-mono">
+              <HelpCircle className="w-3.5 h-3.5 text-orange-400" />
+              <span>Frequently Asked Questions</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+              Enterprise Architecture & FAQ
+            </h2>
+          </div>
+
+          <div className="space-y-3">
+            {[
+              {
+                q: "How does Leavify eliminate AI hallucinations on salary & financial calculations?",
+                a: "Leavify enforces a strict dual-system architecture. Generative LLMs (System 2) only extract intent and summarize text. All mathematical computations—such as daily salary rate, pro-rata unpaid leave cuts, and PayPal batch amounts—are calculated by System 1 deterministic Python code with unit-tested math.",
+              },
+              {
+                q: "How does the autonomous inbound email worker authenticate senders?",
+                a: "The autonomous worker runs periodically in the background over IMAP. When an email arrives, it matches the sender's address against verified employee records. Unauthorized or spoofed emails are rejected immediately with no state change, preventing prompt injection or fraudulent leave submissions.",
+              },
+              {
+                q: "How does PayPal batch payout integration prevent duplicate payouts?",
+                a: "Each payroll run generates a cryptographically unique UUIDv4 idempotency key (header PayPal-Request-Id). Even if a network timeout occurs or the button is double-clicked, PayPal guarantees that payments are executed exactly once.",
+              },
+              {
+                q: "Can organizations customize their own leave policies and company handbooks?",
+                a: "Yes! Administrators can upload custom policy documents or create department-specific leave rules. Employees can ask natural-language questions in the chat assistant, and the system cites exact clauses from your company policy.",
+              },
+            ].map((item, idx) => (
+              <div
+                key={idx}
+                className="rounded-2xl bg-[#141210] border border-stone-800 overflow-hidden transition"
+              >
+                <button
+                  type="button"
+                  onClick={() => setOpenFaqIndex(openFaqIndex === idx ? null : idx)}
+                  className="w-full p-5 text-left flex items-center justify-between gap-4 cursor-pointer hover:bg-stone-900/40 transition"
+                >
+                  <span className="text-sm font-semibold text-stone-200">{item.q}</span>
+                  {openFaqIndex === idx ? (
+                    <ChevronUp className="w-4 h-4 text-orange-400 shrink-0" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-stone-500 shrink-0" />
+                  )}
+                </button>
+                {openFaqIndex === idx && (
+                  <div className="px-5 pb-5 pt-1 text-xs sm:text-sm text-stone-400 leading-relaxed border-t border-stone-800/60">
+                    {item.a}
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       </main>
