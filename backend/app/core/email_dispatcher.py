@@ -36,7 +36,6 @@ async def send_system_email(
             or getattr(settings, "RESEND_FROM_EMAIL", "")
             or f"{from_name} <onboarding@resend.dev>"
         ).strip()
-        # Ensure proper sender formatting
         if "<" not in resend_from:
             resend_from = f"{from_name} <{resend_from}>"
 
@@ -64,11 +63,43 @@ async def send_system_email(
                         "id": data.get("id"),
                     }
                 else:
+                    err_msg = resp.text
                     logger.warning(
-                        f"[RESEND_HTTPS_FAILED] Status {resp.status_code}: {resp.text}. Falling back to SMTP."
+                        f"[RESEND_HTTPS_FAILED] Status {resp.status_code}: {err_msg}."
                     )
+                    # If Resend restricted sandbox recipient error (403), include clear explanation
+                    if resp.status_code == 403 and "only send testing emails to your own email address" in err_msg:
+                        logger.error(f"[RESEND_SANDBOX_RESTRICTION] Resend onboarding@resend.dev only permits delivery to your registered Resend email.")
         except Exception as ex:
-            logger.warning(f"[RESEND_HTTPS_ERROR] Exception calling Resend: {ex}. Falling back to SMTP.")
+            logger.warning(f"[RESEND_HTTPS_ERROR] Exception calling Resend: {ex}.")
+
+    # 2. Cloud Strategy Alternative: Brevo HTTPS REST API (Allows sending to ANY recipient without custom domain)
+    brevo_api_key = (os.getenv("BREVO_API_KEY") or getattr(settings, "BREVO_API_KEY", "") or "").strip()
+    if brevo_api_key:
+        brevo_sender_email = (os.getenv("BREVO_SENDER_EMAIL") or os.getenv("SMTP_USER") or "notifications@leavify.ai").strip()
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                resp = await client.post(
+                    "https://api.brevo.com/v3/smtp/email",
+                    headers={
+                        "api-key": brevo_api_key,
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "sender": {"name": from_name, "email": brevo_sender_email},
+                        "to": [{"email": clean_to}],
+                        "subject": subject,
+                        "htmlContent": html_content,
+                    },
+                )
+                if resp.status_code in (200, 201):
+                    data = resp.json()
+                    logger.info(f"[BREVO_HTTPS_DISPATCH] Delivered to {clean_to} (MessageId: {data.get('messageId')})")
+                    return {"dispatched": True, "provider": "brevo_https", "id": data.get("messageId")}
+                else:
+                    logger.warning(f"[BREVO_HTTPS_FAILED] Status {resp.status_code}: {resp.text}")
+        except Exception as ex:
+            logger.warning(f"[BREVO_HTTPS_ERROR] Exception calling Brevo: {ex}")
 
     # 2. Secondary Strategy: Standard SMTP (Port 587 / 465) for Local Development
     smtp_user = (os.getenv("SMTP_USER") or settings.SMTP_USER or "").strip()
