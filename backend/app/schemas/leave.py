@@ -2,7 +2,7 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 # ---------------------------------------------------------
@@ -70,10 +70,19 @@ class LeaveBalanceResponse(BaseModel):
 # Leave Request Schemas
 # ---------------------------------------------------------
 class LeaveRequestCreate(BaseModel):
-    leave_policy_id: uuid.UUID
+    leave_policy_id: Optional[uuid.UUID] = None
+    policy_id: Optional[uuid.UUID] = None
     start_date: date
     end_date: date
     reason: Optional[str] = Field(None, max_length=1000)
+
+    @model_validator(mode="after")
+    def resolve_policy_id(self) -> "LeaveRequestCreate":
+        if not self.leave_policy_id and self.policy_id:
+            self.leave_policy_id = self.policy_id
+        if not self.leave_policy_id:
+            raise ValueError("leave_policy_id is required")
+        return self
 
 
 class LeaveActionRequest(BaseModel):

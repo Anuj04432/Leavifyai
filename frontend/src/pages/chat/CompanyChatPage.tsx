@@ -153,6 +153,7 @@ export default function CompanyChatPage() {
       }
 
       await api.post("/leaves/requests", {
+        leave_policy_id: targetPolicy?.id || policies[0]?.id,
         policy_id: targetPolicy?.id || policies[0]?.id,
         start_date: leaveData.start_date,
         end_date: leaveData.end_date,
@@ -181,7 +182,25 @@ export default function CompanyChatPage() {
         },
       ]);
     } catch (err: any) {
-      alert(err.response?.data?.detail || "Leave submission failed.");
+      const detail = err.response?.data?.detail;
+      const errorMsg =
+        typeof detail === "string"
+          ? detail
+          : Array.isArray(detail)
+          ? detail.map((d: any) => d.msg || JSON.stringify(d)).join(", ")
+          : typeof detail === "object" && detail !== null
+          ? JSON.stringify(detail)
+          : "Leave submission failed. Please check policy balance or dates.";
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `bot-err-${Date.now()}`,
+          sender: "bot",
+          text: `⚠️ Leave submission could not be completed: ${errorMsg}`,
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        },
+      ]);
     } finally {
       setSubmittingLeaveId(null);
     }
