@@ -222,7 +222,7 @@ class EmployeeService:
             company_obj = (
                 await self.db.execute(select(Company).where(Company.id == self.company_id))
             ).scalar_one_or_none()
-            onboarding_agent.dispatch_credentials(
+            await onboarding_agent.dispatch_credentials(
                 employee_name=f"{employee.first_name} {employee.last_name}",
                 corporate_email=employee.email,
                 initial_password=raw_password,
@@ -683,7 +683,7 @@ class EmployeeService:
 
             # Dispatch credentials to employee's personal Gmail via Onboarding Agent (Standard SMTP / No Google Cloud)
             full_name = f"{first_name} {last_name}".strip()
-            dispatch_info = onboarding_agent.dispatch_credentials(
+            dispatch_info = await onboarding_agent.dispatch_credentials(
                 employee_name=full_name,
                 corporate_email=email_val,
                 initial_password=raw_password,

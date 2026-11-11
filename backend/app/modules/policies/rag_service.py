@@ -51,8 +51,8 @@ class HybridOKFRAGService:
                 headers = {
                     "Authorization": f"Bearer {self.embedding_api_key}",
                     "Content-Type": "application/json",
-                    "HTTP-Referer": "https://workforceai.io",
-                    "X-Title": "WorkforceAI-RAG",
+                    "HTTP-Referer": "https://leavify.ai",
+                    "X-Title": "Leavify-RAG",
                 }
                 payload = {
                     "model": self.embedding_model,

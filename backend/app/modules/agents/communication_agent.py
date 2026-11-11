@@ -19,7 +19,7 @@ from app.models.leave import LeaveBalance, LeavePolicy, LeaveRequest, LeaveReque
 from app.modules.agents.llm_client import MultiProviderLLMRouter
 from app.modules.leaves.service import calculate_working_days
 
-logger = logging.getLogger("workforceai.agents.communication")
+logger = logging.getLogger("leavify.agents.communication")
 
 
 class CommunicationIngestionAgent:
@@ -42,7 +42,7 @@ class CommunicationIngestionAgent:
         """Extracts structured leave parameters from unstructured email/Slack text."""
         today = date.today().isoformat()
         instruction = (
-            f"You are the WorkforceAI Inbound Communication Agent. Today's date is {today}.\n"
+            f"You are the Leavify.ai Inbound Communication Agent. Today's date is {today}.\n"
             "Analyze the incoming email/message. If it contains an employee requesting leave or time off, "
             "extract the structured details and return JSON with keys:\n"
             "- `is_leave_request`: true\n"

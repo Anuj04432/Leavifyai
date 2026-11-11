@@ -1,13 +1,11 @@
 import logging
 import os
-import smtplib
 from typing import Any, Dict, Optional
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 
 from app.config import get_settings
+from app.core.email_dispatcher import send_system_email
 
-logger = logging.getLogger("workforceai.agents.onboarding")
+logger = logging.getLogger("leavify.agents.onboarding")
 
 
 class OnboardingDispatchAgent:
@@ -102,7 +100,7 @@ class OnboardingDispatchAgent:
         </html>
         """
 
-    def dispatch_credentials(
+    async def dispatch_credentials(
         self,
         employee_name: str,
         corporate_email: str,
@@ -111,7 +109,7 @@ class OnboardingDispatchAgent:
         company_name: str = "Workforce Organization",
         organization_email: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Dispatches onboarding credentials to the employee's personal Gmail via standard SMTP."""
+        """Dispatches onboarding credentials to the employee's personal Gmail via unified HTTPS/SMTP."""
         if not personal_email or "@" not in personal_email:
             return {
                 "dispatched": False,
@@ -120,24 +118,7 @@ class OnboardingDispatchAgent:
 
         clean_dest = personal_email.strip().lower()
 
-        # If SMTP is not configured in .env, perform a safe logged simulation
-        if not self.is_configured:
-            logger.info(
-                f"[SIMULATED_DISPATCH] Onboarding Agent prepared credentials for {employee_name} "
-                f"to {clean_dest} (Login: {corporate_email}, Pass: {initial_password})"
-            )
-            return {
-                "dispatched": True,
-                "status": f"Simulated delivery to {clean_dest} (SMTP credentials unconfigured in .env)",
-            }
-
-        # Real SMTP dispatch via standard STARTTLS
         try:
-            msg = MIMEMultipart("alternative")
-            msg["Subject"] = f"Welcome to {company_name}: Your Leavify.ai Portal Access Credentials"
-            msg["From"] = f"Leavify.ai <{self.from_email}>"
-            msg["To"] = clean_dest
-
             html_content = self.format_email_body(
                 employee_name=employee_name,
                 corporate_email=corporate_email,
@@ -146,26 +127,24 @@ class OnboardingDispatchAgent:
                 personal_email=clean_dest,
                 organization_email=organization_email,
             )
-            msg.attach(MIMEText(html_content, "html"))
 
-            with smtplib.SMTP(self.smtp_host, self.smtp_port, timeout=10) as server:
-                server.ehlo()
-                if self.smtp_port == 587:
-                    server.starttls()
-                    server.ehlo()
-                server.login(self.smtp_user, self.smtp_password)
-                server.send_message(msg)
+            await send_system_email(
+                to_email=clean_dest,
+                subject=f"Welcome to {company_name}: Your Leavify.ai Portal Access Credentials",
+                html_content=html_content,
+                from_name="Leavify.ai Onboarding",
+            )
 
-            logger.info(f"[SMTP_DISPATCH] Successfully delivered welcome credentials for {employee_name} to {clean_dest}")
+            logger.info(f"[ONBOARDING_DISPATCH] Successfully delivered welcome credentials for {employee_name} to {clean_dest}")
             return {
                 "dispatched": True,
-                "status": f"Dispatched via SMTP to {clean_dest}",
+                "status": f"Dispatched credentials to {clean_dest}",
             }
         except Exception as e:
-            logger.warning(f"[SMTP_DISPATCH_FAILED] Error sending to {clean_dest}: {e}")
+            logger.warning(f"[ONBOARDING_DISPATCH_FAILED] Error sending credentials to {clean_dest}: {e}")
             return {
                 "dispatched": False,
-                "status": f"SMTP Error: {str(e)[:60]}",
+                "status": f"Delivery error: {str(e)[:60]}",
             }
 
 

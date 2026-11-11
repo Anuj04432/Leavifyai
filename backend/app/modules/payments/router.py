@@ -42,7 +42,7 @@ async def disburse_payroll(
     db: AsyncSession = Depends(get_db),
 ):
     """Execute automated PayPal batch payout for an approved payroll batch."""
-    email_subj = payload.email_subject if payload and payload.email_subject else "WorkforceAI Monthly Salary Payout"
+    email_subj = payload.email_subject if payload and payload.email_subject else "Leavify.ai Monthly Salary Payout"
     email_note = payload.note if payload and payload.note else "Automated Salary Disbursement via PayPal"
 
     try:
@@ -129,7 +129,7 @@ async def send_payslip_email_endpoint(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Payroll item not found")
 
     mailer = PayslipMailer(db)
-    company_name = item.payroll_batch.company.name if item.payroll_batch.company else "WorkforceAI"
+    company_name = item.payroll_batch.company.name if item.payroll_batch.company else "Leavify.ai"
     tx_id = item.payment.provider_transaction_id if item.payment else None
 
     return await mailer.send_payslip_email(

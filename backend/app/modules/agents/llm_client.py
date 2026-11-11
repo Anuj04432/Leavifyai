@@ -7,7 +7,7 @@ import httpx
 
 from app.config import get_settings
 
-logger = logging.getLogger("workforceai.agents.router")
+logger = logging.getLogger("leavify.agents.router")
 settings = get_settings()
 
 
@@ -178,7 +178,7 @@ class MultiProviderLLMRouter:
 
         # Zero-cost in-house deterministic fallback rule engine
         self.last_decision_provider = "deterministic"
-        self.last_decision_model = "workforceai-rule-engine-v1"
+        self.last_decision_model = "leavify-rule-engine-v1"
         self.last_provider = self.last_decision_provider
         self.last_model = self.last_decision_model
         return self._fallback_response(prompt), self.last_decision_provider, self.last_decision_model
@@ -313,7 +313,7 @@ class MultiProviderLLMRouter:
 
         # Zero-cost in-house deterministic fallback guarantee
         self.last_chat_provider = "deterministic"
-        self.last_chat_model = "workforceai-rule-engine-v1"
+        self.last_chat_model = "leavify-rule-engine-v1"
         self.last_provider = self.last_chat_provider
         self.last_model = self.last_chat_model
         logger.info("Utilizing deterministic fallback rule engine for leave supervisor.")
@@ -480,7 +480,7 @@ class MultiProviderLLMRouter:
                 "Would you like me to prepare a casual leave request?"
             )
         return (
-            "Hello! I am your WorkforceAI Supervisor. I can assist you with your leave balances, "
+            "Hello! I am your Leavify.ai Supervisor. I can assist you with your leave balances, "
             "company policy rules, or draft a time-off application for you. "
             "For example, try asking: *'Check my balance'* or *'I need 2 days off next Monday and Tuesday for personal reasons'*."
         )

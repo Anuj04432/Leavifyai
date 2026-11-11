@@ -12,12 +12,13 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
+from app.core.email_dispatcher import send_system_email
 from app.models.communication import CommunicationEvent
 from app.models.employee import Employee
 from app.models.leave import LeaveRequest
 from app.modules.payroll.service import get_month_working_days
 
-logger = logging.getLogger("workforceai.agents.email_service")
+logger = logging.getLogger("leavify.agents.email_service")
 
 
 class EmailNotificationDispatcher:
@@ -215,27 +216,17 @@ class EmailNotificationDispatcher:
 
         subject = f"Leave Request {leave_req.status.capitalize()}: {leave_req.request_number} (Salary Impact: {financial_info['deduction_str']})"
 
-        # 1. Dispatch via SMTP or simulated fallback
-        if self.is_configured:
-            try:
-                msg = MIMEMultipart("alternative")
-                msg["Subject"] = subject
-                msg["From"] = f"Leavify.ai <{self.from_email}>"
-                msg["To"] = recipient_email
-                msg.attach(MIMEText(html_body, "html"))
-
-                with smtplib.SMTP(self.smtp_host, self.smtp_port, timeout=10) as server:
-                    server.starttls()
-                    server.login(self.smtp_user, self.smtp_password)
-                    server.sendmail(self.from_email, [recipient_email], msg.as_string())
-                logger.info(f"Successfully sent leave decision email to {recipient_email}")
-            except Exception as e:
-                logger.warning(f"SMTP dispatch failed: {e}. Logging simulated email delivery.")
-        else:
-            logger.info(
-                f"[SIMULATED_EMAIL_DISPATCH] To: {recipient_email} | Subject: {subject} | "
-                f"Financial: {financial_info['deduction_str']} | Policy: {financial_info['policy_explanation']}"
+        # 1. Dispatch via unified HTTPS/SMTP system dispatcher
+        try:
+            await send_system_email(
+                to_email=recipient_email,
+                subject=subject,
+                html_content=html_body,
+                from_name="Leavify.ai Operations",
             )
+            logger.info(f"Successfully sent leave decision email to {recipient_email}")
+        except Exception as e:
+            logger.warning(f"Leave decision email dispatch failed: {e}")
 
         # 2. Record outbound communication event in DB if session available
         if self.db:

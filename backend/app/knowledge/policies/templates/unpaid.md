@@ -19,7 +19,7 @@ last_updated: "2026-11-06"
 - Prior approval from HR and the reporting manager is mandatory.
 
 ## 2. Deterministic Payroll Deduction Formula
-- In accordance with Section 4.2 of the WorkforceAI Deterministic Payroll Engine:
+- In accordance with Section 4.2 of the Leavify.ai Deterministic Payroll Engine:
   - Daily Proration Rate = `Monthly Basic Salary / Total Working Days in Month`
   - Unpaid Leave Deduction = `Daily Proration Rate * Approved Unpaid Days`
 - Statutory contributions (TDS/Tax and PF) are recalculated on the adjusted gross earnings.

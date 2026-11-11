@@ -10,7 +10,7 @@ from app.models.employee import Employee
 from app.models.leave import LeaveRequest
 from app.modules.agents.email_service import EmailNotificationDispatcher
 
-logger = logging.getLogger("workforceai.agents.slack_service")
+logger = logging.getLogger("leavify.agents.slack_service")
 
 
 class SlackNotificationDispatcher:
@@ -108,7 +108,7 @@ class SlackNotificationDispatcher:
                 "elements": [
                     {
                         "type": "mrkdwn",
-                        "text": f"WorkforceAI Operations • Inbound Channel: *#{leave_req.source_channel or 'portal'}*",
+                        "text": f"Leavify.ai Operations • Inbound Channel: *#{leave_req.source_channel or 'portal'}*",
                     }
                 ],
             }

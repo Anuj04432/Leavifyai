@@ -42,8 +42,8 @@ class Settings(BaseSettings):
         return ["*"]
 
     # Database
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/workforceai"
-    DATABASE_URL_SYNC: str = "postgresql://postgres:postgres@localhost:5432/workforceai"
+    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/leavify"
+    DATABASE_URL_SYNC: str = "postgresql://postgres:postgres@localhost:5432/leavify"
     DATABASE_URL_UNPOOLED: Optional[str] = None
 
     # Redis Cache
@@ -109,6 +109,10 @@ class Settings(BaseSettings):
     # Outbound Slack Webhook Integration
     SLACK_WEBHOOK_URL: str = ""
     SLACK_NOTIFICATIONS_ENABLED: bool = True
+
+    # Email Service Configuration (HTTPS API over Port 443 + SMTP Fallback)
+    RESEND_API_KEY: str = ""
+    RESEND_FROM_EMAIL: str = "onboarding@resend.dev"
 
     # Live Gmail Integration (IMAP Inbound + SMTP Outbound)
     SMTP_HOST: str = "smtp.gmail.com"

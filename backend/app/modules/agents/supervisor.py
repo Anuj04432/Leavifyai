@@ -20,7 +20,7 @@ from app.modules.leaves.service import calculate_working_days
 from app.modules.policies.okf_service import okf_service
 from app.modules.policies.rag_service import rag_service
 
-logger = logging.getLogger("workforceai.agents.supervisor")
+logger = logging.getLogger("leavify.agents.supervisor")
 
 
 class LeaveSupervisorState(TypedDict):
@@ -188,7 +188,7 @@ class LeaveSupervisorWorkflow:
             )
 
         instruction = (
-            f"You are the WorkforceAI Agentic Supervisor. Today's date is {today}. "
+            f"You are the Leavify.ai Agentic Supervisor. Today's date is {today}. "
             f"{history_context}"
             "Analyze the user message in context of any previous conversation turns. "
             "If they are requesting leave or time off (or completing a previous leave request), return JSON with keys: "
@@ -699,7 +699,7 @@ class LeaveSupervisorWorkflow:
             combined_grounding = f"{okf_grounding}\n\n{rag_context}".strip()
 
             chat_instruction = (
-                f"You are the WorkforceAI Agentic Supervisor. Today's date is {date.today().isoformat()}.\n"
+                f"You are the Leavify.ai Agentic Supervisor. Today's date is {date.today().isoformat()}.\n"
                 "Answer the user's question politely, concisely, and accurately regarding workplace operations, company policies, and employee handbooks.\n"
                 "Ground your answers strictly on the official rules and document excerpts provided below. Cite exact document titles and sections when referencing policy rules.\n"
                 + (f"\n{combined_grounding}\n" if combined_grounding else "")
@@ -777,7 +777,7 @@ class LeaveSupervisorWorkflow:
                 "Would you like me to submit this for manager review?"
             )
             chat_instruction = (
-                f"You are the WorkforceAI Agentic Supervisor. Today's date is {date.today().isoformat()}.\n"
+                f"You are the Leavify.ai Agentic Supervisor. Today's date is {date.today().isoformat()}.\n"
                 f"Confirm the employee's request for {bal['requested_days']} business day(s) of {bal['policy_name']} from {bal['start_date']} to {bal['end_date']}.\n"
                 "Write a warm 1-sentence confirmation preamble acknowledging their occasion/reason."
             )

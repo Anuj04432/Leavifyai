@@ -20,6 +20,7 @@ from app.common.security import (
     verify_password,
 )
 from app.config import get_settings
+from app.core.email_dispatcher import send_system_email
 from app.models.company import Company
 from app.models.employee import Employee
 from app.models.user import User, UserRole
@@ -32,7 +33,7 @@ from app.schemas.auth import (
     UserResponse,
 )
 
-logger = logging.getLogger("workforceai.auth.service")
+logger = logging.getLogger("leavify.auth.service")
 settings = get_settings()
 
 
@@ -87,13 +88,6 @@ class AuthService:
         self.db.add(record)
         await self.db.commit()
 
-        # Send email via SMTP
-        smtp_user = (os.getenv("SMTP_USER") or settings.SMTP_USER).strip()
-        smtp_password = (os.getenv("SMTP_PASSWORD") or settings.SMTP_PASSWORD).strip()
-        smtp_host = os.getenv("SMTP_HOST") or settings.SMTP_HOST
-        smtp_port = int(os.getenv("SMTP_PORT") or settings.SMTP_PORT)
-        from_email = os.getenv("SMTP_FROM_EMAIL") or settings.SMTP_FROM_EMAIL or smtp_user or "notifications@workforceai.io"
-
         html_body = f"""
         <!DOCTYPE html>
         <html>
@@ -127,34 +121,25 @@ class AuthService:
         </html>
         """
 
-        smtp_sent = False
-        if smtp_user and smtp_password:
-            try:
-                msg = MIMEMultipart("alternative")
-                msg["Subject"] = f"Leavify.ai Verification Code: {otp_code}"
-                msg["From"] = f"Leavify.ai Security <{from_email}>"
-                msg["To"] = clean_email
-                msg.attach(MIMEText(html_body, "html"))
+        # Send verification email via unified HTTP/SMTP dispatcher
+        try:
+            await send_system_email(
+                to_email=clean_email,
+                subject=f"Leavify.ai Verification Code: {otp_code}",
+                html_content=html_body,
+                from_name="Leavify.ai Security",
+            )
+        except Exception as ex:
+            logger.error(f"Failed to dispatch OTP email to {clean_email}: {ex}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Unable to dispatch verification email: {str(ex)}",
+            )
 
-                with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as server:
-                    server.starttls()
-                    server.login(smtp_user, smtp_password)
-                    server.sendmail(from_email, [clean_email], msg.as_string())
-                logger.info(f"Verification OTP code sent to {clean_email}")
-                smtp_sent = True
-            except Exception as ex:
-                logger.warning(f"SMTP OTP dispatch failed: {ex}. Simulated OTP: {otp_code}")
-        else:
-            logger.info(f"[SIMULATED_OTP] Organization {clean_email} OTP code: {otp_code}")
-
-        res = {
+        return {
             "success": True,
-            "message": f"Verification code sent to {clean_email}",
+            "message": f"Verification code sent to {clean_email}. Please check your inbox (and spam folder).",
         }
-        if not smtp_sent:
-            res["preview_code"] = otp_code
-            res["message"] = f"Verification code generated (Demo preview: {otp_code})"
-        return res
 
     async def verify_organization_otp(self, email: str, otp: str) -> dict:
         """Verifies an OTP code for an organization email."""
@@ -546,13 +531,6 @@ class AuthService:
         self.db.add(record)
         await self.db.commit()
 
-        # Send email via SMTP
-        smtp_user = (os.getenv("SMTP_USER") or settings.SMTP_USER).strip()
-        smtp_password = (os.getenv("SMTP_PASSWORD") or settings.SMTP_PASSWORD).strip()
-        smtp_host = os.getenv("SMTP_HOST") or settings.SMTP_HOST
-        smtp_port = int(os.getenv("SMTP_PORT") or settings.SMTP_PORT)
-        from_email = os.getenv("SMTP_FROM_EMAIL") or settings.SMTP_FROM_EMAIL or smtp_user or "security@leavify.ai"
-
         html_body = f"""
         <!DOCTYPE html>
         <html>
@@ -586,34 +564,24 @@ class AuthService:
         </html>
         """
 
-        smtp_sent = False
-        if smtp_user and smtp_password:
-            try:
-                msg = MIMEMultipart("alternative")
-                msg["Subject"] = f"Leavify.ai Password Reset Code: {otp_code}"
-                msg["From"] = f"Leavify.ai Security <{from_email}>"
-                msg["To"] = clean_email
-                msg.attach(MIMEText(html_body, "html"))
+        try:
+            await send_system_email(
+                to_email=clean_email,
+                subject=f"Leavify.ai Password Reset Code: {otp_code}",
+                html_content=html_body,
+                from_name="Leavify.ai Security",
+            )
+        except Exception as ex:
+            logger.error(f"Failed to dispatch password reset email to {clean_email}: {ex}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Unable to dispatch password reset email: {str(ex)}",
+            )
 
-                with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as server:
-                    server.starttls()
-                    server.login(smtp_user, smtp_password)
-                    server.sendmail(from_email, [clean_email], msg.as_string())
-                logger.info(f"Password reset OTP sent to {clean_email}")
-                smtp_sent = True
-            except Exception as ex:
-                logger.warning(f"SMTP reset dispatch failed: {ex}. Simulated OTP: {otp_code}")
-        else:
-            logger.info(f"[SIMULATED_OTP] Password reset for {clean_email}: {otp_code}")
-
-        res = {
+        return {
             "success": True,
-            "message": f"Password reset verification code sent to {clean_email}",
+            "message": f"Password reset verification code sent to {clean_email}. Please check your inbox (and spam folder).",
         }
-        if not smtp_sent:
-            res["preview_code"] = otp_code
-            res["message"] = f"Password reset code generated (Demo preview: {otp_code})"
-        return res
 
     async def reset_password_with_otp(self, email: str, otp: str, new_password: str) -> dict:
         """Verifies OTP and resets the user's password."""

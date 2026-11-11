@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.agents.llm_client import MultiProviderLLMRouter
 
-logger = logging.getLogger("workforceai.agents.sql_analyst")
+logger = logging.getLogger("leavify.agents.sql_analyst")
 
 WORKFORCE_SCHEMA = """
 Database Schema (PostgreSQL):
@@ -118,7 +118,7 @@ class ExecutiveSQLAnalyst:
             history_context = "Recent Conversation Context:\n" + "\n".join(recent_turns) + "\n\n"
 
         system_instruction = (
-            f"You are a PostgreSQL Database Expert for WorkforceAI.\n{WORKFORCE_SCHEMA}\n"
+            f"You are a PostgreSQL Database Expert for Leavify.ai.\n{WORKFORCE_SCHEMA}\n"
             "Rules for writing SQL:\n"
             "1. ONLY write a single read-only SELECT or WITH statement.\n"
             "2. ALWAYS scope to the current company by filtering with `company_id = :company_id` (or joining tables that have company_id).\n"
@@ -170,7 +170,7 @@ class ExecutiveSQLAnalyst:
 
         # Format rows into natural answer
         formatting_instruction = (
-            "You are the WorkforceAI Executive Intelligence Analyst.\n"
+            "You are the Leavify.ai Executive Intelligence Analyst.\n"
             f"The user asked: '{question}'\n"
             f"The database returned these records (JSON):\n{json.dumps(rows, default=str)}\n"
             "Summarize the answer clearly and concisely for an executive / HR manager. "

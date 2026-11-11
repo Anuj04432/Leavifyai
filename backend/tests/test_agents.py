@@ -70,7 +70,7 @@ async def test_multi_provider_router_fallback_to_deterministic(monkeypatch):
         "I need 2 days off next Monday for medical checkup"
     )
     assert provider == "deterministic"
-    assert model == "workforceai-rule-engine-v1"
+    assert model == "leavify-rule-engine-v1"
     parsed = json.loads(text)
     assert parsed["is_leave_request"] is True
     assert parsed["leave_type"] == "sick"

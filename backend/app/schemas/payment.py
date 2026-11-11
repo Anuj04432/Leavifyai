@@ -20,8 +20,8 @@ class PayoutItemDetail(BaseModel):
 
 class DisbursePayrollRequest(BaseModel):
     batch_id: uuid.UUID
-    email_subject: Optional[str] = "Your monthly salary has been disbursed via WorkforceAI"
-    note: Optional[str] = "WorkforceAI Automated Payroll Disbursement"
+    email_subject: Optional[str] = "Your monthly salary has been disbursed via Leavify.ai"
+    note: Optional[str] = "Leavify.ai Automated Payroll Disbursement"
 
 
 class DisbursePayrollResponse(BaseModel):

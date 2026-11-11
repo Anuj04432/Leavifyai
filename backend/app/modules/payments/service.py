@@ -31,7 +31,7 @@ class PaymentService:
         db: AsyncSession,
         batch_id: uuid.UUID,
         company_id: uuid.UUID,
-        email_subject: str = "WorkforceAI Monthly Salary Payout",
+        email_subject: str = "Leavify.ai Monthly Salary Payout",
         note: str = "Automated Salary Disbursement via PayPal",
     ) -> DisbursePayrollResponse:
         # 1. Fetch batch with items and employees
@@ -63,7 +63,7 @@ class PaymentService:
         if not batch.payroll_items:
             raise ValueError("Payroll batch contains no line items to disburse")
 
-        sender_batch_id = f"WORKFORCE-PAYROLL-{batch.id.hex[:12].upper()}"
+        sender_batch_id = f"LEAVIFY-PAYROLL-{batch.id.hex[:12].upper()}"
 
         # 2. Build PayPal items payload
         paypal_items = []
@@ -82,7 +82,7 @@ class PaymentService:
                     "value": amount_val,
                     "currency": "USD",
                 },
-                "note": f"WorkforceAI Salary for {batch.period_month}/{batch.period_year}",
+                "note": f"Leavify.ai Salary for {batch.period_month}/{batch.period_year}",
                 "sender_item_id": sender_item_id,
                 "receiver": recipient_email,
             }
@@ -235,7 +235,7 @@ class PaymentService:
         payments = result.scalars().all()
 
         payout_batch_id = payments[0].provider_batch_id if payments else None
-        sender_batch_id = f"WORKFORCE-PAYROLL-{batch.id.hex[:12].upper()}"
+        sender_batch_id = f"LEAVIFY-PAYROLL-{batch.id.hex[:12].upper()}"
 
         items: List[PayoutItemDetail] = []
         success_count = 0

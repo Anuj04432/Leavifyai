@@ -9,7 +9,7 @@ from app.database import AsyncSessionLocal
 from app.models.company import Company
 from app.modules.agents.communication_agent import CommunicationIngestionAgent
 
-logger = logging.getLogger("workforceai.agents.worker")
+logger = logging.getLogger("leavify.agents.worker")
 
 
 class InboxPollingWorker:

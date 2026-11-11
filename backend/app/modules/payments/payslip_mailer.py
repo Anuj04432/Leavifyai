@@ -1,22 +1,20 @@
 import calendar
 from datetime import datetime, timezone
 from decimal import Decimal
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 import logging
 import os
-import smtplib
 from typing import Any, Dict, List, Optional
 import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
+from app.core.email_dispatcher import send_system_email
 from app.models.communication import CommunicationEvent
 from app.models.employee import Employee
 from app.models.payroll import PayrollBatch, PayrollItem
 from app.schemas.payment import PayoutItemDetail
 
-logger = logging.getLogger("workforceai.payments.payslip_mailer")
+logger = logging.getLogger("leavify.payments.payslip_mailer")
 
 
 class PayslipMailer:
@@ -201,7 +199,7 @@ class PayslipMailer:
                 <!-- Footer Audit Notice -->
                 <div style="border-top: 1px solid #e2e8f0; padding-top: 18px; font-size: 11px; color: #64748b; line-height: 1.6;">
                     <p style="margin: 0 0 6px 0;">
-                        This document is a computer-generated salary slip authorized by WorkforceAI Autonomous Payroll Operations. No physical signature is required.
+                        This document is a computer-generated salary slip authorized by Leavify.ai Autonomous Payroll Operations. No physical signature is required.
                     </p>
                     <p style="margin: 0;">
                         Transaction verified with PayPal Sandbox Payouts. For questions or discrepancies, please contact your Organization's HR / Payroll Operations Team.
@@ -217,7 +215,7 @@ class PayslipMailer:
         employee: Employee,
         payroll_item: PayrollItem,
         batch: PayrollBatch,
-        company_name: str = "WorkforceAI",
+        company_name: str = "Leavify.ai",
         payout_tx_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Generates the official HTML payslip, sends it to the employee's email,
@@ -273,27 +271,17 @@ class PayslipMailer:
 
         subject = f"Official Payslip: {period_str} - {company_name}"
 
-        # 1. Dispatch email (SMTP or simulated)
-        if self.is_configured:
-            try:
-                msg = MIMEMultipart("alternative")
-                msg["Subject"] = subject
-                msg["From"] = f"{company_name} Payroll <{self.from_email}>"
-                msg["To"] = recipient_email
-                msg.attach(MIMEText(html_content, "html"))
-
-                with smtplib.SMTP(self.smtp_host, self.smtp_port, timeout=10) as server:
-                    server.starttls()
-                    server.login(self.smtp_user, self.smtp_password)
-                    server.sendmail(self.from_email, [recipient_email], msg.as_string())
-                logger.info(f"Dispatched payslip email via SMTP to {recipient_email}")
-            except Exception as e:
-                logger.warning(f"SMTP dispatch failed: {e}. Falling back to simulated delivery log.")
-        else:
-            logger.info(
-                f"[SIMULATED_PAYSLIP_DISPATCH] To: {recipient_email} | Subject: {subject} | "
-                f"Net: ${payroll_item.net_salary:,.2f} | Ref: {tx_ref}"
+        # 1. Dispatch email via unified HTTPS/SMTP system dispatcher
+        try:
+            await send_system_email(
+                to_email=recipient_email,
+                subject=subject,
+                html_content=html_content,
+                from_name=f"{company_name} Payroll",
             )
+            logger.info(f"Dispatched payslip email to {recipient_email}")
+        except Exception as e:
+            logger.warning(f"Payslip email dispatch failed: {e}")
 
         # 2. Log in CommunicationEvent ledger
         if self.db:

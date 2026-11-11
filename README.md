@@ -1,8 +1,8 @@
-# WorkforceAI
+# Leavify.ai
 
 <div align="center">
 
-**Autonomous Multi-Agent AI Workforce Management & Payroll Automation Platform**
+**Autonomous Multi-Agent AI Leave Intelligence & Payroll Automation Platform**
 
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115.0-009688?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/React-18.3.1-61DAFB?style=flat-square&logo=react)](https://react.dev)
@@ -19,9 +19,9 @@
 
 ## 📌 Overview
 
-**WorkforceAI** is a multi-tenant, agentic AI copilot platform engineered to automate organizational HR workflows, leave policy compliance, employee queries, and cross-border payroll settlements.
+**Leavify.ai** is a multi-tenant, agentic AI copilot platform engineered to automate organizational HR workflows, leave policy compliance, employee queries, and cross-border payroll settlements.
 
-Combining multi-provider LLM orchestration with high-speed deterministic decision rails (JEV System 1 & System 2), **WorkforceAI** eliminates manual administrative bottlenecks by reading inbound employee requests over Gmail/IMAP, cross-referencing organizational knowledge files (OKF) via vector similarity search, calculating leave balances, and orchestrating batch payouts through the PayPal Payouts API.
+Combining multi-provider LLM orchestration with high-speed deterministic decision rails (JEV System 1 & System 2), **Leavify.ai** eliminates manual administrative bottlenecks by reading inbound employee requests over Gmail/IMAP, cross-referencing organizational knowledge files (OKF) via vector similarity search, calculating leave balances, and orchestrating batch payouts through the PayPal Payouts API.
 
 ---
 
