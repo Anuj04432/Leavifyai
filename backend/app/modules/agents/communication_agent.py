@@ -290,7 +290,8 @@ class CommunicationIngestionAgent:
 
             msg_ids = messages[0].split()
             for m_id in msg_ids[-10:]:  # Process latest 10 unread
-                status, data = mail.fetch(m_id, "(RFC822)")
+                # Peek without marking \Seen so multi-tenant companies don't consume each other's unread mail
+                status, data = mail.fetch(m_id, "(BODY.PEEK[])")
                 if status != "OK":
                     continue
                 raw_email = data[0][1]
@@ -323,6 +324,7 @@ class CommunicationIngestionAgent:
                     channel="gmail",
                 )
                 if res.get("processed"):
+                    mail.store(m_id, "+FLAGS", "\\Seen")
                     processed_results.append(res)
 
             mail.close()

@@ -224,13 +224,18 @@ class PayslipMailer:
         # Determine employee metadata
         user = getattr(employee, "user", None)
         employee_name = f"{employee.first_name} {employee.last_name}" if employee else "Valued Employee"
+        # Prioritize real employee inbox before PayPal sandbox address
+        def _valid_email(val: Any) -> Optional[str]:
+            return val.strip() if isinstance(val, str) and "@" in val else None
+
         recipient_email = (
-            employee.paypal_email
-            or employee.email
-            or (user.email if user else None)
+            _valid_email(getattr(employee, "personal_email", None))
+            or _valid_email(getattr(employee, "email", None))
+            or _valid_email(getattr(user, "email", None))
+            or _valid_email(getattr(employee, "paypal_email", None))
         )
 
-        if not recipient_email or "@" not in recipient_email:
+        if not recipient_email:
             logger.warning(f"No valid recipient email for employee {employee.id} ({employee_name})")
             return {"dispatched": False, "status": "No valid recipient email"}
 
@@ -272,16 +277,21 @@ class PayslipMailer:
         subject = f"Official Payslip: {period_str} - {company_name}"
 
         # 1. Dispatch email via unified HTTPS/SMTP system dispatcher
+        dispatched_ok = False
+        dispatch_error = None
         try:
-            await send_system_email(
+            res = await send_system_email(
                 to_email=recipient_email,
                 subject=subject,
                 html_content=html_content,
                 from_name=f"{company_name} Payroll",
             )
-            logger.info(f"Dispatched payslip email to {recipient_email}")
+            dispatched_ok = bool(res.get("dispatched"))
+            if dispatched_ok:
+                logger.info(f"Dispatched payslip email to {recipient_email}")
         except Exception as e:
-            logger.warning(f"Payslip email dispatch failed: {e}")
+            dispatch_error = str(e)
+            logger.warning(f"Payslip email dispatch failed for {recipient_email}: {e}")
 
         # 2. Log in CommunicationEvent ledger
         if self.db:
@@ -304,9 +314,10 @@ class PayslipMailer:
                         "total_deductions": str(payroll_item.total_deductions),
                         "net_salary": str(payroll_item.net_salary),
                         "payout_tx_id": tx_ref,
+                        "error": dispatch_error,
                     },
                     ai_extracted_data={},
-                    processing_status="sent",
+                    processing_status="sent" if dispatched_ok else "failed",
                 )
                 self.db.add(event)
                 await self.db.commit()
@@ -314,7 +325,7 @@ class PayslipMailer:
                 logger.warning(f"Failed to record payslip communication event: {db_err}")
 
         return {
-            "dispatched": True,
+            "dispatched": dispatched_ok,
             "recipient": recipient_email,
             "net_salary": str(payroll_item.net_salary),
             "subject": subject,

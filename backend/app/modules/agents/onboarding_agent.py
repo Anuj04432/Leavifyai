@@ -117,6 +117,7 @@ class OnboardingDispatchAgent:
             }
 
         clean_dest = personal_email.strip().lower()
+        frontend_base = (os.getenv("FRONTEND_URL") or getattr(get_settings(), "FRONTEND_URL", "https://leavifyai.vercel.app")).rstrip("/")
 
         try:
             html_content = self.format_email_body(
@@ -126,19 +127,22 @@ class OnboardingDispatchAgent:
                 company_name=company_name,
                 personal_email=clean_dest,
                 organization_email=organization_email,
+                portal_url=f"{frontend_base}/login",
             )
 
-            await send_system_email(
+            dispatch_res = await send_system_email(
                 to_email=clean_dest,
                 subject=f"Welcome to {company_name}: Your Leavify.ai Portal Access Credentials",
                 html_content=html_content,
                 from_name="Leavify.ai Onboarding",
             )
 
-            logger.info(f"[ONBOARDING_DISPATCH] Successfully delivered welcome credentials for {employee_name} to {clean_dest}")
+            dispatched = bool(dispatch_res.get("dispatched"))
+            if dispatched:
+                logger.info(f"[ONBOARDING_DISPATCH] Successfully delivered welcome credentials for {employee_name} to {clean_dest}")
             return {
-                "dispatched": True,
-                "status": f"Dispatched credentials to {clean_dest}",
+                "dispatched": dispatched,
+                "status": f"Dispatched credentials to {clean_dest}" if dispatched else dispatch_res.get("reason", "Skipped"),
             }
         except Exception as e:
             logger.warning(f"[ONBOARDING_DISPATCH_FAILED] Error sending credentials to {clean_dest}: {e}")

@@ -73,12 +73,42 @@ export default function LandingPage({ defaultTab = "login" }: LandingPageProps) 
 
   // FAQ Accordion State
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
+  const [demoLoadingEmail, setDemoLoadingEmail] = useState<string | null>(null);
 
-  const fillDemoAccount = (demoEmail: string, demoPass: string = "password123") => {
-    setEmail(demoEmail);
-    setPassword(demoPass);
+  const authenticateUser = async (loginEmail: string, loginPassword: string) => {
     setError(null);
     setSuccessMsg(null);
+    setLoading(true);
+    try {
+      const res = await api.post("/auth/login", { email: loginEmail, password: loginPassword });
+      const { access_token, refresh_token, user } = res.data;
+      if (user) {
+        setAuth(access_token, refresh_token, user);
+      } else {
+        const meRes = await api.get("/auth/me", {
+          headers: { Authorization: `Bearer ${access_token}` },
+        });
+        setAuth(access_token, refresh_token, meRes.data);
+      }
+      navigate("/dashboard");
+    } catch (err: any) {
+      const detail = err.response?.data?.detail;
+      setError(
+        typeof detail === "string"
+          ? detail
+          : "Invalid email or password. Please try again."
+      );
+    } finally {
+      setLoading(false);
+      setDemoLoadingEmail(null);
+    }
+  };
+
+  const loginDemoAccount = async (demoEmail: string) => {
+    setEmail(demoEmail);
+    setPassword("PayPalDemo2026!");
+    setDemoLoadingEmail(demoEmail);
+    await authenticateUser(demoEmail, "PayPalDemo2026!");
   };
 
   useEffect(() => {
@@ -145,31 +175,7 @@ export default function LandingPage({ defaultTab = "login" }: LandingPageProps) 
 
   const handleLoginSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setError(null);
-    setLoading(true);
-
-    try {
-      const res = await api.post("/auth/login", { email, password });
-      const { access_token, refresh_token, user } = res.data;
-      if (user) {
-        setAuth(access_token, refresh_token, user);
-      } else {
-        const meRes = await api.get("/auth/me", {
-          headers: { Authorization: `Bearer ${access_token}` },
-        });
-        setAuth(access_token, refresh_token, meRes.data);
-      }
-      navigate("/dashboard");
-    } catch (err: any) {
-      const detail = err.response?.data?.detail;
-      setError(
-        typeof detail === "string"
-          ? detail
-          : "Invalid email or password. Please try again."
-      );
-    } finally {
-      setLoading(false);
-    }
+    await authenticateUser(email, password);
   };
 
   const handleRegisterSubmit = async (e: FormEvent) => {
@@ -454,40 +460,54 @@ export default function LandingPage({ defaultTab = "login" }: LandingPageProps) 
               {/* SIGN IN TAB */}
               {activeTab === "login" ? (
                 <form onSubmit={handleLoginSubmit} className="space-y-4">
-                  {/* Quick Evaluation Demo Logins */}
+                  {/* 1-Click PayPal Hackathon Demo Logins */}
                   <div className="p-3 rounded-2xl bg-[#1c1917] border border-stone-800 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-mono uppercase tracking-wider text-orange-400 font-semibold flex items-center gap-1.5">
                         <Sparkles className="w-3.5 h-3.5 text-orange-400" />
-                        <span>Instant Demo Evaluation</span>
+                        <span>PayPal Hackathon · 1-Click Demo</span>
                       </span>
-                      <span className="text-[10px] text-stone-500">Click to autofill credentials</span>
+                      <span className="text-[10px] text-stone-500">Logs in immediately</span>
                     </div>
                     <div className="grid grid-cols-3 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => fillDemoAccount("anujwagmore835@gmail.com", "password123")}
-                        className="p-2 rounded-xl bg-[#141210] hover:bg-stone-800 text-stone-300 hover:text-white border border-stone-800 text-left transition cursor-pointer group"
-                      >
-                        <div className="text-[11px] font-bold text-white group-hover:text-orange-400 transition">CEO / Admin</div>
-                        <div className="text-[10px] text-stone-500 truncate">anujwagmore835@...</div>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => fillDemoAccount("hr@leavify.ai", "password123")}
-                        className="p-2 rounded-xl bg-[#141210] hover:bg-stone-800 text-stone-300 hover:text-white border border-stone-800 text-left transition cursor-pointer group"
-                      >
-                        <div className="text-[11px] font-bold text-white group-hover:text-orange-400 transition">HR Lead</div>
-                        <div className="text-[10px] text-stone-500 truncate">hr@leavify.ai</div>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => fillDemoAccount("employee@leavify.ai", "password123")}
-                        className="p-2 rounded-xl bg-[#141210] hover:bg-stone-800 text-stone-300 hover:text-white border border-stone-800 text-left transition cursor-pointer group"
-                      >
-                        <div className="text-[11px] font-bold text-white group-hover:text-orange-400 transition">Employee</div>
-                        <div className="text-[10px] text-stone-500 truncate">employee@...</div>
-                      </button>
+                      {[
+                        {
+                          label: "CEO",
+                          email: "ceo@paypalhackathon.demo",
+                          sandbox: "sb-hsoh053785418@...",
+                        },
+                        {
+                          label: "HR / Admin",
+                          email: "hr@paypalhackathon.demo",
+                          sandbox: "paypaljudgereceiver@...",
+                        },
+                        {
+                          label: "Employee",
+                          email: "employee@paypalhackathon.demo",
+                          sandbox: "demoemployee@gmail.com",
+                        },
+                      ].map((demo) => {
+                        const isBusy = demoLoadingEmail === demo.email;
+                        return (
+                          <button
+                            key={demo.email}
+                            type="button"
+                            disabled={loading}
+                            onClick={() => loginDemoAccount(demo.email)}
+                            className="p-2 rounded-xl bg-[#141210] hover:bg-stone-800 disabled:opacity-60 text-stone-300 hover:text-white border border-stone-800 hover:border-orange-500/40 text-left transition cursor-pointer group"
+                          >
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="text-[11px] font-bold text-white group-hover:text-orange-400 transition">
+                                {demo.label}
+                              </span>
+                              {isBusy && <Loader2 className="w-3 h-3 animate-spin text-orange-400 shrink-0" />}
+                            </div>
+                            <div className="text-[10px] text-stone-500 truncate font-mono">
+                              {demo.sandbox}
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 

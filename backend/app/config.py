@@ -111,8 +111,11 @@ class Settings(BaseSettings):
     SLACK_NOTIFICATIONS_ENABLED: bool = True
 
     # Email Service Configuration (HTTPS API over Port 443 + SMTP Fallback)
+    BREVO_API_KEY: str = ""
+    BREVO_SENDER_EMAIL: str = ""
     RESEND_API_KEY: str = ""
     RESEND_FROM_EMAIL: str = "onboarding@resend.dev"
+    FRONTEND_URL: str = "https://leavifyai.vercel.app"
 
     # Live Gmail Integration (IMAP Inbound + SMTP Outbound)
     SMTP_HOST: str = "smtp.gmail.com"

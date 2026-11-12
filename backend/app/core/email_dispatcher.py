@@ -27,8 +27,50 @@ async def send_system_email(
     """
     settings = get_settings()
     clean_to = to_email.strip().lower()
+    errors: list[str] = []
 
-    # 1. Primary Cloud Strategy: Resend HTTPS API (Port 443 - Never blocked on Render/Vercel)
+    # Skip non-routable RFC-2606 example domains (e.g. PayPal sandbox @business.example.com)
+    if clean_to.endswith(("@business.example.com", "@personal.example.com", "@example.com")):
+        logger.info(f"[EMAIL_SKIPPED_SANDBOX] Skipping outbound mail to non-routable sandbox address: {clean_to}")
+        return {"dispatched": False, "provider": "skipped_sandbox_domain", "reason": "Non-routable example domain"}
+
+    # 1. Primary Cloud Strategy: Brevo HTTPS REST API (Port 443 - Sends to ANY recipient without DNS verification)
+    brevo_api_key = (os.getenv("BREVO_API_KEY") or getattr(settings, "BREVO_API_KEY", "") or "").strip()
+    if brevo_api_key:
+        brevo_sender_email = (
+            os.getenv("BREVO_SENDER_EMAIL")
+            or getattr(settings, "BREVO_SENDER_EMAIL", "")
+            or os.getenv("SMTP_USER")
+            or settings.SMTP_USER
+            or "notifications@leavify.ai"
+        ).strip()
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                resp = await client.post(
+                    "https://api.brevo.com/v3/smtp/email",
+                    headers={
+                        "api-key": brevo_api_key,
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "sender": {"name": from_name, "email": brevo_sender_email},
+                        "to": [{"email": clean_to}],
+                        "subject": subject,
+                        "htmlContent": html_content,
+                    },
+                )
+                if resp.status_code in (200, 201):
+                    data = resp.json()
+                    logger.info(f"[BREVO_HTTPS_DISPATCH] Delivered to {clean_to} (MessageId: {data.get('messageId')})")
+                    return {"dispatched": True, "provider": "brevo_https", "id": data.get("messageId")}
+                err_txt = resp.text
+                logger.warning(f"[BREVO_HTTPS_FAILED] Status {resp.status_code}: {err_txt}")
+                errors.append(f"Brevo ({resp.status_code}): {err_txt}")
+        except Exception as ex:
+            logger.warning(f"[BREVO_HTTPS_ERROR] Exception calling Brevo: {ex}")
+            errors.append(f"Brevo error: {ex}")
+
+    # 2. Secondary Cloud Strategy: Resend HTTPS API (Port 443)
     resend_api_key = (os.getenv("RESEND_API_KEY") or getattr(settings, "RESEND_API_KEY", "") or "").strip()
     if resend_api_key:
         resend_from = (
@@ -62,44 +104,14 @@ async def send_system_email(
                         "provider": "resend_https",
                         "id": data.get("id"),
                     }
-                else:
-                    err_msg = resp.text
-                    logger.warning(
-                        f"[RESEND_HTTPS_FAILED] Status {resp.status_code}: {err_msg}."
-                    )
-                    # If Resend restricted sandbox recipient error (403), include clear explanation
-                    if resp.status_code == 403 and "only send testing emails to your own email address" in err_msg:
-                        logger.error(f"[RESEND_SANDBOX_RESTRICTION] Resend onboarding@resend.dev only permits delivery to your registered Resend email.")
+                err_msg = resp.text
+                logger.warning(f"[RESEND_HTTPS_FAILED] Status {resp.status_code}: {err_msg}.")
+                if resp.status_code == 403 and "only send testing emails to your own email address" in err_msg:
+                    logger.error("[RESEND_SANDBOX_RESTRICTION] Resend onboarding@resend.dev only permits delivery to your registered Resend email.")
+                errors.append(f"Resend ({resp.status_code}): {err_msg}")
         except Exception as ex:
             logger.warning(f"[RESEND_HTTPS_ERROR] Exception calling Resend: {ex}.")
-
-    # 2. Cloud Strategy Alternative: Brevo HTTPS REST API (Allows sending to ANY recipient without custom domain)
-    brevo_api_key = (os.getenv("BREVO_API_KEY") or getattr(settings, "BREVO_API_KEY", "") or "").strip()
-    if brevo_api_key:
-        brevo_sender_email = (os.getenv("BREVO_SENDER_EMAIL") or os.getenv("SMTP_USER") or "notifications@leavify.ai").strip()
-        try:
-            async with httpx.AsyncClient(timeout=15.0) as client:
-                resp = await client.post(
-                    "https://api.brevo.com/v3/smtp/email",
-                    headers={
-                        "api-key": brevo_api_key,
-                        "Content-Type": "application/json",
-                    },
-                    json={
-                        "sender": {"name": from_name, "email": brevo_sender_email},
-                        "to": [{"email": clean_to}],
-                        "subject": subject,
-                        "htmlContent": html_content,
-                    },
-                )
-                if resp.status_code in (200, 201):
-                    data = resp.json()
-                    logger.info(f"[BREVO_HTTPS_DISPATCH] Delivered to {clean_to} (MessageId: {data.get('messageId')})")
-                    return {"dispatched": True, "provider": "brevo_https", "id": data.get("messageId")}
-                else:
-                    logger.warning(f"[BREVO_HTTPS_FAILED] Status {resp.status_code}: {resp.text}")
-        except Exception as ex:
-            logger.warning(f"[BREVO_HTTPS_ERROR] Exception calling Brevo: {ex}")
+            errors.append(f"Resend error: {ex}")
 
     # 2. Secondary Strategy: Standard SMTP (Port 587 / 465) for Local Development
     smtp_user = (os.getenv("SMTP_USER") or settings.SMTP_USER or "").strip()
@@ -144,14 +156,9 @@ async def send_system_email(
             }
         except Exception as ex:
             logger.error(f"[SMTP_DISPATCH_FAILED] Failed delivering to {clean_to}: {ex}")
-            raise RuntimeError(
-                f"Email dispatch failed: {ex}. On cloud hosting (Render Free Tier), outbound SMTP is blocked—set RESEND_API_KEY in environment variables."
-            ) from ex
+            errors.append(f"SMTP: {ex}")
 
-    # 3. Unconfigured Environment
-    logger.warning(
-        f"[EMAIL_UNCONFIGURED] Neither RESEND_API_KEY nor SMTP credentials configured. Email to {clean_to} skipped."
-    )
-    raise RuntimeError(
-        "Outbound email service is not configured. Set RESEND_API_KEY or SMTP_USER/SMTP_PASSWORD in your environment variables."
-    )
+    # 3. Unconfigured or all providers failed
+    detail = "; ".join(errors) if errors else "No email provider configured (set BREVO_API_KEY, RESEND_API_KEY, or SMTP_USER/SMTP_PASSWORD)."
+    logger.warning(f"[EMAIL_DELIVERY_FAILED] Failed delivering to {clean_to}: {detail}")
+    raise RuntimeError(f"Email dispatch failed: {detail}")

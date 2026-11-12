@@ -123,6 +123,8 @@ def test_payslip_html_generation():
 
 @pytest.mark.asyncio
 async def test_payslip_mailer_dispatch_and_logging():
+    from unittest.mock import patch
+
     mock_db = AsyncMock()
     mock_db.add = MagicMock()
     mailer = PayslipMailer(db=mock_db)
@@ -131,6 +133,7 @@ async def test_payslip_mailer_dispatch_and_logging():
     mock_emp.id = uuid.uuid4()
     mock_emp.first_name = "Alex"
     mock_emp.last_name = "Morgan"
+    mock_emp.personal_email = "alex.personal@gmail.com"
     mock_emp.email = "alex@company.com"
     mock_emp.paypal_email = "alex.paypal@example.com"
     mock_emp.employee_code = "EMP-777"
@@ -155,16 +158,21 @@ async def test_payslip_mailer_dispatch_and_logging():
     mock_batch.period_month = 11
     mock_batch.period_year = 2026
 
-    res = await mailer.send_payslip_email(
-        employee=mock_emp,
-        payroll_item=mock_item,
-        batch=mock_batch,
-        company_name="WorkforceAI",
-        payout_tx_id="TRANS-ALEX-01",
-    )
+    with patch(
+        "app.modules.payments.payslip_mailer.send_system_email",
+        new_callable=AsyncMock,
+        return_value={"dispatched": True, "provider": "brevo_https"},
+    ):
+        res = await mailer.send_payslip_email(
+            employee=mock_emp,
+            payroll_item=mock_item,
+            batch=mock_batch,
+            company_name="WorkforceAI",
+            payout_tx_id="TRANS-ALEX-01",
+        )
 
     assert res["dispatched"] is True
-    assert res["recipient"] == "alex.paypal@example.com"
+    assert res["recipient"] == "alex.personal@gmail.com"
     assert res["net_salary"] == "5750.00"
     assert "TRANS-ALEX-01" in res["payout_tx_id"]
     assert mock_db.add.called

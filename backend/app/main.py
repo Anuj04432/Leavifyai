@@ -21,7 +21,17 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup actions
+    # Startup actions: ensure fresh PayPal Hackathon demo workspace exists
+    try:
+        from app.database import AsyncSessionLocal
+        from app.modules.auth.demo_seed import ensure_paypal_hackathon_demo
+
+        async with AsyncSessionLocal() as db:
+            await ensure_paypal_hackathon_demo(db)
+    except Exception as ex:
+        import logging
+        logging.getLogger("leavify.startup").warning(f"Demo seed skipped at startup: {ex}")
+
     if settings.INBOX_AUTO_POLL_ENABLED:
         from app.modules.agents.background_worker import inbox_worker
         inbox_worker.start()

@@ -390,6 +390,18 @@ class AuthService:
         )
         user = (await self.db.execute(query)).scalars().first()
 
+        # Lazy self-heal: seed 'PayPal Hackathon' demo accounts if not yet present in DB
+        if not user and clean_email in {
+            "ceo@paypalhackathon.demo",
+            "hr@paypalhackathon.demo",
+            "employee@paypalhackathon.demo",
+            "paypaljudgereceiver@personal.gmail.com",
+            "demoemployee@gmail.com",
+        }:
+            from app.modules.auth.demo_seed import ensure_paypal_hackathon_demo
+            await ensure_paypal_hackathon_demo(self.db)
+            user = (await self.db.execute(query)).scalars().first()
+
         if not user or not verify_password(data.password, user.password_hash):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
